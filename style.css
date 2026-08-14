@@ -5,29 +5,27 @@ body {
 }
 
 /* 画面全体の固定とバウンス防止 */
+/* html, body の設定 */
 html, body {
-    width: 100vw;
-    height: 100vh;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;             /* スクロールバー非表示 */
-    position: fixed;              /* 画面の位置を絶対固定 */
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    touch-action: none;           /* すべてのタッチジェスチャーを無効化 */
-    overscroll-behavior: none;    /* バウンス防止 */
-    -webkit-user-select: none;    /* テキスト選択禁止 */
-    user-select: none;
-    -webkit-touch-callout: none;  /* 長押しメニュー禁止 */
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh; /* 動的ビューポート高さ */
+  overflow: hidden;
+  position: fixed; /* iOSでのスクロール・バウンスを強制固定 */
+  top: 0;
+  left: 0;
+  touch-action: none; /* タッチによる拡大・スクロールを無効化 */
+  -webkit-overflow-scrolling: auto; /* 慣性スクロール無効化 */
+  overscroll-behavior: none; /* スクロール境界のバウンス無効化 */
 }
 
-/* Canvas要素のスクロール・ズーム防止 */
-canvas {
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
+/* ゲーム盤面・コンテナにも touch-action: none を指定 */
+#game-container, canvas, .tile-container {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .p1 {
