@@ -6,14 +6,18 @@ body {
 
 /* 画面全体の固定とバウンス防止 */
 html, body {
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     margin: 0;
     padding: 0;
-    overflow: hidden;             /* スクロールバーを非表示 */
-    position: fixed;              /* 画面の位置を固定 */
-    touch-action: none;          /* ピンチイン・ズーム・スクロール動作を禁止 */
-    overscroll-behavior: none;    /* 引っ張りバウンス防止 */
+    overflow: hidden;             /* スクロールバー非表示 */
+    position: fixed;              /* 画面の位置を絶対固定 */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    touch-action: none;           /* すべてのタッチジェスチャーを無効化 */
+    overscroll-behavior: none;    /* バウンス防止 */
     -webkit-user-select: none;    /* テキスト選択禁止 */
     user-select: none;
     -webkit-touch-callout: none;  /* 長押しメニュー禁止 */
