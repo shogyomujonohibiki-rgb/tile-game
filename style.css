@@ -1,7 +1,6 @@
 @charset UTF-8;
 
 html, body {
-　font-family: Arial;
   margin: 0;
   padding: 0;
   width: 100%;
@@ -15,6 +14,10 @@ html, body {
   overscroll-behavior: none; /* スクロール境界のバウンス無効化 */
 }
 
+body {
+　font-family: Arial;
+}
+  
 .p1 {
   user-select:none;
   font-size: 32px;
