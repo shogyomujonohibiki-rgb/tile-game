@@ -34,14 +34,21 @@
 
     <!-- 画面のスクロール・バウンスを強制防止するスクリプト -->
     <script>
-        // 画面を引っ張ったりスワイプしたりした時のデフォルトのスクロール動作をブロック
-        document.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-        }, { passive: false });
-
+        // タッチ開始時・移動時のスクロール・バウンス動作を強制ブロック
+        const preventDefaultTouch = function(e) {
+            // ボタンなど、操作を許可したい要素以外はすべてデフォルト動作（スクロール）を防止
+            if (e.target.tagName !== 'BUTTON') {
+                e.preventDefault();
+            }
+        };
+    
+        document.addEventListener('touchstart', preventDefaultTouch, { passive: false });
+        document.addEventListener('touchmove', preventDefaultTouch, { passive: false });
+    
         // ダブルタップによるズーム動作をブロック
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function(e) {
+            if (e.target.tagName === 'BUTTON') return;
             const now = (new Date()).getTime();
             if (now - lastTouchEnd <= 300) {
                 e.preventDefault();
