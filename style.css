@@ -1,12 +1,7 @@
 @charset UTF-8;
 
 body {
-    font-family: Arial;
-}
-
-/* 画面全体の固定とバウンス防止 */
-/* html, body の設定 */
-html, body {
+　font-family: Arial;
   margin: 0;
   padding: 0;
   width: 100%;
@@ -19,13 +14,6 @@ html, body {
   touch-action: none; /* タッチによる拡大・スクロールを無効化 */
   -webkit-overflow-scrolling: auto; /* 慣性スクロール無効化 */
   overscroll-behavior: none; /* スクロール境界のバウンス無効化 */
-}
-
-/* ゲーム盤面・コンテナにも touch-action: none を指定 */
-#game-container, canvas, .tile-container {
-  touch-action: none;
-  -webkit-user-select: none;
-  user-select: none;
 }
 
 .p1 {
@@ -63,6 +51,10 @@ canvas {
   user-select:none;
   display: block;
   margin: 0 auto;
+
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 button {
