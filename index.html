@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>ゲーム2</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ゲーム2">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <p id="scoreBoard" class="p1">0</p>
+    <p id="highScoreBoard" class="p2">0</p>
+    <div>
+        <canvas width="240" height="250">
+            Canvas not supported.
+        </canvas>
+    </div>
+    <div id="timer">00:00.000</div>
+    <div id="gameSelect">
+        <!-- <p1>ゲーム選択</p1> -->
+        <button id="game4x4">再スタート</button>
+        <!-- <button id="game4x5">４ｘ５</button> -->
+        <!-- <button id="game5x5">５ｘ５</button> -->
+    </div>
+    <script src="main.js"></script>
+
+    <!-- Service Workerの登録 -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log('Service Worker Registered'));
+        }
+    </script>
+
+
+</body>
+
+</html>
