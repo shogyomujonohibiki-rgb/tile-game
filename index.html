@@ -3,14 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <title>ゲームテスト</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ゲームテスト">
-    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -31,39 +31,19 @@
         <!-- <button id="game5x5">５ｘ５</button> -->
     </div>
     <script src="main.js"></script>
-    
-     <!-- 画面のスクロール・バウンスを強制防止するスクリプト -->
-        <script>
-            // タッチ開始時・移動時のスクロール・バウンス動作を強制ブロック
-            const preventDefaultTouch = function(e) {
-                // ボタンなど、操作を許可したい要素以外はすべてデフォルト動作（スクロール）を防止
-                if (e.target.tagName !== 'BUTTON') {
-                    e.preventDefault();
-                }
-            };
-        
-            document.addEventListener('touchstart', preventDefaultTouch, { passive: false });
-            document.addEventListener('touchmove', preventDefaultTouch, { passive: false });
-        
-            // ダブルタップによるズーム動作をブロック
-            let lastTouchEnd = 0;
-            document.addEventListener('touchend', function(e) {
-                if (e.target.tagName === 'BUTTON') return;
-                const now = (new Date()).getTime();
-                if (now - lastTouchEnd <= 300) {
-                    e.preventDefault();
-                }
-                lastTouchEnd = now;
-            }, false);
-        </script>
-       
-<!-- Service Workerの登録 -->
+
+    <!-- Service Workerの登録 -->
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js')
-            .then(() => console.log('Service Worker Registered'));
-    }
+                .then(() => console.log('Service Worker Registered'));
+        }
     </script>
+
+
+</body>
+
+</html>
 
     </body>
     
