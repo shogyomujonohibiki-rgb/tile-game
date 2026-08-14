@@ -4,6 +4,28 @@ body {
     font-family: Arial;
 }
 
+/* 画面全体の固定とバウンス防止 */
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;             /* スクロールバーを非表示 */
+    position: fixed;              /* 画面の位置を固定 */
+    touch-action: none;          /* ピンチイン・ズーム・スクロール動作を禁止 */
+    overscroll-behavior: none;    /* 引っ張りバウンス防止 */
+    -webkit-user-select: none;    /* テキスト選択禁止 */
+    user-select: none;
+    -webkit-touch-callout: none;  /* 長押しメニュー禁止 */
+}
+
+/* Canvas要素のスクロール・ズーム防止 */
+canvas {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
 .p1 {
   user-select:none;
   font-size: 32px;
