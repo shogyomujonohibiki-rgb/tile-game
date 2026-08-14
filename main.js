@@ -58,7 +58,7 @@
             */
 
             this.canvas.addEventListener('pointerdown', (e) => {
-                e.preventDefault(); // ★画面移動・スクロールを防止
+                if (e.cancelable) e.preventDefault(); // イベントのデフォルト動作を防止
                 if (!this.isCounting) {
                     this.isCounting = true;
                     this.startTime = Date.now();
@@ -71,10 +71,10 @@
                 this.chsnRow = Math.floor((e.clientY - this.rect.top) / (this.TILE_HEIGHT + this.TILE_MARGIN));
                 this.tileChosen = true;
                 this.drawTiles();
-            });
+            }, { passive: false });
 
             this.canvas.addEventListener('pointermove', (e) => {
-                e.preventDefault(); // ★スワイプ中の画面移動を防止
+                if (e.cancelable) e.preventDefault(); // スワイプ中の画面バウンスを防止
                 if (this.isMoving) return;
                 if (this.tileChosen) {
                     const dx = e.clientX - this.startX;
@@ -130,7 +130,7 @@
                         }
                     }
                 }
-            });
+            } { passive: false });
 
             this.canvas.addEventListener('pointerup', (e) => {
                 if (this.isMoving) return;
