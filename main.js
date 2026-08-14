@@ -130,7 +130,7 @@
                         }
                     }
                 }
-            } { passive: false });
+            }, { passive: false });
 
             this.canvas.addEventListener('pointerup', (e) => {
                 if (this.isMoving) return;
