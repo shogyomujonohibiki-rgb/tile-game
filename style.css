@@ -1,0 +1,91 @@
+@charset UTF-8;
+
+body {
+    font-family: Arial;
+}
+
+.p1 {
+  user-select:none;
+  font-size: 32px;
+  width: 250px;
+  height: 44px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.p2 {
+  user-select:none;
+  font-size: 20px;
+  color: rgb(132, 132, 132);
+  width: 250px;
+  height: 32px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+
+div {
+  background: white;
+  user-select:none;
+  display: block;
+  margin: 0 auto;
+  padding-top: 8px;
+  padding-bottom: 8px;
+
+}
+
+canvas {
+  background: white;
+  user-select:none;
+  display: block;
+  margin: 0 auto;
+}
+
+button {
+    all: unset;
+    background-color: gainsboro;
+    width: 120px;
+    height: 32px;
+    font-size: 16px;
+    border: 1px solid black;
+    border-radius: 8px;
+    text-align: center;
+  display: block;
+  margin: 10px auto;
+}
+
+#timer {
+  margin: 10px auto;
+  padding-top: 5px;
+  font-size: 20px;
+  width: 250px;
+  /* height: 100px; */
+  line-height: 30px;
+  text-align: center;
+  background: #e9e9e9;
+  color: #333;
+  border-radius: 4px;
+  /* transition: transform 1.0s; */
+}
+
+#gameSelect {
+  position: absolute;
+  /* top: 40px; */
+  right: 0;
+  left: 0;
+  margin: 0px auto;
+  padding-top: 0px;
+  font-size: 16px;
+  width: 250px;
+  height: 50px;
+  line-height: 24px;
+  text-align: center;
+  background: #e9e9e9;
+  color: #333;
+  border-radius: 4px;
+  /* transition: transform 1.0s; */
+}
+
+sample {
+ background: rgb(0, 72, 255);
+}
