@@ -202,7 +202,7 @@
                 this.drawTiles();
                 setTimeout(this.moveRight.bind(this), this.moveFq);
             } else {
-                this.tileMx[this.chsnRow][this.chsnCol + 1].value = this.tileMx[this.chsnRow][this.chsnCol].value + 1;
+                this.tileMx[this.chsnRow][this.chsnCol + 1].value += 1 ;
                 for (let c = 0; c < this.chsnCol; c++) {
                     this.tileMx[this.chsnRow][this.chsnCol - c].value = this.tileMx[this.chsnRow][this.chsnCol - 1 - c].value;
                     this.tileMx[this.chsnRow][this.chsnCol - c].type = this.tileMx[this.chsnRow][this.chsnCol - 1 - c].type;
@@ -226,7 +226,7 @@
                 this.drawTiles();
                 setTimeout(this.moveLeft.bind(this), this.moveFq);
             } else {
-                this.tileMx[this.chsnRow][this.chsnCol - 1].value = this.tileMx[this.chsnRow][this.chsnCol].value + 1;
+                this.tileMx[this.chsnRow][this.chsnCol - 1].value += 1;
                 for (let c = 0; c < this.NO_COL - this.chsnCol - 1; c++) {
                     this.tileMx[this.chsnRow][this.chsnCol + c].value = this.tileMx[this.chsnRow][this.chsnCol + 1 + c].value;
                     this.tileMx[this.chsnRow][this.chsnCol + c].type = this.tileMx[this.chsnRow][this.chsnCol + 1 + c].type;
@@ -250,7 +250,7 @@
                 this.drawTiles();
                 setTimeout(this.moveDown.bind(this), this.moveFq);
             } else {
-                this.tileMx[this.chsnRow + 1][this.chsnCol].value = this.tileMx[this.chsnRow][this.chsnCol].value + 1;
+                this.tileMx[this.chsnRow + 1][this.chsnCol].value += 1;
                 for (let c = 0; c < this.chsnRow; c++) {
                     this.tileMx[this.chsnRow - c][this.chsnCol].value = this.tileMx[this.chsnRow - 1 - c][this.chsnCol].value;
                     this.tileMx[this.chsnRow - c][this.chsnCol].type = this.tileMx[this.chsnRow - 1 - c][this.chsnCol].type;
@@ -274,7 +274,7 @@
                 this.drawTiles();
                 setTimeout(this.moveUp.bind(this), this.moveFq);
             } else {
-                this.tileMx[this.chsnRow - 1][this.chsnCol].value = this.tileMx[this.chsnRow][this.chsnCol].value + 1;
+                this.tileMx[this.chsnRow - 1][this.chsnCol].value += 1;
                 for (let c = 0; c < this.NO_ROW - this.chsnRow - 1; c++) {
                     this.tileMx[this.chsnRow + c][this.chsnCol].value = this.tileMx[this.chsnRow + 1 + c][this.chsnCol].value;
                     this.tileMx[this.chsnRow + c][this.chsnCol].type = this.tileMx[this.chsnRow + 1 + c][this.chsnCol].type;
