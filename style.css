@@ -14,10 +14,14 @@ html, body {
   overscroll-behavior: none; /* スクロール境界のバウンス無効化 */
 }
 
+canvas {
+  touch-action: none; /* キャンバス上のスワイプで画面がスクロールするのを防ぐ */
+}
+
 body {
   font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
 }
-  
+
 .p1 {
   user-select:none;
   font-size: 32px;
