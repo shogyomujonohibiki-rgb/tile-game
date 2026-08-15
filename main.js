@@ -94,10 +94,10 @@
                 // アイテムが有効状態の場合
                 if (this.itemActive) {
                     (async () => {
+                        this.itemActive = false;
                         this.tileMx[newRow][newCol].value++;
                         await this.playLevelUpAnim(newRow, newCol);
                         this.itemCount--;
-                        this.itemActive = false;
                         this.itemButton.classList.remove('active');
                         this.drawTiles();
                     })();
