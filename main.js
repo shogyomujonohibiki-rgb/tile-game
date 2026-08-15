@@ -384,9 +384,7 @@
         }
 
         reset() {
-            for (let row = 0; row < this.NO_ROW; row++) {
-                this.tileMx.shift();
-            }
+            this.tileMx = [];
             this.score = 0;
             this.mergeCount = 0;
             this.itemCount = 0;
