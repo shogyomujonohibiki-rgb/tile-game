@@ -17,18 +17,26 @@
 
 <body>
     <p id="scoreBoard" class="p1">0</p>
-    <p id="highScoreBoard" class="p2">0</p>
+    <p id="mergeCountBoard" class="p2">マージ回数：0</p>
+    <div id="itemPanel">
+        <p id="itemCountBoard" class="p2">+1アイテム：0</p>
+        <button id="itemButton">使用</button>
+    </div>
+    <p id="highScoreBoard" class="p3">0</p>
+    <div id="colorSample"></div>
     <div>
         <canvas width="240" height="250">
             Canvas not supported.
         </canvas>
     </div>
-    <div id="timer">00:00.000</div>
-    <div id="gameSelect">
-        <!-- <p1>ゲーム選択</p1> -->
-        <button id="game4x4">再スタート</button>
-        <!-- <button id="game4x5">４ｘ５</button> -->
-        <!-- <button id="game5x5">５ｘ５</button> -->
+    <div id="controlPanel">
+        <div id="timer">00:00.00</div>
+        <div id="gameSelect">
+            <!-- <p1>ゲーム選択</p1> -->
+            <button id="game4x4">リセット</button>
+            <!-- <button id="game4x5">４ｘ５</button> -->
+            <!-- <button id="game5x5">５ｘ５</button> -->
+        </div>
     </div>
     <script src="main.js"></script>
 
