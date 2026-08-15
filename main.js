@@ -60,7 +60,7 @@
                 this.reset();
                 this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
             });
-            
+
             this.itemButton.addEventListener('click', () => {
                 if (this.itemCount > 0) {
                     this.itemActive = !this.itemActive;
@@ -87,10 +87,16 @@
                     this.countUp();
                 }
                 if (this.isMoving) return;
-                
+
+                // タップのたびにrectを最新に更新して、スクロールやレイアウト変更に強くする
+                this.rect = this.canvas.getBoundingClientRect();
+
                 const newCol = Math.floor((e.clientX - this.rect.left) / (this.TILE_WIDTH + this.TILE_MARGIN));
                 const newRow = Math.floor((e.clientY - this.rect.top) / (this.TILE_HEIGHT + this.TILE_MARGIN));
-                
+
+                // 範囲外のタッチを弾く
+                if (newCol < 0 || newCol >= this.NO_COL || newRow < 0 || newRow >= this.NO_ROW) return;
+        
                 // アイテムが有効状態の場合
                 if (this.itemActive) {
                     (async () => {
@@ -103,7 +109,7 @@
                     })();
                     return;
                 }
-                
+
                 this.startX = e.clientX;
                 this.startY = e.clientY;
                 this.chsnCol = newCol;
@@ -163,12 +169,12 @@
                 }
             });
 
-            this.canvas.addEventListener('pointerup', (e) => {
+            window.addEventListener('pointerup', (e) => {
                 if (this.isMoving) return;
                 this.release();
             });
 
-            this.canvas.addEventListener('pointerout', (e) => {
+            window.addEventListener('pointerout', (e) => {
                 if (this.isMoving) return;
                 this.release();
             });
@@ -346,7 +352,7 @@
             }
             this.mergeCountBoard.innerHTML = `マージ回数：${this.mergeCount}`;
             this.itemCountBoard.innerHTML = `+1アイテム：${this.itemCount}`;
-            
+
 
         }
         drawTile(row, col) {
@@ -533,17 +539,17 @@
         // カラーサンプルの初期化
         initializeColorSample() {
             const colorSample = document.getElementById('colorSample');
-            
+
             // 赤→紫→緑→赤の4色を表示（矢印付き）
             const colorSequence = [...this.COLORS, this.COLORS[0]]; // 赤→紫→緑→赤
-            
+
             colorSequence.forEach((color, index) => {
                 // 色ボックス
                 const box = document.createElement('div');
                 box.className = 'sample-box';
                 box.style.backgroundColor = `rgb${color}`;
                 colorSample.appendChild(box);
-                
+
                 // 矢印（最後の色以外）
                 if (index < colorSequence.length - 1) {
                     const arrow = document.createElement('div');
