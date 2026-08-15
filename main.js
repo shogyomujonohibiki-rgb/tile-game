@@ -40,7 +40,7 @@
             this.startTime;
 
             this.NO_ROW = 4;
-            this.NO_COL = 5;
+            this.NO_COL = 4;
             this.NO_TYPES = [5, 5, 6];
             this.TILE_WIDTH = this.rect.width / this.NO_COL - this.TILE_MARGIN;
             this.TILE_HEIGHT = this.rect.height / this.NO_ROW - this.TILE_MARGIN;
