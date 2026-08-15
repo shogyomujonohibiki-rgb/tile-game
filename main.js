@@ -9,19 +9,28 @@
             this.rect = this.canvas.getBoundingClientRect();
             this.timer = document.getElementById('timer');
             this.game4x4 = document.getElementById('game4x4');
+            this.itemButton = document.getElementById('itemButton');
             //this.game4x5 = document.getElementById('game4x5');
             this.scoreBoard = document.getElementById('scoreBoard');
             this.highScoreBoard = document.getElementById('highScoreBoard');
+            this.mergeCountBoard = document.getElementById('mergeCountBoard');
+            this.itemCountBoard = document.getElementById('itemCountBoard');
 
             //定数・設定
             this.TILE_MARGIN = 5;
             this.COLORS = ['(230, 82, 82)', '(79, 54, 219)', '(74, 162, 74)'];
             this.ANIMATION_DURATION = 150;
 
+            // カラーサンプルの初期化
+            this.initializeColorSample();
+
             //ゲーム状態
             this.tileMx = [];
             this.score = 0;
             this.highScore = 0;
+            this.mergeCount = 0;
+            this.itemCount = 0;
+            this.itemActive = false;
             this.isCounting = false;
             this.isGameover = false;
             this.isMoving = false;
@@ -51,6 +60,20 @@
                 this.reset();
                 this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
             });
+            
+            this.itemButton.addEventListener('click', () => {
+                if (this.itemCount > 0) {
+                    this.itemActive = !this.itemActive;
+                }
+
+                // アイテムボタンの状態表示
+                if (this.itemActive) {
+                    this.itemButton.classList.add('active');
+                } else {
+                    this.itemButton.classList.remove('active');
+                }
+
+            });
             /*this.game4x5.addEventListener('click', () => {
                 this.reset();
                 this.gameStart(4, 5, [14, 3, 3], 'highScore4x5');
@@ -64,10 +87,27 @@
                     this.countUp();
                 }
                 if (this.isMoving) return;
+                
+                const newCol = Math.floor((e.clientX - this.rect.left) / (this.TILE_WIDTH + this.TILE_MARGIN));
+                const newRow = Math.floor((e.clientY - this.rect.top) / (this.TILE_HEIGHT + this.TILE_MARGIN));
+                
+                // アイテムが有効状態の場合
+                if (this.itemActive) {
+                    (async () => {
+                        this.tileMx[newRow][newCol].value++;
+                        await this.playLevelUpAnim(newRow, newCol);
+                        this.itemCount--;
+                        this.itemActive = false;
+                        this.itemButton.classList.remove('active');
+                        this.drawTiles();
+                    })();
+                    return;
+                }
+                
                 this.startX = e.clientX;
                 this.startY = e.clientY;
-                this.chsnCol = Math.floor((e.clientX - this.rect.left) / (this.TILE_WIDTH + this.TILE_MARGIN));
-                this.chsnRow = Math.floor((e.clientY - this.rect.top) / (this.TILE_HEIGHT + this.TILE_MARGIN));
+                this.chsnCol = newCol;
+                this.chsnRow = newRow;
                 this.tileChosen = true;
                 this.drawTiles();
             });
@@ -88,41 +128,34 @@
                     this.drawTiles();
 
                     if (dx > this.TILE_WIDTH && this.chsnCol < this.NO_COL - 1) {
-                        if (this.tileMx[this.chsnRow][this.chsnCol].type != this.tileMx[this.chsnRow][this.chsnCol + 1].type ||
-                            this.tileMx[this.chsnRow][this.chsnCol].value != this.tileMx[this.chsnRow][this.chsnCol + 1].value
-                        ) {
+                        if (!this.canMergeTile(this.chsnRow, this.chsnCol + 1)) {
                             this.release();
                         } else {
-                            this.score += this.tileMx[this.chsnRow][this.chsnCol].value;
+                            this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                             this.isMoving = true;
                             this.moveRight();
                         }
                     } else if (dx < this.TILE_WIDTH * -1 && this.chsnCol > 0) {
-                        if (this.tileMx[this.chsnRow][this.chsnCol].type != this.tileMx[this.chsnRow][this.chsnCol - 1].type ||
-                            this.tileMx[this.chsnRow][this.chsnCol].value != this.tileMx[this.chsnRow][this.chsnCol - 1].value
-                        ) {
+                        if (!this.canMergeTile(this.chsnRow, this.chsnCol - 1)) {
                             this.release();
                         } else {
-                            this.score += this.tileMx[this.chsnRow][this.chsnCol].value;
+                            this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                             this.isMoving = true;
                             this.moveLeft();
                         }
                     } else if (dy > this.TILE_HEIGHT && this.chsnRow < this.NO_ROW - 1) {
-                        if (this.tileMx[this.chsnRow][this.chsnCol].type != this.tileMx[this.chsnRow + 1][this.chsnCol].type ||
-                            this.tileMx[this.chsnRow][this.chsnCol].value != this.tileMx[this.chsnRow + 1][this.chsnCol].value
-                        ) {
+                        if (!this.canMergeTile(this.chsnRow + 1, this.chsnCol)) {
                             this.release();
                         } else {
-                            this.score += this.tileMx[this.chsnRow][this.chsnCol].value;
+                            this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                             this.isMoving = true;
                             this.moveDown();
                         }
                     } else if (dy < this.TILE_HEIGHT * -1 && this.chsnRow > 0) {
-                        if (this.tileMx[this.chsnRow][this.chsnCol].type != this.tileMx[this.chsnRow - 1][this.chsnCol].type ||
-                            this.tileMx[this.chsnRow][this.chsnCol].value != this.tileMx[this.chsnRow - 1][this.chsnCol].value) {
+                        if (!this.canMergeTile(this.chsnRow - 1, this.chsnCol)) {
                             this.release();
                         } else {
-                            this.score += this.tileMx[this.chsnRow][this.chsnCol].value;
+                            this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                             this.isMoving = true;
                             this.moveUp();
                         }
@@ -175,14 +208,7 @@
                 this.tileMx[this.chsnRow][0].x = 0;
                 this.tileMx[this.chsnRow][0].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-                //minCheckAndAddを追加
-                (async () => {
-                    this.minCheckAndAdd();
-                    this.tileChosen = false;
-                    this.frameCount = 0;
-                    this.isMoving = false;
-                    this.drawTiles();
-                })();
+                this.finishMove();
             }
         }
         moveLeft() {
@@ -206,14 +232,7 @@
                 this.tileMx[this.chsnRow][this.NO_COL - 1].x = (this.NO_COL - 1) * (this.TILE_WIDTH + this.TILE_MARGIN);
                 this.tileMx[this.chsnRow][this.NO_COL - 1].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-                //minCheckAndAddを追加
-                (async () => {
-                    this.minCheckAndAdd();
-                    this.tileChosen = false;
-                    this.frameCount = 0;
-                    this.isMoving = false;
-                    this.drawTiles();
-                })();
+                this.finishMove();
             }
         }
         moveDown() {
@@ -237,14 +256,7 @@
                 this.tileMx[0][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
                 this.tileMx[0][this.chsnCol].y = 0;
 
-                //minCheckAndAddを追加
-                (async () => {
-                    this.minCheckAndAdd();
-                    this.tileChosen = false;
-                    this.frameCount = 0;
-                    this.isMoving = false;
-                    this.drawTiles();
-                })();
+                this.finishMove();
             }
         }
         moveUp() {
@@ -268,14 +280,7 @@
                 this.tileMx[this.NO_ROW - 1][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
                 this.tileMx[this.NO_ROW - 1][this.chsnCol].y = (this.NO_ROW - 1) * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-                //minCheckAndAddを追加
-                (async () => {
-                    this.minCheckAndAdd();
-                    this.tileChosen = false;
-                    this.frameCount = 0;
-                    this.isMoving = false;
-                    this.drawTiles();
-                })();
+                this.finishMove();
             }
         }
 
@@ -339,6 +344,9 @@
                 localStorage.setItem('highScore4x5', this.highScore);
                 this.highScoreBoard.innerHTML = `４ｘ５ハイスコア ${this.highScore}`;
             }
+            this.mergeCountBoard.innerHTML = `マージ回数：${this.mergeCount}`;
+            this.itemCountBoard.innerHTML = `+1アイテム：${this.itemCount}`;
+            
 
         }
         drawTile(row, col) {
@@ -374,6 +382,9 @@
                 this.tileMx.shift();
             }
             this.score = 0;
+            this.mergeCount = 0;
+            this.itemCount = 0;
+            this.itemActive = false;
             this.timer.textContent = '00:00.00'
             this.isCounting = false;
             this.isGameover = false;
@@ -408,8 +419,11 @@
                 }
             }
             if (check === 0) {
-                this.isGameover = true;
-                this.isCounting = false;
+                // アイテムが残っていればゲームオーバーにしない
+                if (this.itemCount === 0) {
+                    this.isGameover = true;
+                    this.isCounting = false;
+                }
             }
         }
 
@@ -432,6 +446,7 @@
             setTimeout(this.countUp.bind(this), 10);
         }
 
+        /*
         async minCheckAndAdd() {
             //minValueの更新
             this.minValue = this.tileMx[0][0].value;
@@ -467,6 +482,7 @@
                 }
             }
         }
+        */
 
         //minValueを1増やすときのアニメ
         playLevelUpAnim(row, col) {
@@ -492,6 +508,49 @@
                     }
                 };
                 anim();
+            });
+        }
+
+        async finishMove() {
+            this.mergeCount++;
+            // マージ回数が10の倍数でアイテムを獲得
+            if (this.mergeCount % 10 === 0) {
+                this.itemCount++;
+            }
+            // await this.minCheckAndAdd();
+            this.tileChosen = false;
+            this.frameCount = 0;
+            this.isMoving = false;
+            this.drawTiles();
+        }
+
+        canMergeTile(targetRow, targetCol) {
+            const currentTile = this.tileMx[this.chsnRow][this.chsnCol];
+            const targetTile = this.tileMx[targetRow][targetCol];
+            return currentTile.type === targetTile.type && currentTile.value === targetTile.value;
+        }
+
+        // カラーサンプルの初期化
+        initializeColorSample() {
+            const colorSample = document.getElementById('colorSample');
+            
+            // 赤→紫→緑→赤の4色を表示（矢印付き）
+            const colorSequence = [...this.COLORS, this.COLORS[0]]; // 赤→紫→緑→赤
+            
+            colorSequence.forEach((color, index) => {
+                // 色ボックス
+                const box = document.createElement('div');
+                box.className = 'sample-box';
+                box.style.backgroundColor = `rgb${color}`;
+                colorSample.appendChild(box);
+                
+                // 矢印（最後の色以外）
+                if (index < colorSequence.length - 1) {
+                    const arrow = document.createElement('div');
+                    arrow.className = 'sample-arrow';
+                    arrow.textContent = '→';
+                    colorSample.appendChild(arrow);
+                }
             });
         }
 
