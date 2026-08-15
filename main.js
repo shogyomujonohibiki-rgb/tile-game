@@ -200,7 +200,8 @@
                     this.tileMx[this.chsnRow][this.chsnCol - 1 - c].x += (this.TILE_WIDTH + this.TILE_MARGIN) / this.moveFrame;
                 }
                 this.drawTiles();
-                setTimeout(this.moveRight.bind(this), this.moveFq);
+                requestAnimationFrame(() => this.moveRight());
+                return;
             } else {
                 this.tileMx[this.chsnRow][this.chsnCol + 1].value += 1 ;
                 for (let c = 0; c < this.chsnCol; c++) {
@@ -224,7 +225,8 @@
                     this.tileMx[this.chsnRow][this.chsnCol + 1 + c].x += -(this.TILE_WIDTH + this.TILE_MARGIN) / this.moveFrame;
                 }
                 this.drawTiles();
-                setTimeout(this.moveLeft.bind(this), this.moveFq);
+                requestAnimationFrame(() => this.moveLeft());
+                return;
             } else {
                 this.tileMx[this.chsnRow][this.chsnCol - 1].value += 1;
                 for (let c = 0; c < this.NO_COL - this.chsnCol - 1; c++) {
@@ -248,7 +250,8 @@
                     this.tileMx[this.chsnRow - 1 - c][this.chsnCol].y += (this.TILE_HEIGHT + this.TILE_MARGIN) / this.moveFrame;
                 }
                 this.drawTiles();
-                setTimeout(this.moveDown.bind(this), this.moveFq);
+                requestAnimationFrame(() => this.moveDown());
+                return;
             } else {
                 this.tileMx[this.chsnRow + 1][this.chsnCol].value += 1;
                 for (let c = 0; c < this.chsnRow; c++) {
@@ -272,7 +275,8 @@
                     this.tileMx[this.chsnRow + 1 - c][this.chsnCol].y += -(this.TILE_HEIGHT + this.TILE_MARGIN) / this.moveFrame;
                 }
                 this.drawTiles();
-                setTimeout(this.moveUp.bind(this), this.moveFq);
+                requestAnimationFrame(() => this.moveUp());
+                return;
             } else {
                 this.tileMx[this.chsnRow - 1][this.chsnCol].value += 1;
                 for (let c = 0; c < this.NO_ROW - this.chsnRow - 1; c++) {
