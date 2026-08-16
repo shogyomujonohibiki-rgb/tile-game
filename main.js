@@ -1,6 +1,23 @@
 'use strict'
 
 {
+    // --- 1. 起動時：Firebase準備完了時にクラウドからデータを取得して画面表示 ---
+    window.addEventListener('firebase-ready', async () => {
+        const userData = await window.loadUserDataFromFirestore();
+
+        if (userData) {
+            // クラウドにデータがあれば変数や画面UIへ反映
+            if (userData.highScore !== undefined) {
+                highScore = userData.highScore;
+                document.getElementById('highScoreBoard').textContent = highScore;
+            }
+            if (userData.itemCount !== undefined) {
+                itemCount = userData.itemCount;
+                document.getElementById('itemCountBoard').textContent = `+1アイテム：${itemCount}`;
+            }
+        }
+    });
+
     class Game {
         constructor() {
             //DOM要素の取得
@@ -96,7 +113,7 @@
 
                 // 範囲外のタッチを弾く
                 if (newCol < 0 || newCol >= this.NO_COL || newRow < 0 || newRow >= this.NO_ROW) return;
-        
+
                 // アイテムが有効状態の場合
                 if (this.itemActive) {
                     (async () => {
@@ -203,7 +220,7 @@
                 requestAnimationFrame(() => this.moveRight());
                 return;
             } else {
-                this.tileMx[this.chsnRow][this.chsnCol + 1].value += 1 ;
+                this.tileMx[this.chsnRow][this.chsnCol + 1].value += 1;
                 for (let c = 0; c < this.chsnCol; c++) {
                     this.tileMx[this.chsnRow][this.chsnCol - c].value = this.tileMx[this.chsnRow][this.chsnCol - 1 - c].value;
                     this.tileMx[this.chsnRow][this.chsnCol - c].type = this.tileMx[this.chsnRow][this.chsnCol - 1 - c].type;
@@ -335,28 +352,22 @@
             if (this.tileChosen) {
                 this.drawTile(this.chsnRow, this.chsnCol);
             }
-            //ゲームオーバー描画
+            // ゲームオーバー画面の描画
             if (this.isGameover) {
-                this.ctx.fillStyle = 'rgba(1,1,1,0.5)'
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                this.ctx.fillStyle = 'white';
-                this.ctx.textAlign = 'center';
-                this.ctx.font = 'bold 32px Arial';
-                this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
+                this.drawGameOverOverlay();
             }
             //スコアを描画
             this.scoreBoard.innerHTML = `スコア ${this.score}`;
             this.highScore = Math.max(this.highScore, this.score);
             if (this.NO_ROW === 4 && this.NO_COL === 4) {
                 localStorage.setItem('highScore4x4', this.highScore);
-                this.highScoreBoard.innerHTML = `４ｘ４ハイスコア ${this.highScore}`;
+                this.highScoreBoard.innerHTML = `ハイスコア ${this.highScore}`;
             } else if (this.NO_ROW === 4 && this.NO_COL === 5) {
                 localStorage.setItem('highScore4x5', this.highScore);
                 this.highScoreBoard.innerHTML = `４ｘ５ハイスコア ${this.highScore}`;
             }
             this.mergeCountBoard.innerHTML = `マージ回数：${this.mergeCount}`;
             this.itemCountBoard.innerHTML = `+1アイテム：${this.itemCount}`;
-
 
         }
         drawTile(row, col) {
@@ -426,13 +437,32 @@
                     }
                 }
             }
-            if (check === 0) {
-                // アイテムが残っていればゲームオーバーにしない
-                if (this.itemCount === 0) {
-                    this.isGameover = true;
-                    this.isCounting = false;
-                }
+
+            // 移動可能な組み合わせがなく、かつ復帰アイテムを所持していない場合はゲームオーバーを発生させる
+            if (check === 0 && this.itemCount === 0) {
+                this.triggerGameOver();
             }
+        }
+
+        // --- ゲームオーバー発生時の状態管理を独立 ---
+        triggerGameOver() {
+            if (this.isGameover) return;
+            this.isGameover = true;
+            this.isCounting = false;
+            // Firestore連携等のハイスコア保存や分析イベント送信を拡張する際もここに追記可能
+            window.saveUserDataToFirestore({
+                highScore: this.highScore
+            });
+        }
+
+        // --- ゲームオーバー表示の描画処理を独立 ---
+        drawGameOverOverlay() {
+            this.ctx.fillStyle = 'rgba(1,1,1,0.5)';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillStyle = 'white';
+            this.ctx.textAlign = 'center';
+            this.ctx.font = 'bold 32px Arial';
+            this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
         }
 
         release() {
@@ -454,7 +484,7 @@
             setTimeout(this.countUp.bind(this), 10);
         }
 
-        /*
+        /*　数字がひとつだけになったときに＋１する仕様
         async minCheckAndAdd() {
             //minValueの更新
             this.minValue = this.tileMx[0][0].value;
