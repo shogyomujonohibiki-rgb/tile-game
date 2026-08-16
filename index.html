@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>ゲームテスト</title>
+    <title>マージゲーム</title>
 
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ゲームテスト">
+    <meta name="apple-mobile-web-app-title" content="マージゲーム">
     <link rel="apple-touch-icon" href="icon.png">
 
     <link rel="stylesheet" href="style.css">
@@ -38,7 +38,52 @@
             <!-- <button id="game5x5">５ｘ５</button> -->
         </div>
     </div>
-    <script src="main.js"></script>
+
+    <!-- Firebase SDK (ES Modules) 初期化設定 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // ★ Firebaseコンソールでコピーした設定情報に書き換えてください
+        const firebaseConfig = {
+            apiKey: "AIzaSyAK9WpeKAKNeBmNCv-IIn3_ICQtuifeUoM",
+            authDomain: "merge-game-4ca92.firebaseapp.com",
+            projectId: "merge-game-4ca92",
+            storageBucket: "merge-game-4ca92.firebasestorage.app",
+            messagingSenderId: "777141437539",
+            appId: "1:777141437539:web:47275b67f5e199624a2456"
+        };
+
+        // Firebase初期化
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // main.js 側から参照できるように window オブジェクトへ保存
+        window.db = db;
+        window.auth = auth;
+        window.currentUser = null;
+
+        // 匿名ログインの実行・状態監視
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log("ログイン中 端末UID:", user.uid);
+                window.currentUser = user;
+            } else {
+                try {
+                    const cred = await signInAnonymously(auth);
+                    console.log("初回匿名ログイン成功 端末UID:", cred.user.uid);
+                    window.currentUser = cred.user;
+                } catch (error) {
+                    console.error("匿名ログイン失敗:", error);
+                }
+            }
+        });
+    </script>
+
+    <!-- Firebase初期化モジュールの完了を待つため defer を付与 -->
+    <script src="main.js" defer></script>
 
     <!-- Service Workerの登録 -->
     <script>
@@ -47,8 +92,6 @@
                 .then(() => console.log('Service Worker Registered'));
         }
     </script>
-
-
 </body>
 
 </html>
