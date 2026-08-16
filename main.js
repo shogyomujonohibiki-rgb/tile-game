@@ -114,6 +114,8 @@
             */
 
             this.canvas.addEventListener('pointerdown', (e) => {
+                if (this.isGameover) return;
+
                 if (!this.isCounting) {
                     this.isCounting = true;
                     this.startTime = Date.now();
@@ -218,8 +220,8 @@
         // --- ユーザー名の変更・設定処理 ---
         changeUserName(isFirstTime = false) {
             const promptMessage = isFirstTime
-                ? 'ようこそ！プレイヤー名を入力してください:'
-                : '新しいプレイヤー名を入力してください:';
+                ? 'プレイヤー名を入力してください:'
+                : 'プレイヤー名を入力してください:';
 
             const inputName = prompt(promptMessage, this.userName !== 'Guest' ? this.userName : '');
 
@@ -514,18 +516,18 @@
             this.ctx.fillStyle = 'white';
             this.ctx.textAlign = 'center';
             this.ctx.font = 'bold 32px Arial';
-            this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
+            this.ctx.fillText('GAME OVER', this.canvas.width / 2, 25);
 
             // スコアランキング表示
             this.ctx.font = 'bold 18px Arial';
             this.ctx.fillStyle = '#FFD700'; // ゴールドっぽい色
-            this.ctx.fillText('— SCORE RANKING —', this.canvas.width / 2, 85);
+            this.ctx.fillText('— SCORE RANKING —', this.canvas.width / 2, 55);
 
             this.ctx.font = '15px Arial';
             this.ctx.textAlign = 'left';
 
             const startX = this.canvas.width / 2 - 80;
-            let startY = 125;
+            let startY = 80;
 
             if (this.leaderboard.length === 0) {
                 this.ctx.textAlign = 'center';
@@ -536,7 +538,7 @@
                     // 自分の名前や1位の色を変える等の調整が可能
                     this.ctx.fillStyle = index === 0 ? '#FFD700' : 'white';
                     const rankText = `${index + 1}. ${item.userName}`;
-                    const scoreText = `${item.highScore}pt`;
+                    const scoreText = `${item.highScore}`;
 
                     this.ctx.textAlign = 'left';
                     this.ctx.fillText(rankText, startX, startY);
@@ -544,7 +546,7 @@
                     this.ctx.textAlign = 'right';
                     this.ctx.fillText(scoreText, startX + 160, startY);
 
-                    startY += 30; // 行間隔
+                    startY += 20; // 行間隔
                 });
             }
 
