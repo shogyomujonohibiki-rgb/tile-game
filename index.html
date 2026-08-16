@@ -43,9 +43,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        // ★ Firebaseコンソールでコピーした設定情報に書き換えてください
+        // ★ Firebaseコンソールの設定情報
         const firebaseConfig = {
             apiKey: "AIzaSyAK9WpeKAKNeBmNCv-IIn3_ICQtuifeUoM",
             authDomain: "merge-game-4ca92.firebaseapp.com",
@@ -60,26 +60,56 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // main.js 側から参照できるように window オブジェクトへ保存
-        window.db = db;
-        window.auth = auth;
         window.currentUser = null;
 
-        // 匿名ログインの実行・状態監視
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                console.log("ログイン中 端末UID:", user.uid);
-                window.currentUser = user;
-            } else {
-                try {
-                    const cred = await signInAnonymously(auth);
-                    console.log("初回匿名ログイン成功 端末UID:", cred.user.uid);
-                    window.currentUser = cred.user;
-                } catch (error) {
-                    console.error("匿名ログイン失敗:", error);
-                }
+    // --- データ読み込み用関数 ---
+    window.loadUserDataFromFirestore = async () => {
+        if (!window.currentUser) return null;
+        try {
+            const userRef = doc(db, "users", window.currentUser.uid);
+            const docSnap = await getDoc(userRef);
+            if (docSnap.exists()) {
+                return docSnap.data(); // { highScore: 1200, itemQty: 3 } など
             }
-        });
+        } catch (error) {
+            console.error("データ読み込み失敗:", error);
+        }
+        return null;
+    };
+
+    // --- データ保存用関数 ---
+    window.saveUserDataToFirestore = async (data) => {
+        if (!window.currentUser) return;
+        try {
+            const userRef = doc(db, "users", window.currentUser.uid);
+            // merge: true で既存のフィールドを残しつつ更新可能
+            await setDoc(userRef, {
+                ...data,
+                updatedAt: new Date()
+            }, { merge: true });
+            console.log("Firestoreへの保存成功:", data);
+        } catch (error) {
+            console.error("データ保存失敗:", error);
+        }
+    };
+
+    // ログイン監視
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            window.currentUser = user;
+            console.log("ログイン中 UID:", user.uid);
+            // ログイン完了イベントを main.js 側に伝える
+            window.dispatchEvent(new Event('firebase-ready'));
+        } else {
+            try {
+                const cred = await signInAnonymously(auth);
+                window.currentUser = cred.user;
+                window.dispatchEvent(new Event('firebase-ready'));
+            } catch (error) {
+                console.error("ログイン失敗:", error);
+            }
+        }
+    });
     </script>
 
     <!-- Firebase初期化モジュールの完了を待つため defer を付与 -->
