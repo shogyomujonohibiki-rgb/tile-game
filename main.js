@@ -11,9 +11,8 @@
                 this.highScore = userData.highScore;
                 document.getElementById('highScoreBoard').textContent = highScore;
             }
-            if (userData.itemCount !== undefined) {
-                itemCount = userData.itemCount;
-                document.getElementById('itemCountBoard').textContent = `+1アイテム：${itemCount}`;
+            if (userData.userName) {
+                document.getElementById('userNameBoard').textContent = `プレイヤー: ${userData.userName}`;
             }
         }
     });
@@ -40,6 +39,15 @@
 
             // カラーサンプルの初期化
             this.initializeColorSample();
+
+            // ユーザー名の初期化（初回起動時は自動で名前入力ダイアログを表示）
+            const savedName = localStorage.getItem('gameUserName');
+            if (!savedName) {
+                this.userName = 'Guest';
+                this.changeUserName(true); // 初回呼び出しフラグを指定
+            } else {
+                this.userName = savedName;
+            }
 
             //ゲーム状態
             this.tileMx = [];
@@ -197,6 +205,28 @@
             });
 
             this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
+        }
+
+        // --- ユーザー名の変更・設定処理 ---
+        changeUserName(isFirstTime = false) {
+            const promptMessage = isFirstTime 
+                ? 'ようこそ！プレイヤー名を入力してください:' 
+                : '新しいプレイヤー名を入力してください:';
+
+            const inputName = prompt(promptMessage, this.userName !== 'Guest' ? this.userName : '');
+            
+            if (inputName !== null && inputName.trim() !== '') {
+                this.userName = inputName.trim();
+            } else if (isFirstTime) {
+                this.userName = 'Guest'; // 初回キャンセル時はGuestとして保持
+            }
+
+            localStorage.setItem('gameUserName', this.userName);
+
+            // Firestoreへ同期可能な場合は保存
+            if (window.saveUserDataToFirestore) {
+                window.saveUserDataToFirestore({ userName: this.userName });
+            }
         }
 
         gameStart(no_row, no_col, no_types, highScore) {
