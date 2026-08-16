@@ -8,7 +8,7 @@
         if (userData) {
             // クラウドにデータがあれば変数や画面UIへ反映
             if (userData.highScore !== undefined) {
-                highScore = userData.highScore;
+                this.highScore = userData.highScore;
                 document.getElementById('highScoreBoard').textContent = highScore;
             }
             if (userData.itemCount !== undefined) {
