@@ -1,6 +1,6 @@
 {
-  "name": "ゲーム2",
-  "short_name": "ゲーム2",
+  "name": "マージゲーム",
+  "short_name": "マージゲーム",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
