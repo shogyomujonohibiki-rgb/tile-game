@@ -6,13 +6,20 @@
         const userData = await window.loadUserDataFromFirestore();
 
         if (userData) {
-            // クラウドにデータがあれば変数や画面UIへ反映
+            // クラウドにデータがあれば画面 UI 等へ反映
             if (userData.highScore !== undefined) {
                 this.highScore = userData.highScore;
                 document.getElementById('highScoreBoard').textContent = highScore;
             }
             if (userData.userName) {
-                document.getElementById('userNameBoard').textContent = `プレイヤー: ${userData.userName}`;
+                // Firestore から取得した名前を保持
+                localStorage.setItem('gameUserName', userData.userName);
+            }
+        } else {
+            // クラウドにデータがない場合、localStorage に保存されている名前を Firestore に初期保存する
+            const localName = localStorage.getItem('gameUserName');
+            if (localName && window.saveUserDataToFirestore) {
+                window.saveUserDataToFirestore({ userName: localName });
             }
         }
     });
@@ -209,12 +216,12 @@
 
         // --- ユーザー名の変更・設定処理 ---
         changeUserName(isFirstTime = false) {
-            const promptMessage = isFirstTime 
-                ? 'ようこそ！プレイヤー名を入力してください:' 
+            const promptMessage = isFirstTime
+                ? 'ようこそ！プレイヤー名を入力してください:'
                 : '新しいプレイヤー名を入力してください:';
 
             const inputName = prompt(promptMessage, this.userName !== 'Guest' ? this.userName : '');
-            
+
             if (inputName !== null && inputName.trim() !== '') {
                 this.userName = inputName.trim();
             } else if (isFirstTime) {
@@ -483,6 +490,7 @@
             window.saveUserDataToFirestore({
                 highScore: this.highScore
             });
+            this.changeUserName(true);
         }
 
         // --- ゲームオーバー表示の描画処理を独立 ---
