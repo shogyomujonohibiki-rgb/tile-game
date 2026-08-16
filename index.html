@@ -62,54 +62,81 @@
 
         window.currentUser = null;
 
-    // --- データ読み込み用関数 ---
-    window.loadUserDataFromFirestore = async () => {
-        if (!window.currentUser) return null;
-        try {
-            const userRef = doc(db, "users", window.currentUser.uid);
-            const docSnap = await getDoc(userRef);
-            if (docSnap.exists()) {
-                return docSnap.data(); // { highScore: 1200, itemQty: 3 } など
-            }
-        } catch (error) {
-            console.error("データ読み込み失敗:", error);
-        }
-        return null;
-    };
-
-    // --- データ保存用関数 ---
-    window.saveUserDataToFirestore = async (data) => {
-        if (!window.currentUser) return;
-        try {
-            const userRef = doc(db, "users", window.currentUser.uid);
-            // merge: true で既存のフィールドを残しつつ更新可能
-            await setDoc(userRef, {
-                ...data,
-                updatedAt: new Date()
-            }, { merge: true });
-            console.log("Firestoreへの保存成功:", data);
-        } catch (error) {
-            console.error("データ保存失敗:", error);
-        }
-    };
-
-    // ログイン監視
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            window.currentUser = user;
-            console.log("ログイン中 UID:", user.uid);
-            // ログイン完了イベントを main.js 側に伝える
-            window.dispatchEvent(new Event('firebase-ready'));
-        } else {
+        // --- データ読み込み用関数 ---
+        window.loadUserDataFromFirestore = async () => {
+            if (!window.currentUser) return null;
             try {
-                const cred = await signInAnonymously(auth);
-                window.currentUser = cred.user;
-                window.dispatchEvent(new Event('firebase-ready'));
+                const userRef = doc(db, "users", window.currentUser.uid);
+                const docSnap = await getDoc(userRef);
+                if (docSnap.exists()) {
+                    return docSnap.data(); // { highScore: 1200, itemQty: 3 } など
+                }
             } catch (error) {
-                console.error("ログイン失敗:", error);
+                console.error("データ読み込み失敗:", error);
             }
-        }
-    });
+            return null;
+        };
+
+        // --- データ保存用関数 ---
+        window.saveUserDataToFirestore = async (data) => {
+            if (!window.currentUser) return;
+            try {
+                const userRef = doc(db, "users", window.currentUser.uid);
+                // merge: true で既存のフィールドを残しつつ更新可能
+                await setDoc(userRef, {
+                    ...data,
+                    updatedAt: new Date()
+                }, { merge: true });
+                console.log("Firestoreへの保存成功:", data);
+            } catch (error) {
+                console.error("データ保存失敗:", error);
+            }
+        };
+
+        // Firestore から上位スコア（例: トップ5）を取得する関数
+        window.fetchLeaderboardFromFirestore = async function (limitCount = 5) {
+            if (!window.db) return []; // Firestoreのdbインスタンスがない場合は空配列を返す
+            try {
+                // "users" コレクションから highScore の降順で取得
+                // ※ v9 モジュラー形式の例（プロジェクトのFirebaseバージョンに合わせて調整してください）
+                const { collection, query, orderBy, limit, getDocs } = window.firebaseFirestore || {};
+                if (!getDocs) return [];
+
+                const q = query(collection(window.db, "users"), orderBy("highScore", "desc"), limit(limitCount));
+                const querySnapshot = await getDocs(q);
+
+                const leaderboard = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    leaderboard.push({
+                        userName: data.userName || 'Guest',
+                        highScore: data.highScore || 0
+                    });
+                });
+                return leaderboard;
+            } catch (error) {
+                console.error("ランキングの取得に失敗しました:", error);
+                return [];
+            }
+        };
+
+        // ログイン監視
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                window.currentUser = user;
+                console.log("ログイン中 UID:", user.uid);
+                // ログイン完了イベントを main.js 側に伝える
+                window.dispatchEvent(new Event('firebase-ready'));
+            } else {
+                try {
+                    const cred = await signInAnonymously(auth);
+                    window.currentUser = cred.user;
+                    window.dispatchEvent(new Event('firebase-ready'));
+                } catch (error) {
+                    console.error("ログイン失敗:", error);
+                }
+            }
+        });
     </script>
 
     <!-- Firebase初期化モジュールの完了を待つため defer を付与 -->
