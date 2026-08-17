@@ -219,18 +219,20 @@
 
         // --- ユーザー名の変更・設定処理 ---
         changeUserName(isFirstTime = false) {
-            const promptMessage = isFirstTime
-                ? 'プレイヤー名を入力してください:'
-                : 'プレイヤー名を入力してください:';
+            const promptMessage = 'プレイヤー名を入力してください:';
+            const defaultName = (this.userName && this.userName !== 'Guest') ? this.userName : '';
 
-            const inputName = prompt(promptMessage, this.userName !== 'Guest' ? this.userName : '');
+            const inputName = prompt(promptMessage, defaultName);
 
             if (inputName !== null && inputName.trim() !== '') {
                 this.userName = inputName.trim();
-            } else if (isFirstTime) {
-                this.userName = 'Guest'; // 初回キャンセル時はGuestとして保持
+            } else if (isFirstTime && (!this.userName || this.userName === 'Guest')) {
+                // 初回かつ名前未設定の場合のみ Guest にする
+                this.userName = 'Guest';
             }
+            // キャンセル時や空入力時は既存の this.userName を維持する
 
+            // localStorage の更新
             localStorage.setItem('gameUserName', this.userName);
 
             // Firestoreへ同期可能な場合は保存
@@ -492,64 +494,95 @@
 
             this.drawTiles();
 
-            // 次の描画フレーム完了後に prompt を開く（描画を画面に確実に反映させる）
+            // 次の描画フレーム完了後に prompt を開く
             await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
 
-            this.changeUserName(true);
+            // 1. ユーザー名の入力プロンプトを表示（既存の名前をデフォルト表示）
+            if (typeof this.changeUserName === 'function') {
+                await this.changeUserName(false); // isFirstTime は false
+            }
 
-            // Firestore連携等のハイスコア保存や分析イベント送信を拡張する際もここに追記可能
-            window.saveUserDataToFirestore({
-                highScore: this.highScore
-            });
+            // 2. ユーザーのプロフィール情報を保存
+            if (window.saveUserDataToFirestore) {
+                await window.saveUserDataToFirestore({
+                    userName: this.userName,
+                    highScore: this.highScore
+                });
+            }
 
-            // 最新のランキングを取得
+            // 3. スコア履歴へ追加保存 (確実に最新の this.userName を渡す)
+            if (window.saveScoreToFirestore) {
+                // saveScoreToFirestore 側の実装に応じて、引数で this.userName も渡せる場合は渡す
+                await window.saveScoreToFirestore(this.score, this.mergeCount, this.userName);
+            }
+
+            // 4. 最新のランキング（上位20件）を取得して画面更新
             if (window.fetchLeaderboardFromFirestore) {
-                this.leaderboard = await window.fetchLeaderboardFromFirestore(5);
+                this.leaderboard = await window.fetchLeaderboardFromFirestore(20);
                 this.drawTiles();
             }
         }
 
         // --- ゲームオーバー表示の描画処理を独立 ---
         drawGameOverOverlay() {
-            this.ctx.fillStyle = 'rgba(1,1,1,0.5)';
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // Header
             this.ctx.fillStyle = 'white';
             this.ctx.textAlign = 'center';
-            this.ctx.font = 'bold 32px Arial';
-            this.ctx.fillText('GAME OVER', this.canvas.width / 2, 25);
+            this.ctx.font = 'bold 22px Arial';
+            this.ctx.fillText('GAME OVER', this.canvas.width / 2, 28);
 
-            // スコアランキング表示
-            this.ctx.font = 'bold 18px Arial';
-            this.ctx.fillStyle = '#FFD700'; // ゴールドっぽい色
-            this.ctx.fillText('— SCORE RANKING —', this.canvas.width / 2, 55);
-
-            this.ctx.font = '15px Arial';
-            this.ctx.textAlign = 'left';
-
-            const startX = this.canvas.width / 2 - 80;
-            let startY = 80;
+            this.ctx.font = 'bold 13px Arial';
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.fillText('— TOP 20 RANKING —', this.canvas.width / 2, 46);
 
             if (this.leaderboard.length === 0) {
+                this.ctx.font = '16px Arial';
                 this.ctx.textAlign = 'center';
                 this.ctx.fillStyle = '#CCCCCC';
-                this.ctx.fillText('Loading...', this.canvas.width / 2, startY + 20);
-            } else {
-                this.leaderboard.forEach((item, index) => {
-                    // 自分の名前や1位の色を変える等の調整が可能
-                    this.ctx.fillStyle = index === 0 ? '#FFD700' : 'white';
-                    const rankText = `${index + 1}. ${item.userName}`;
-                    const scoreText = `${item.highScore}`;
-
-                    this.ctx.textAlign = 'left';
-                    this.ctx.fillText(rankText, startX, startY);
-
-                    this.ctx.textAlign = 'right';
-                    this.ctx.fillText(scoreText, startX + 160, startY);
-
-                    startY += 20; // 行間隔
-                });
+                this.ctx.fillText('Loading...', this.canvas.width / 2, 100);
+                return;
             }
 
+            // --- 画面幅に収めるためのレイアウト計算 ---
+            const padding = 12; // 左右端の余白
+            const centerGap = 10; // 左右の列の間の余白
+
+            // キャンバス幅から左右余白と列間余白を引いた残り幅を2等分
+            const colWidth = (this.canvas.width - (padding * 2) - centerGap) / 2;
+
+            const col1X = padding; // 左列の開始位置
+            const col2X = padding + colWidth + centerGap; // 右列の開始位置
+            const startY = 70;
+            const lineHeight = 19;
+
+            this.ctx.fillStyle = 'white'; // 全順位共通で白文字
+
+            this.leaderboard.forEach((item, index) => {
+                const isLeftCol = index < 10;
+                const startX = isLeftCol ? col1X : col2X;
+                const row = isLeftCol ? index : index - 10;
+                const currentY = startY + (row * lineHeight);
+
+                // 1〜3位はフォントを少し大きく(14px)、4位以降は12px
+                if (index < 3) {
+                    this.ctx.font = 'bold 14px Arial';
+                } else {
+                    this.ctx.font = '12px Arial';
+                }
+
+                // 名前
+                this.ctx.textAlign = 'left';
+                const rankText = `${index + 1}. ${item.userName}`;
+                this.ctx.fillText(rankText, startX, currentY);
+
+                // スコア
+                this.ctx.textAlign = 'right';
+                const scoreText = `${item.score}`;
+                this.ctx.fillText(scoreText, startX + colWidth, currentY);
+            });
         }
 
         release() {
