@@ -41,16 +41,18 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         // ★ collection, query, orderBy, limit, getDocs を追加 import
-        import { 
-            getFirestore, 
-            doc, 
-            getDoc, 
-            setDoc, 
-            collection, 
-            query, 
-            orderBy, 
-            limit, 
-            getDocs 
+        import {
+            getFirestore,
+            doc,
+            getDoc,
+            setDoc,
+            collection,
+            query,
+            orderBy,
+            limit,
+            getDocs,
+            addDoc,
+            serverTimestamp
         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         // Firebaseコンソールの設定情報
@@ -100,10 +102,34 @@
             }
         };
 
-        // --- ランキング取得用関数（修正済み） ---
-        window.fetchLeaderboardFromFirestore = async function (limitCount = 10) {
+        // --- プレイごとのスコア保存用関数 ---
+        window.saveScoreToFirestore = async (score, mergeCount = 0, userName = null) => {
+            if (!window.currentUser) return;
             try {
-                const q = query(collection(db, "users"), orderBy("highScore", "desc"), limit(limitCount));
+                // 引数 > localStorage > Auth情報 > 'Guest' の優先順位で名前を特定
+                const currentName = userName
+                    || localStorage.getItem('gameUserName')
+                    || window.currentUser.displayName
+                    || window.currentUser.userName
+                    || 'Guest';
+
+                const scoresRef = collection(db, "scores");
+                await addDoc(scoresRef, {
+                    uid: window.currentUser.uid,
+                    userName: currentName,
+                    score: score,
+                    createdAt: serverTimestamp()
+                });
+                console.log("スコアの保存に成功しました:", score, "ユーザー名:", currentName);
+            } catch (error) {
+                console.error("スコア保存失敗:", error);
+            }
+        };
+
+        // --- ランキング取得用関数（修正済み） ---
+        window.fetchLeaderboardFromFirestore = async function (limitCount = 20) {
+            try {
+                const q = query(collection(db, "scores"), orderBy("score", "desc"), limit(limitCount));
                 const querySnapshot = await getDocs(q);
 
                 const leaderboard = [];
@@ -111,7 +137,8 @@
                     const data = docSnap.data();
                     leaderboard.push({
                         userName: data.userName || 'Guest',
-                        highScore: data.highScore || 0
+                        score: data.score || 0,
+                        createdAt: data.createdAt ? data.createdAt.toDate() : new Date()
                     });
                 });
                 return leaderboard;
