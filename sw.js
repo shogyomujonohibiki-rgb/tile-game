@@ -1,4 +1,4 @@
-const CACHE_NAME = 'game-v9.2'; // ★更新時はこのバージョン文字列を変更する
+const CACHE_NAME = 'game-v10'; // ★更新時はここを書き換える
 const ASSETS = [
   './',
   './index.html',
@@ -7,33 +7,51 @@ const ASSETS = [
   './manifest.json'
 ];
 
-// インストール処理：キャッシュの登録 ＋ 即時アクティベート要求
+// インストール：アセットの事前キャッシュ ＋ 即時スキップ待機
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting()) // 新しいService Workerを待機させず即座に有効化
+      .then(() => self.skipWaiting())
   );
 });
 
-// アクティベート処理：古いバージョンのキャッシュを自動削除
+// アクティベート：古いキャッシュの全削除 ＋ 即時コントロール獲得
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            return caches.delete(key); // 新バージョン以外の古いキャッシュを全削除
+            return caches.delete(key);
           }
         })
       );
-    }).then(() => self.clients.claim()) // 制御下の全クライアント（画面）に即時反映
+    }).then(() => self.clients.claim())
   );
 });
 
-// フェッチ処理
+// フェッチ：ネットワーク優先（Network First）
+// オンライン時は常にサーバーから最新を取得し、失敗時（オフライン時）にキャッシュを使う
 self.addEventListener('fetch', (e) => {
+  // HTTP / HTTPS 以外のリクエスト（chrome-extension等）は除外
+  if (!e.request.url.startsWith('http')) return;
+
   e.respondWith(
-    caches.match(e.request).then((response) => response || fetch(e.request))
+    fetch(e.request)
+      .then((networkResponse) => {
+        // 取得成功したらキャッシュも更新しておく
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(e.request, responseToCache);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // オフライン等でネットワーク失敗時はキャッシュから返す
+        return caches.match(e.request);
+      })
   );
 });
