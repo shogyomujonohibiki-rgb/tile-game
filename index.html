@@ -212,8 +212,48 @@
     <!-- Service Workerの登録 -->
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log('Service Worker Registered'));
+            window.addEventListener('load', () => {
+                // registration.update() を呼び出して常に最新の sw.js をチェック
+                navigator.serviceWorker.register('./sw.js?v=9').then((registration) => {
+
+                    // 1. 画面を開いた・フォアグラウンドに戻ったタイミングで更新チェックを強制
+                    const checkUpdate = () => {
+                        registration.update().catch(err => console.error('SW Update check failed:', err));
+                    };
+
+                    checkUpdate();
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') {
+                            checkUpdate();
+                        }
+                    });
+
+                    // 2. 新しい Service Worker が見つかった場合のログ出力（リロードは controllerchange に任せる）
+                    registration.onupdatefound = () => {
+                        const installingWorker = registration.installing;
+                        if (installingWorker == null) return;
+
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed') {
+                                if (navigator.serviceWorker.controller) {
+                                    console.log('新しいバージョンが更新されました。');
+                                }
+                            }
+                        };
+                    };
+                }).catch((error) => {
+                    console.error('Service Worker 登録失敗:', error);
+                });
+            });
+
+            // 3. Service Workerの切り替え（clients.claim）を検知して1回だけ自動リロード
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
         }
     </script>
 </body>
