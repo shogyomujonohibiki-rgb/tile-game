@@ -625,10 +625,11 @@
 
                 this.ctx.font = index < 3 ? 'bold 10px Arial' : '9px Arial';
 
-                // 年月日を表示 (例: "26/08/30" や "2026/08/30")
+                // 順位テキスト（例: "1. " や "1位 "）と年月日を結合して表示
                 this.ctx.textAlign = 'left';
+                const rankText = `${index + 1}. `;
                 const dateText = item.dateStr || '';
-                this.ctx.fillText(dateText, startX, currentY);
+                this.ctx.fillText(`${rankText}${dateText}`, startX, currentY);
 
                 // スコアを表示
                 this.ctx.textAlign = 'right';
