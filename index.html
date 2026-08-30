@@ -32,6 +32,7 @@
     <div id="controlPanel">
         <div id="timer">00:00.00</div>
         <div id="gameSelect">
+            <button id="undoButton">1手戻る</button>
             <button id="game4x4">リセット</button>
         </div>
     </div>
@@ -40,7 +41,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        // ★ collection, query, orderBy, limit, getDocs を追加 import
         import {
             getFirestore,
             doc,
@@ -107,7 +107,6 @@
         window.saveScoreToFirestore = async (score, mergeCount = 0, userName = null) => {
             if (!window.currentUser) return;
             try {
-                // 引数 > localStorage > Auth情報 > 'Guest' の優先順位で名前を特定
                 const currentName = userName
                     || localStorage.getItem('gameUserName')
                     || window.currentUser.displayName
@@ -127,7 +126,7 @@
             }
         };
 
-        // --- ランキング取得用関数（修正済み） ---
+        // --- ランキング取得用関数 ---
         window.fetchLeaderboardFromFirestore = async function (limitCount = 20) {
             try {
                 const q = query(collection(db, "scores"), orderBy("score", "desc"), limit(limitCount));
@@ -148,7 +147,8 @@
                 return [];
             }
         };
-        // --- マイランキング／個人の履歴取得用関数（年月日フォーマット付き） ---
+
+        // --- マイランキング／個人の履歴取得用関数 ---
         window.fetchMyLeaderboardFromFirestore = async function (uid, limitCount = 20) {
             const targetUid = uid || (window.currentUser ? window.currentUser.uid : null);
             if (!targetUid) {
@@ -170,7 +170,6 @@
                     const data = docSnap.data();
                     const dateObj = data.createdAt ? data.createdAt.toDate() : new Date();
 
-                    // YYYY/MM/DD 形式にフォーマット
                     const year = dateObj.getFullYear();
                     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
                     const day = String(dateObj.getDate()).padStart(2, '0');
@@ -206,17 +205,13 @@
         });
     </script>
 
-    <!-- Firebase初期化モジュールの完了を待つため defer を付与 -->
     <script src="main.js" defer></script>
 
     <!-- Service Workerの登録 -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // registration.update() を呼び出して常に最新の sw.js をチェック
                 navigator.serviceWorker.register('./sw.js?v=9').then((registration) => {
-
-                    // 1. 画面を開いた・フォアグラウンドに戻ったタイミングで更新チェックを強制
                     const checkUpdate = () => {
                         registration.update().catch(err => console.error('SW Update check failed:', err));
                     };
@@ -228,7 +223,6 @@
                         }
                     });
 
-                    // 2. 新しい Service Worker が見つかった場合のログ出力（リロードは controllerchange に任せる）
                     registration.onupdatefound = () => {
                         const installingWorker = registration.installing;
                         if (installingWorker == null) return;
@@ -246,7 +240,6 @@
                 });
             });
 
-            // 3. Service Workerの切り替え（clients.claim）を検知して1回だけ自動リロード
             let refreshing = false;
             navigator.serviceWorker.addEventListener('controllerchange', () => {
                 if (!refreshing) {
