@@ -48,6 +48,7 @@
             setDoc,
             collection,
             query,
+            where,
             orderBy,
             limit,
             getDocs,
@@ -144,6 +145,45 @@
                 return leaderboard;
             } catch (error) {
                 console.error("ランキングの取得に失敗しました:", error);
+                return [];
+            }
+        };
+        // --- マイランキング／個人の履歴取得用関数（年月日フォーマット付き） ---
+        window.fetchMyLeaderboardFromFirestore = async function (uid, limitCount = 20) {
+            const targetUid = uid || (window.currentUser ? window.currentUser.uid : null);
+            if (!targetUid) {
+                console.warn("uid が指定されていないため、マイランキングを取得できません。");
+                return [];
+            }
+
+            try {
+                const q = query(
+                    collection(db, "scores"),
+                    where("uid", "==", targetUid),
+                    orderBy("score", "desc"),
+                    limit(limitCount)
+                );
+                const querySnapshot = await getDocs(q);
+
+                const leaderboard = [];
+                querySnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const dateObj = data.createdAt ? data.createdAt.toDate() : new Date();
+
+                    // YYYY/MM/DD 形式にフォーマット
+                    const year = dateObj.getFullYear();
+                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const day = String(dateObj.getDate()).padStart(2, '0');
+                    const formattedDate = `${year}/${month}/${day}`;
+
+                    leaderboard.push({
+                        dateStr: formattedDate,
+                        score: data.score || 0
+                    });
+                });
+                return leaderboard;
+            } catch (error) {
+                console.error("マイランキングの取得エラー:", error);
                 return [];
             }
         };
