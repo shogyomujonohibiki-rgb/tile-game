@@ -707,10 +707,19 @@
             const colorSequence = [...this.COLORS, this.COLORS[0]];
 
             colorSequence.forEach((color, index) => {
+                // タイル（色ボックス）の作成
                 const box = document.createElement('div');
                 box.className = 'sample-box';
                 box.style.backgroundColor = `rgb${color}`;
                 colorSample.appendChild(box);
+
+                // 最後のタイルの後ろには矢印を表示しない
+                if (index < colorSequence.length - 1) {
+                    const arrow = document.createElement('span');
+                    arrow.className = 'sample-arrow';
+                    arrow.textContent = '→';
+                    colorSample.appendChild(arrow);
+                }
             });
         }
     }
