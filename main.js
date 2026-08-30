@@ -100,7 +100,7 @@
             // リセット/スタートボタン押下時（※4x4で再スタートするよう修正）
             this.game4x4.addEventListener('click', () => {
                 this.reset();
-                this.gameStart(2, 2, [5, 5, 6], 'highScore4x4');
+                this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
             });
 
             this.itemButton.addEventListener('click', () => {
