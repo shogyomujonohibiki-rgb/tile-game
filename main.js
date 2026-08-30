@@ -36,6 +36,7 @@
             this.rect = this.canvas.getBoundingClientRect();
             this.timer = document.getElementById('timer');
             this.game4x4 = document.getElementById('game4x4');
+            this.undoButton = document.getElementById('undoButton');
             this.itemButton = document.getElementById('itemButton');
             this.scoreBoard = document.getElementById('scoreBoard');
             this.highScoreBoard = document.getElementById('highScoreBoard');
@@ -64,6 +65,7 @@
 
             // ゲーム状態
             this.tileMx = [];
+            this.history = []; // 盤面状態の履歴（スタック）
             this.score = 0;
             this.highScore = 0;
             this.mergeCount = 0;
@@ -97,11 +99,18 @@
             this.moveFq = 10;
             this.moveFrame = this.moveDuration / this.moveFq;
 
-            // リセット/スタートボタン押下時（※4x4で再スタートするよう修正）
+            // リセット/スタートボタン押下時
             this.game4x4.addEventListener('click', () => {
                 this.reset();
                 this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
             });
+
+            // Undoボタン押下時
+            if (this.undoButton) {
+                this.undoButton.addEventListener('click', () => {
+                    this.undo();
+                });
+            }
 
             this.itemButton.addEventListener('click', () => {
                 if (this.itemCount > 0) {
@@ -138,6 +147,7 @@
 
                 if (this.itemActive) {
                     (async () => {
+                        this.saveState(); // アイテム使用前の状態を履歴に保存
                         this.itemActive = false;
                         this.tileMx[newRow][newCol].value++;
                         await this.playLevelUpAnim(newRow, newCol);
@@ -175,6 +185,7 @@
                         if (!this.canMergeTile(this.chsnRow, this.chsnCol + 1)) {
                             this.release();
                         } else {
+                            this.saveState(); // 移動確定直前に履歴保存
                             this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                             this.isMoving = true;
                             this.moveRight();
@@ -183,6 +194,7 @@
                         if (!this.canMergeTile(this.chsnRow, this.chsnCol - 1)) {
                             this.release();
                         } else {
+                            this.saveState(); // 移動確定直前に履歴保存
                             this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                             this.isMoving = true;
                             this.moveLeft();
@@ -191,6 +203,7 @@
                         if (!this.canMergeTile(this.chsnRow + 1, this.chsnCol)) {
                             this.release();
                         } else {
+                            this.saveState(); // 移動確定直前に履歴保存
                             this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                             this.isMoving = true;
                             this.moveDown();
@@ -199,6 +212,7 @@
                         if (!this.canMergeTile(this.chsnRow - 1, this.chsnCol)) {
                             this.release();
                         } else {
+                            this.saveState(); // 移動確定直前に履歴保存
                             this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                             this.isMoving = true;
                             this.moveUp();
@@ -218,6 +232,44 @@
             });
 
             this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
+        }
+
+        // 完全なディープコピーで状態を履歴に保存（参照を完全に切り離す）
+        saveState() {
+            const snapshot = {
+                tileMx: JSON.parse(JSON.stringify(this.tileMx)),
+                score: this.score,
+                mergeCount: this.mergeCount,
+                itemCount: this.itemCount
+            };
+            this.history.push(snapshot);
+        }
+
+        // 1手戻る処理
+        undo() {
+            if (this.isGameover || this.isMoving || this.history.length === 0) return;
+
+            const previousState = this.history.pop();
+            this.tileMx = previousState.tileMx;
+            this.score = previousState.score;
+            this.mergeCount = previousState.mergeCount;
+            this.itemCount = previousState.itemCount;
+
+            // 各タイルの位置座標(x, y)とフラグを正確に正規化して復元
+            for (let r = 0; r < this.NO_ROW; r++) {
+                for (let c = 0; c < this.NO_COL; c++) {
+                    this.tileMx[r][c].x = c * (this.TILE_WIDTH + this.TILE_MARGIN);
+                    this.tileMx[r][c].y = r * (this.TILE_HEIGHT + this.TILE_MARGIN);
+                    this.tileMx[r][c].scale = 1;
+                    this.tileMx[r][c].isAnimating = false;
+                }
+            }
+
+            this.tileChosen = false;
+            this.itemActive = false;
+            if (this.itemButton) this.itemButton.classList.remove('active');
+
+            this.drawTiles();
         }
 
         changeUserName(isFirstTime = false) {
@@ -246,7 +298,9 @@
             this.TILE_HEIGHT = this.rect.height / this.NO_ROW - this.TILE_MARGIN;
             this.NO_TYPES = no_types;
             this.highScore = parseInt(localStorage.getItem(highScoreKey), 10) || 0;
+            this.history = []; // 履歴の初期化
             this.createTiles();
+            this.saveState();  // 初期盤面（0手目）を保持
             this.drawTiles();
         }
 
@@ -437,6 +491,7 @@
 
         reset() {
             this.tileMx = [];
+            this.history = []; // 履歴の初期化
             this.score = 0;
             this.mergeCount = 0;
             this.itemCount = 0;
@@ -503,12 +558,10 @@
                 this.changeUserName(false);
             }
 
-            // 最新の UID を確実に取得
             if (window.currentUser) {
                 this.uid = window.currentUser.uid;
             }
 
-            // ユーザー情報およびスコアの保存完了を待つ
             if (window.saveUserDataToFirestore) {
                 await window.saveUserDataToFirestore({
                     uid: this.uid,
@@ -521,10 +574,8 @@
                 await window.saveScoreToFirestore(this.score, this.mergeCount, this.userName);
             }
 
-            // Firestoreへの書き込み反映を少し待つ
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // ランキングデータの再取得
             try {
                 const [globalData, myData] = await Promise.all([
                     window.fetchLeaderboardFromFirestore ? window.fetchLeaderboardFromFirestore(10) : [],
@@ -537,7 +588,6 @@
                 console.error("ランキングデータの取得に失敗しました:", error);
             }
 
-            // 最新データを反映して画面を再描画
             this.drawTiles();
         }
 
@@ -625,13 +675,11 @@
 
                 this.ctx.font = index < 3 ? 'bold 10px Arial' : '9px Arial';
 
-                // 順位テキスト（例: "1. " や "1位 "）と年月日を結合して表示
                 this.ctx.textAlign = 'left';
                 const rankText = `${index + 1}. `;
                 const dateText = item.dateStr || '';
                 this.ctx.fillText(`${rankText}${dateText}`, startX, currentY);
 
-                // スコアを表示
                 this.ctx.textAlign = 'right';
                 this.ctx.fillText(`${item.score}`, startX + colWidth, currentY);
             });
@@ -708,13 +756,11 @@
             const colorSequence = [...this.COLORS, this.COLORS[0]];
 
             colorSequence.forEach((color, index) => {
-                // タイル（色ボックス）の作成
                 const box = document.createElement('div');
                 box.className = 'sample-box';
                 box.style.backgroundColor = `rgb${color}`;
                 colorSample.appendChild(box);
 
-                // 最後のタイルの後ろには矢印を表示しない
                 if (index < colorSequence.length - 1) {
                     const arrow = document.createElement('span');
                     arrow.className = 'sample-arrow';
