@@ -1,4 +1,4 @@
-const CACHE_NAME = 'game-v9'; // ★更新時はこのバージョン文字列を変更する
+const CACHE_NAME = 'game-v9.1'; // ★更新時はこのバージョン文字列を変更する
 const ASSETS = [
   './',
   './index.html',
