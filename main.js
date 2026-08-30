@@ -217,7 +217,7 @@
                 this.release();
             });
 
-            this.gameStart(2, 2, [5, 5, 6], 'highScore4x4');
+            this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
         }
 
         changeUserName(isFirstTime = false) {
