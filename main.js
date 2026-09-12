@@ -28,7 +28,7 @@
 
     // --- 箱庭内を動き回るモンスタークラス ---
     class TopMonster {
-        constructor(canvasWidth, canvasHeight) {
+        constructor(canvasWidth, canvasHeight, tileValue = null) {
             this.canvasWidth = canvasWidth;
             this.canvasHeight = canvasHeight;
 
@@ -40,8 +40,14 @@
             this.vx = (Math.random() - 0.5) * 1.2;
             this.vy = (Math.random() - 0.5) * 1.2;
 
-            this.type = Math.floor(Math.random() * 3); // 3種類の色
-            this.radius = 7;
+            // タイルの数値に応じた設定
+            if (tileValue !== null) {
+                this.type = (tileValue - 1) % 6; // 6色でサイクル
+                this.radius = Math.min(6 + tileValue, 14); // 数値が大きいと大きく（最大14px）
+            } else {
+                this.type = Math.floor(Math.random() * 3);
+                this.radius = 7;
+            }
         }
 
         update() {
@@ -71,9 +77,9 @@
             ctx.save();
             ctx.translate(this.x, this.y);
 
-            // モンスターの色
-            const colors = ['#FF5722', '#9C27B0', '#00BCD4'];
-            ctx.fillStyle = colors[this.type];
+            // モンスターの色バリエーション（6色）
+            const colors = ['#FF5722', '#9C27B0', '#00BCD4', '#FFEB3B', '#4CAF50', '#E91E63'];
+            ctx.fillStyle = colors[this.type % colors.length];
 
             // 体
             ctx.beginPath();
@@ -83,17 +89,17 @@
             // 白目
             ctx.fillStyle = '#FFF';
             ctx.beginPath();
-            ctx.arc(-2.5, -2, 2.2, 0, Math.PI * 2);
-            ctx.arc(2.5, -2, 2.2, 0, Math.PI * 2);
+            ctx.arc(-this.radius * 0.35, -this.radius * 0.28, this.radius * 0.3, 0, Math.PI * 2);
+            ctx.arc(this.radius * 0.35, -this.radius * 0.28, this.radius * 0.3, 0, Math.PI * 2);
             ctx.fill();
 
             // 黒目（進行方向を向く）
             ctx.fillStyle = '#000';
-            const eyeOffsetX = this.vx > 0 ? 0.7 : -0.7;
-            const eyeOffsetY = this.vy > 0 ? 0.7 : -0.7;
+            const eyeOffsetX = this.vx > 0 ? this.radius * 0.1 : -this.radius * 0.1;
+            const eyeOffsetY = this.vy > 0 ? this.radius * 0.1 : -this.radius * 0.1;
             ctx.beginPath();
-            ctx.arc(-2.5 + eyeOffsetX, -2 + eyeOffsetY, 1, 0, Math.PI * 2);
-            ctx.arc(2.5 + eyeOffsetX, -2 + eyeOffsetY, 1, 0, Math.PI * 2);
+            ctx.arc(-this.radius * 0.35 + eyeOffsetX, -this.radius * 0.28 + eyeOffsetY, this.radius * 0.14, 0, Math.PI * 2);
+            ctx.arc(this.radius * 0.35 + eyeOffsetX, -this.radius * 0.28 + eyeOffsetY, this.radius * 0.14, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.restore();
@@ -126,7 +132,7 @@
             this.NO_COL = 4;
             this.NO_TYPES = [5, 5, 6];
 
-            // 箱庭のモンスター20体を初期化
+            // 箱庭のモンスター配列を初期化
             this.topMonsters = [];
 
             this.resizeCanvas();
@@ -200,7 +206,6 @@
             });
 
             this.canvas.addEventListener('pointerdown', (e) => {
-                // ゲームオーバー時はタップイベントを無視（リセットボタンでの再起動を想定）
                 if (this.isGameover) return;
 
                 if (!this.isCounting) {
@@ -346,10 +351,8 @@
 
         initTopGarden() {
             if (!this.topCanvas) return;
+            // 最初は0体からスタート
             this.topMonsters = [];
-            for (let i = 0; i < 20; i++) {
-                this.topMonsters.push(new TopMonster(this.topCanvas.width, this.topCanvas.height));
-            }
         }
 
         startTopAnimation() {
@@ -491,7 +494,8 @@
                 this.tileMx[this.chsnRow][0].x = 0;
                 this.tileMx[this.chsnRow][0].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-                this.finishMove();
+                const mergedVal = this.tileMx[this.chsnRow][this.chsnCol + 1].value;
+                this.finishMove(mergedVal);
             }
         }
 
@@ -516,7 +520,8 @@
                 this.tileMx[this.chsnRow][this.NO_COL - 1].x = (this.NO_COL - 1) * (this.TILE_WIDTH + this.TILE_MARGIN);
                 this.tileMx[this.chsnRow][this.NO_COL - 1].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-                this.finishMove();
+                const mergedVal = this.tileMx[this.chsnRow][this.chsnCol - 1].value;
+                this.finishMove(mergedVal);
             }
         }
 
@@ -541,7 +546,8 @@
                 this.tileMx[0][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
                 this.tileMx[0][this.chsnCol].y = 0;
 
-                this.finishMove();
+                const mergedVal = this.tileMx[this.chsnRow + 1][this.chsnCol].value;
+                this.finishMove(mergedVal);
             }
         }
 
@@ -566,7 +572,8 @@
                 this.tileMx[this.NO_ROW - 1][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
                 this.tileMx[this.NO_ROW - 1][this.chsnCol].y = (this.NO_ROW - 1) * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-                this.finishMove();
+                const mergedVal = this.tileMx[this.chsnRow - 1][this.chsnCol].value;
+                this.finishMove(mergedVal);
             }
         }
 
@@ -671,6 +678,9 @@
             this.isGameover = false;
             this.minValue = 1;
             if (this.itemButton) this.itemButton.classList.remove('active');
+
+            // リセット時に箱庭モンスターもクリア
+            this.initTopGarden();
         }
 
         movableCheck() {
@@ -747,7 +757,6 @@
             await new Promise(resolve => setTimeout(resolve, 500));
 
             try {
-                // 表示枠を広げたため取得数を20件に変更
                 const [globalData, myData] = await Promise.all([
                     window.fetchLeaderboardFromFirestore ? window.fetchLeaderboardFromFirestore(20) : [],
                     (window.fetchMyLeaderboardFromFirestore && this.uid) ? window.fetchMyLeaderboardFromFirestore(this.uid, 20) : []
@@ -762,12 +771,10 @@
             this.drawTiles();
         }
 
-        // オーバーレイ描画（間隔を縮めて最大20位まで表示対応）
         drawGameOverOverlay() {
             const width = this.canvas.width;
             const height = this.canvas.height;
 
-            // 暗めの透過背景
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.88)';
             this.ctx.fillRect(0, 0, width, height);
 
@@ -777,17 +784,15 @@
 
             const col1X = padding;
             const col2X = padding + colWidth + centerGap;
-            const startY = 16;     // 開始位置を上へシフト
-            const lineHeight = 11.5; // 上下間隔を約11.5pxに詰める
+            const startY = 16;
+            const lineHeight = 11.5;
 
-            // 全国ランキングヘッダー
             this.ctx.fillStyle = '#FFD700';
             this.ctx.font = 'bold 10px Arial';
             this.ctx.textAlign = 'left';
             this.ctx.fillText('全国', col1X, startY - 4);
             this.renderRankingList(this.globalLeaderboard, col1X, colWidth, startY + 8, lineHeight);
 
-            // マイランキングヘッダー
             this.ctx.fillStyle = '#00FFFF';
             this.ctx.font = 'bold 10px Arial';
             this.ctx.textAlign = 'left';
@@ -804,7 +809,6 @@
                 return;
             }
 
-            // 最大20件まで描画
             dataList.slice(0, 20).forEach((item, index) => {
                 const currentY = startY + (index * lineHeight);
 
@@ -830,7 +834,6 @@
                 return;
             }
 
-            // 最大20件まで描画
             dataList.slice(0, 20).forEach((item, index) => {
                 const currentY = startY + (index * lineHeight);
 
@@ -893,11 +896,23 @@
             });
         }
 
-        async finishMove() {
+        async finishMove(mergedValue = 1) {
             this.mergeCount++;
             if (this.mergeCount % 10 === 0) {
                 this.itemCount++;
             }
+
+            // --- 箱庭へのモンスター追加処理 ---
+            if (this.topCanvas) {
+                // マージ後の数値に応じたモンスターを追加
+                this.topMonsters.push(new TopMonster(this.topCanvas.width, this.topCanvas.height, mergedValue));
+
+                // 最大200体に制限（超えたら古いモンスターを削除）
+                if (this.topMonsters.length > 200) {
+                    this.topMonsters.shift();
+                }
+            }
+
             this.tileChosen = false;
             this.frameCount = 0;
             this.isMoving = false;
