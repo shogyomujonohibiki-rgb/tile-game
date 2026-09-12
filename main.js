@@ -747,10 +747,10 @@
             await new Promise(resolve => setTimeout(resolve, 500));
 
             try {
-                // 表示枠を広げたため取得数を13件に変更
+                // 表示枠を広げたため取得数を20件に変更
                 const [globalData, myData] = await Promise.all([
-                    window.fetchLeaderboardFromFirestore ? window.fetchLeaderboardFromFirestore(13) : [],
-                    (window.fetchMyLeaderboardFromFirestore && this.uid) ? window.fetchMyLeaderboardFromFirestore(this.uid, 13) : []
+                    window.fetchLeaderboardFromFirestore ? window.fetchLeaderboardFromFirestore(20) : [],
+                    (window.fetchMyLeaderboardFromFirestore && this.uid) ? window.fetchMyLeaderboardFromFirestore(this.uid, 20) : []
                 ]);
 
                 this.globalLeaderboard = globalData || [];
