@@ -16,10 +16,12 @@ html, body {
 
 canvas {
   touch-action: none;
+  display: block;
 }
 
 body {
   font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+  background-color: #fff;
 }
 
 .p1 {
@@ -55,55 +57,55 @@ div {
   user-select:none;
   display: block;
   margin: 0 auto;
-  padding-top: 0px;
-  padding-bottom: 0px;
 }
 
-/* 左下に寄せるゲームエリア全体のコンテナ */
+/* ゲームエリア全体の幅を元の343pxに戻す */
 #gameArea {
-  width: fit-content;
-  margin-left: 10px;
-  margin-right: auto;
-  padding: 0;
+  width: 343px;
+  box-sizing: border-box;
+  margin: 0 auto;
 }
 
-/* 上部キャンバス */
+/* 上部キャンバス（横幅一杯、高さ1.5倍：225pxを維持） */
 #topCanvas {
   background: black;
   display: block;
-  margin: 0 0 5px 0;
+  width: 100%;
+  height: 225px;
+  margin: 0 0 8px 0;
 }
 
-/* メイン部分（Canvas + 右側コントロールパネル）を横並びに設定 */
+/* メイン部分（Canvas + 右側コントロールパネル） */
 #mainSection {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
   gap: 8px;
   margin: 0;
   padding: 0;
 }
 
-/* ゲーム用メインキャンバス */
+/* 4x4メインキャンバス（250px × 250px の固定サイズに戻す） */
 #gameCanvas {
   background: white;
   user-select:none;
   display: block;
-  margin: 0;
-
+  width: 250px;
+  height: 250px;
   touch-action: none;
   -webkit-user-select: none;
-  user-select: none;
 }
 
-/* 右側に縦並びで配置する操作パネル */
+/* 右側操作パネル（高さを250pxに合わせる） */
 #controlPanel {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  width: 90px;
-  height: 250px; /* Canvasの高さと統一 */
+  width: 85px;
+  height: 250px;
   margin: 0;
   padding: 0;
   gap: 4px;
@@ -114,12 +116,12 @@ div {
   width: 100%;
   height: 40px;
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: bold;
   text-align: center;
   background: gainsboro;
   color: #333;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -128,15 +130,15 @@ div {
 
 .side-label {
   width: 100%;
-  height: 32px;
-  font-size: 11px;
+  height: 35px;
+  font-size: 10px;
   font-weight: bold;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #f0f0f0;
-  border-radius: 4px;
+  border-radius: 6px;
   margin: 0;
   padding: 0 2px;
   box-sizing: border-box;
@@ -147,7 +149,7 @@ button {
   background-color: rgb(235, 235, 235);
   width: 100%;
   height: 40px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   border: 1px solid black;
   border-radius: 8px;
@@ -168,17 +170,18 @@ button {
   justify-content: center;
   align-items: center;
   gap: 6px;
-  width: 240px;
+  width: 100%;
   height: 24px;
-  margin: 4px auto;
+  margin: 8px auto 0 auto;
   padding: 2px;
   background: #e1e1e1;
   border-radius: 4px;
+  box-sizing: border-box;
 }
 
 .sample-box {
-  width: 18px;
-  height: 4px;
+  width: 20px;
+  height: 6px;
   border-radius: 0;
   border: 1px solid rgba(0, 0, 0, 0.2);
 }
