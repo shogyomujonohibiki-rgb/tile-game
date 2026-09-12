@@ -59,14 +59,13 @@ div {
   margin: 0 auto;
 }
 
-/* ゲームエリア全体の幅を元の343pxに戻す */
 #gameArea {
   width: 343px;
   box-sizing: border-box;
   margin: 0 auto;
 }
 
-/* 上部キャンバス（横幅一杯、高さ1.5倍：225pxを維持） */
+/* 上部キャンバス */
 #topCanvas {
   background: black;
   display: block;
@@ -87,25 +86,25 @@ div {
   padding: 0;
 }
 
-/* 4x4メインキャンバス（250px × 250px の固定サイズに戻す） */
+/* 4x4メインキャンバス（200px × 240px の固定サイズに指定） */
 #gameCanvas {
   background: white;
   user-select:none;
   display: block;
-  width: 250px;
-  height: 250px;
+  width: 240px;
+  height: 240px;
   touch-action: none;
   -webkit-user-select: none;
 }
 
-/* 右側操作パネル（高さを250pxに合わせる） */
+/* 右側操作パネル（高さを240pxに合わせる） */
 #controlPanel {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
   width: 85px;
-  height: 250px;
+  height: 240px;
   margin: 0;
   padding: 0;
   gap: 4px;
