@@ -52,7 +52,6 @@
             this.NO_COL = 4;
             this.NO_TYPES = [5, 5, 6];
 
-            // 画面リサイズに対応してCanvas内部解像度を動的更新
             this.resizeCanvas();
             window.addEventListener('resize', () => {
                 this.resizeCanvas();
@@ -137,7 +136,6 @@
 
                 this.rect = this.canvas.getBoundingClientRect();
 
-                // 実際の表示サイズに対する倍率を考慮
                 const scaleX = this.canvas.width / this.rect.width;
                 const scaleY = this.canvas.height / this.rect.height;
 
@@ -245,25 +243,22 @@
             this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
         }
 
-        // DOMの表示サイズに合わせてCanvas内部の描画解像度を動的に調整
+        // Canvas解像度設定
         resizeCanvas() {
-            this.rect = this.canvas.getBoundingClientRect();
-            
-            // 表示上の幅・高さを内部描画サイズ(width/height)として同期
-            this.canvas.width = this.rect.width || 300;
-            this.canvas.height = 375; // 縦長(250 * 1.5)
+            // 縦横比率を 200px × 240px 固定に設定
+            this.canvas.width = 240;
+            this.canvas.height = 250;
 
             if (this.topCanvas) {
                 const topRect = this.topCanvas.getBoundingClientRect();
-                this.topCanvas.width = topRect.width || 300;
-                this.topCanvas.height = 225; // 縦長(150 * 1.5)
+                this.topCanvas.width = topRect.width || 343;
+                this.topCanvas.height = 225;
                 this.drawTopCanvas();
             }
 
             this.TILE_WIDTH = this.canvas.width / this.NO_COL - this.TILE_MARGIN;
             this.TILE_HEIGHT = this.canvas.height / this.NO_ROW - this.TILE_MARGIN;
 
-            // 既にタイルが生成されている場合、座標を更新
             if (this.tileMx && this.tileMx.length > 0) {
                 for (let r = 0; r < this.NO_ROW; r++) {
                     for (let c = 0; c < this.NO_COL; c++) {
@@ -525,7 +520,6 @@
             this.ctx.fillRect(tile.x + offsetX, tile.y + offsetY, this.TILE_WIDTH * tile.scale, this.TILE_HEIGHT * tile.scale);
             this.ctx.fillStyle = 'white';
             
-            // フォントサイズも長辺サイズに合わせて動的変更
             const fontSize = Math.min(this.TILE_WIDTH, this.TILE_HEIGHT) / 2;
             this.ctx.font = `bold ${fontSize}px Arial`;
             this.ctx.shadowColor = 'rgba(0,0,0,0)';
@@ -649,38 +643,38 @@
 
             this.ctx.fillStyle = '#FF4500';
             this.ctx.textAlign = 'center';
-            this.ctx.font = 'bold 24px Arial';
-            this.ctx.fillText('GAME OVER', width / 2, 40);
+            this.ctx.font = 'bold 18px Arial';
+            this.ctx.fillText('GAME OVER', width / 2, 28);
 
             this.ctx.fillStyle = '#AAAAAA';
-            this.ctx.font = '12px Arial';
-            this.ctx.fillText('タップして再スタート', width / 2, 62);
+            this.ctx.font = '10px Arial';
+            this.ctx.fillText('タップして再スタート', width / 2, 44);
 
-            const padding = 12;
-            const centerGap = 20;
+            const padding = 6;
+            const centerGap = 10;
             const colWidth = (width - (padding * 2) - centerGap) / 2;
 
             const col1X = padding;
             const col2X = padding + colWidth + centerGap;
-            const startY = 100;
-            const lineHeight = 22;
+            const startY = 72;
+            const lineHeight = 15;
 
             this.ctx.fillStyle = '#FFD700';
-            this.ctx.font = 'bold 13px Arial';
+            this.ctx.font = 'bold 10px Arial';
             this.ctx.textAlign = 'left';
-            this.ctx.fillText('全国ランキング', col1X, startY - 16);
+            this.ctx.fillText('全国', col1X, startY - 10);
             this.renderRankingList(this.globalLeaderboard, col1X, colWidth, startY, lineHeight);
 
             this.ctx.fillStyle = '#00FFFF';
-            this.ctx.font = 'bold 13px Arial';
+            this.ctx.font = 'bold 10px Arial';
             this.ctx.textAlign = 'left';
-            this.ctx.fillText('マイランキング', col2X, startY - 16);
+            this.ctx.fillText('マイ', col2X, startY - 10);
             this.renderMyRankingList(this.myLeaderboard, col2X, colWidth, startY, lineHeight);
         }
 
         renderRankingList(dataList, startX, colWidth, startY, lineHeight) {
             if (!dataList || dataList.length === 0) {
-                this.ctx.font = '12px Arial';
+                this.ctx.font = '9px Arial';
                 this.ctx.textAlign = 'left';
                 this.ctx.fillStyle = '#888888';
                 this.ctx.fillText('データなし', startX, startY);
@@ -691,11 +685,11 @@
                 const currentY = startY + (index * lineHeight);
 
                 this.ctx.fillStyle = '#FFFFFF';
-                this.ctx.font = index < 3 ? 'bold 12px Arial' : '11px Arial';
+                this.ctx.font = index < 3 ? 'bold 9px Arial' : '8px Arial';
 
                 this.ctx.textAlign = 'left';
                 const rankText = `${index + 1}.${item.userName || 'Guest'}`;
-                const truncatedName = rankText.length > 8 ? rankText.substring(0, 7) + '…' : rankText;
+                const truncatedName = rankText.length > 5 ? rankText.substring(0, 4) + '…' : rankText;
                 this.ctx.fillText(truncatedName, startX, currentY);
 
                 this.ctx.textAlign = 'right';
@@ -705,7 +699,7 @@
 
         renderMyRankingList(dataList, startX, colWidth, startY, lineHeight) {
             if (!dataList || dataList.length === 0) {
-                this.ctx.font = '12px Arial';
+                this.ctx.font = '9px Arial';
                 this.ctx.textAlign = 'left';
                 this.ctx.fillStyle = '#888888';
                 this.ctx.fillText('データなし', startX, startY);
@@ -716,7 +710,7 @@
                 const currentY = startY + (index * lineHeight);
 
                 this.ctx.fillStyle = '#FFFFFF';
-                this.ctx.font = index < 3 ? 'bold 11px Arial' : '10px Arial';
+                this.ctx.font = index < 3 ? 'bold 8px Arial' : '7px Arial';
 
                 this.ctx.textAlign = 'left';
                 const rankText = `${index + 1}. `;
