@@ -31,8 +31,11 @@
     class Game {
         constructor() {
             // DOM要素の取得
-            this.canvas = document.querySelector('canvas');
+            this.canvas = document.getElementById('gameCanvas');
             this.ctx = this.canvas.getContext('2d');
+            this.topCanvas = document.getElementById('topCanvas');
+            this.topCtx = this.topCanvas ? this.topCanvas.getContext('2d') : null;
+
             this.rect = this.canvas.getBoundingClientRect();
             this.timer = document.getElementById('timer');
             this.game4x4 = document.getElementById('game4x4');
@@ -53,6 +56,9 @@
 
             // カラーサンプルの初期化
             this.initializeColorSample();
+
+            // 上部Canvasの初期化描画（黒塗りつぶし）
+            this.drawTopCanvas();
 
             // ユーザー名の初期化
             const savedName = localStorage.getItem('gameUserName');
@@ -234,7 +240,14 @@
             this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
         }
 
-        // 完全なディープコピーで状態を履歴に保存（参照を完全に切り離す）
+        // 上部キャンバスの黒塗りつぶし処理
+        drawTopCanvas() {
+            if (!this.topCtx) return;
+            this.topCtx.fillStyle = '#000000';
+            this.topCtx.fillRect(0, 0, this.topCanvas.width, this.topCanvas.height);
+        }
+
+        // 完全なディープコピーで状態を履歴に保存
         saveState() {
             const snapshot = {
                 tileMx: JSON.parse(JSON.stringify(this.tileMx)),
@@ -458,7 +471,9 @@
                 this.highScoreBoard.innerHTML = `ハイスコア ${this.highScore}`;
             }
             this.mergeCountBoard.innerHTML = `マージ回数：${this.mergeCount}`;
-            this.itemCountBoard.innerHTML = `+1アイテム：${this.itemCount}`;
+            if (this.itemCountBoard) {
+                this.itemCountBoard.innerHTML = `+1アイテム：${this.itemCount}`;
+            }
         }
 
         drawTile(row, col) {
@@ -631,7 +646,7 @@
             this.renderMyRankingList(this.myLeaderboard, col2X, colWidth, startY, lineHeight);
         }
 
-        // 全国ランキング描画（名前＋スコア）
+        // 全国ランキング描画
         renderRankingList(dataList, startX, colWidth, startY, lineHeight) {
             if (!dataList || dataList.length === 0) {
                 this.ctx.font = '11px Arial';
@@ -658,7 +673,7 @@
             });
         }
 
-        // マイランキング描画（年月日＋スコア）
+        // マイランキング描画
         renderMyRankingList(dataList, startX, colWidth, startY, lineHeight) {
             if (!dataList || dataList.length === 0) {
                 this.ctx.font = '11px Arial';
