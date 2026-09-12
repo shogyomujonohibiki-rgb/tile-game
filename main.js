@@ -26,6 +26,80 @@
         }
     });
 
+    // --- 箱庭内を動き回るモンスタークラス ---
+    class TopMonster {
+        constructor(canvasWidth, canvasHeight) {
+            this.canvasWidth = canvasWidth;
+            this.canvasHeight = canvasHeight;
+
+            // 初期位置（背景の箱庭エリア内）
+            this.x = Math.random() * (canvasWidth - 30) + 15;
+            this.y = Math.random() * (canvasHeight - 30) + 15;
+
+            // 移動速度と方向
+            this.vx = (Math.random() - 0.5) * 1.2;
+            this.vy = (Math.random() - 0.5) * 1.2;
+
+            this.type = Math.floor(Math.random() * 3); // 3種類の色
+            this.radius = 7;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+
+            // 壁（キャンバス端）での跳ね返り
+            if (this.x - this.radius < 0 || this.x + this.radius > this.canvasWidth) {
+                this.vx *= -1;
+                this.x = Math.max(this.radius, Math.min(this.canvasWidth - this.radius, this.x));
+            }
+            if (this.y - this.radius < 0 || this.y + this.radius > this.canvasHeight) {
+                this.vy *= -1;
+                this.y = Math.max(this.radius, Math.min(this.canvasHeight - this.radius, this.y));
+            }
+
+            // ランダムに向きを変更
+            if (Math.random() < 0.02) {
+                this.vx += (Math.random() - 0.5) * 0.4;
+                this.vy += (Math.random() - 0.5) * 0.4;
+                this.vx = Math.max(-1.2, Math.min(1.2, this.vx));
+                this.vy = Math.max(-1.2, Math.min(1.2, this.vy));
+            }
+        }
+
+        draw(ctx) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+
+            // モンスターの色
+            const colors = ['#FF5722', '#9C27B0', '#00BCD4'];
+            ctx.fillStyle = colors[this.type];
+
+            // 体
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 白目
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath();
+            ctx.arc(-2.5, -2, 2.2, 0, Math.PI * 2);
+            ctx.arc(2.5, -2, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 黒目（進行方向を向く）
+            ctx.fillStyle = '#000';
+            const eyeOffsetX = this.vx > 0 ? 0.7 : -0.7;
+            const eyeOffsetY = this.vy > 0 ? 0.7 : -0.7;
+            ctx.beginPath();
+            ctx.arc(-2.5 + eyeOffsetX, -2 + eyeOffsetY, 1, 0, Math.PI * 2);
+            ctx.arc(2.5 + eyeOffsetX, -2 + eyeOffsetY, 1, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+    }
+
     class Game {
         constructor() {
             this.canvas = document.getElementById('gameCanvas');
@@ -52,14 +126,19 @@
             this.NO_COL = 4;
             this.NO_TYPES = [5, 5, 6];
 
+            // 箱庭のモンスター20体を初期化
+            this.topMonsters = [];
+
             this.resizeCanvas();
             window.addEventListener('resize', () => {
                 this.resizeCanvas();
                 this.drawTiles();
             });
 
+            this.initTopGarden();
+            this.startTopAnimation();
+
             this.initializeColorSample();
-            this.drawTopCanvas();
 
             const savedName = localStorage.getItem('gameUserName');
             if (!savedName) {
@@ -121,11 +200,8 @@
             });
 
             this.canvas.addEventListener('pointerdown', (e) => {
-                if (this.isGameover) {
-                    this.reset();
-                    this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
-                    return;
-                }
+                // ゲームオーバー時はタップイベントを無視（リセットボタンでの再起動を想定）
+                if (this.isGameover) return;
 
                 if (!this.isCounting) {
                     this.isCounting = true;
@@ -243,9 +319,7 @@
             this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
         }
 
-        // Canvas解像度設定
         resizeCanvas() {
-            // 縦横比率を 200px × 240px 固定に設定
             this.canvas.width = 240;
             this.canvas.height = 250;
 
@@ -253,7 +327,6 @@
                 const topRect = this.topCanvas.getBoundingClientRect();
                 this.topCanvas.width = topRect.width || 343;
                 this.topCanvas.height = 225;
-                this.drawTopCanvas();
             }
 
             this.TILE_WIDTH = this.canvas.width / this.NO_COL - this.TILE_MARGIN;
@@ -271,10 +344,64 @@
             }
         }
 
+        initTopGarden() {
+            if (!this.topCanvas) return;
+            this.topMonsters = [];
+            for (let i = 0; i < 20; i++) {
+                this.topMonsters.push(new TopMonster(this.topCanvas.width, this.topCanvas.height));
+            }
+        }
+
+        startTopAnimation() {
+            const loop = () => {
+                this.drawTopCanvas();
+                requestAnimationFrame(loop);
+            };
+            requestAnimationFrame(loop);
+        }
+
         drawTopCanvas() {
-            if (!this.topCtx) return;
-            this.topCtx.fillStyle = '#000000';
-            this.topCtx.fillRect(0, 0, this.topCanvas.width, this.topCanvas.height);
+            if (!this.topCtx || !this.topCanvas) return;
+
+            const w = this.topCanvas.width;
+            const h = this.topCanvas.height;
+
+            this.topCtx.fillStyle = '#7ec850';
+            this.topCtx.fillRect(0, 0, w, h);
+
+            this.topCtx.fillStyle = '#d7ccc8';
+            this.topCtx.beginPath();
+            this.topCtx.arc(w / 2, h / 2, Math.min(w, h) * 0.35, 0, Math.PI * 2);
+            this.topCtx.fill();
+
+            this.topCtx.fillStyle = '#7ec850';
+            this.topCtx.beginPath();
+            this.topCtx.arc(w / 2, h / 2, Math.min(w, h) * 0.23, 0, Math.PI * 2);
+            this.topCtx.fill();
+
+            const trees = [
+                { x: 30, y: 30 },
+                { x: w - 30, y: 30 },
+                { x: 30, y: h - 30 },
+                { x: w - 30, y: h - 30 }
+            ];
+
+            trees.forEach(tree => {
+                this.topCtx.fillStyle = 'rgba(0,0,0,0.15)';
+                this.topCtx.beginPath();
+                this.topCtx.arc(tree.x + 2, tree.y + 2, 12, 0, Math.PI * 2);
+                this.topCtx.fill();
+
+                this.topCtx.fillStyle = '#2e7d32';
+                this.topCtx.beginPath();
+                this.topCtx.arc(tree.x, tree.y, 12, 0, Math.PI * 2);
+                this.topCtx.fill();
+            });
+
+            this.topMonsters.forEach(monster => {
+                monster.update();
+                monster.draw(this.topCtx);
+            });
         }
 
         saveState() {
@@ -519,7 +646,7 @@
             }
             this.ctx.fillRect(tile.x + offsetX, tile.y + offsetY, this.TILE_WIDTH * tile.scale, this.TILE_HEIGHT * tile.scale);
             this.ctx.fillStyle = 'white';
-            
+
             const fontSize = Math.min(this.TILE_WIDTH, this.TILE_HEIGHT) / 2;
             this.ctx.font = `bold ${fontSize}px Arial`;
             this.ctx.shadowColor = 'rgba(0,0,0,0)';
@@ -620,9 +747,10 @@
             await new Promise(resolve => setTimeout(resolve, 500));
 
             try {
+                // 表示枠を広げたため取得数を13件に変更
                 const [globalData, myData] = await Promise.all([
-                    window.fetchLeaderboardFromFirestore ? window.fetchLeaderboardFromFirestore(10) : [],
-                    (window.fetchMyLeaderboardFromFirestore && this.uid) ? window.fetchMyLeaderboardFromFirestore(this.uid, 10) : []
+                    window.fetchLeaderboardFromFirestore ? window.fetchLeaderboardFromFirestore(13) : [],
+                    (window.fetchMyLeaderboardFromFirestore && this.uid) ? window.fetchMyLeaderboardFromFirestore(this.uid, 13) : []
                 ]);
 
                 this.globalLeaderboard = globalData || [];
@@ -634,21 +762,14 @@
             this.drawTiles();
         }
 
+        // オーバーレイ描画（間隔を縮めて最大20位まで表示対応）
         drawGameOverOverlay() {
             const width = this.canvas.width;
             const height = this.canvas.height;
 
+            // 暗めの透過背景
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.88)';
             this.ctx.fillRect(0, 0, width, height);
-
-            this.ctx.fillStyle = '#FF4500';
-            this.ctx.textAlign = 'center';
-            this.ctx.font = 'bold 18px Arial';
-            this.ctx.fillText('GAME OVER', width / 2, 28);
-
-            this.ctx.fillStyle = '#AAAAAA';
-            this.ctx.font = '10px Arial';
-            this.ctx.fillText('タップして再スタート', width / 2, 44);
 
             const padding = 6;
             const centerGap = 10;
@@ -656,40 +777,43 @@
 
             const col1X = padding;
             const col2X = padding + colWidth + centerGap;
-            const startY = 72;
-            const lineHeight = 15;
+            const startY = 16;     // 開始位置を上へシフト
+            const lineHeight = 11.5; // 上下間隔を約11.5pxに詰める
 
+            // 全国ランキングヘッダー
             this.ctx.fillStyle = '#FFD700';
             this.ctx.font = 'bold 10px Arial';
             this.ctx.textAlign = 'left';
-            this.ctx.fillText('全国', col1X, startY - 10);
-            this.renderRankingList(this.globalLeaderboard, col1X, colWidth, startY, lineHeight);
+            this.ctx.fillText('全国', col1X, startY - 4);
+            this.renderRankingList(this.globalLeaderboard, col1X, colWidth, startY + 8, lineHeight);
 
+            // マイランキングヘッダー
             this.ctx.fillStyle = '#00FFFF';
             this.ctx.font = 'bold 10px Arial';
             this.ctx.textAlign = 'left';
-            this.ctx.fillText('マイ', col2X, startY - 10);
-            this.renderMyRankingList(this.myLeaderboard, col2X, colWidth, startY, lineHeight);
+            this.ctx.fillText('マイ', col2X, startY - 4);
+            this.renderMyRankingList(this.myLeaderboard, col2X, colWidth, startY + 8, lineHeight);
         }
 
         renderRankingList(dataList, startX, colWidth, startY, lineHeight) {
             if (!dataList || dataList.length === 0) {
-                this.ctx.font = '9px Arial';
+                this.ctx.font = '8px Arial';
                 this.ctx.textAlign = 'left';
                 this.ctx.fillStyle = '#888888';
                 this.ctx.fillText('データなし', startX, startY);
                 return;
             }
 
-            dataList.slice(0, 10).forEach((item, index) => {
+            // 最大20件まで描画
+            dataList.slice(0, 20).forEach((item, index) => {
                 const currentY = startY + (index * lineHeight);
 
                 this.ctx.fillStyle = '#FFFFFF';
-                this.ctx.font = index < 3 ? 'bold 9px Arial' : '8px Arial';
+                this.ctx.font = index < 3 ? 'bold 8px Arial' : '7.5px Arial';
 
                 this.ctx.textAlign = 'left';
                 const rankText = `${index + 1}.${item.userName || 'Guest'}`;
-                const truncatedName = rankText.length > 5 ? rankText.substring(0, 4) + '…' : rankText;
+                const truncatedName = rankText.length > 10 ? rankText.substring(0, 9) + '…' : rankText;
                 this.ctx.fillText(truncatedName, startX, currentY);
 
                 this.ctx.textAlign = 'right';
@@ -699,18 +823,19 @@
 
         renderMyRankingList(dataList, startX, colWidth, startY, lineHeight) {
             if (!dataList || dataList.length === 0) {
-                this.ctx.font = '9px Arial';
+                this.ctx.font = '8px Arial';
                 this.ctx.textAlign = 'left';
                 this.ctx.fillStyle = '#888888';
                 this.ctx.fillText('データなし', startX, startY);
                 return;
             }
 
-            dataList.slice(0, 10).forEach((item, index) => {
+            // 最大20件まで描画
+            dataList.slice(0, 20).forEach((item, index) => {
                 const currentY = startY + (index * lineHeight);
 
                 this.ctx.fillStyle = '#FFFFFF';
-                this.ctx.font = index < 3 ? 'bold 8px Arial' : '7px Arial';
+                this.ctx.font = index < 3 ? 'bold 7.5px Arial' : '7px Arial';
 
                 this.ctx.textAlign = 'left';
                 const rankText = `${index + 1}. `;
