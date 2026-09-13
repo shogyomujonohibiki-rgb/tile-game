@@ -18,7 +18,7 @@
 
 <body>
     <p id="scoreBoard" class="p1">0</p>
-    <p id="mergeCountBoard" class="p2">マージ回数：0</p>
+    <!-- 「マージ回数」は右操作パネル内へ移動 -->
     <p id="highScoreBoard" class="p3">0</p>
     <div id="colorSample"></div>
 
@@ -38,9 +38,12 @@
             <div id="controlPanel">
                 <div id="timer">00:00.00</div>
 
+                <!-- マージ回数（+1アイテムの上に配置） -->
+                <div id="mergeCountBoard">マージ回数：0</div>
+
                 <!-- +1アイテムの箱（ラベルと使用ボタンを一体化） -->
                 <div id="itemBox" class="item-container">
-                    <div id="itemCountBoard" class="item-label">+1アイテム：0</div>
+                    <div id="itemCountBoard">+1アイテム：0</div>
                     <button id="itemButton">使用</button>
                 </div>
 
