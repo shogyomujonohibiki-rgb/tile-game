@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>マージゲーム</title>
 
     <link rel="manifest" href="manifest.json">
@@ -29,15 +30,20 @@
         <!-- メインの盤面 ＋ 右側操作パネルのコンテナ -->
         <div id="mainSection">
             <!-- メインの4x4ゲームスペース -->
-            <canvas id="gameCanvas" width="240" height="250">
+            <canvas id="gameCanvas" width="200" height="250">
                 Canvas not supported.
             </canvas>
 
-            <!-- 右側に縦並びで配置するコントロールパネル -->
+            <!-- 右側操作パネル -->
             <div id="controlPanel">
                 <div id="timer">00:00.00</div>
-                <div id="itemCountBoard" class="side-label">+1アイテム：0</div>
-                <button id="itemButton">使用</button>
+
+                <!-- +1アイテムの箱（ラベルと使用ボタンを一体化） -->
+                <div id="itemBox" class="item-container">
+                    <div id="itemCountBoard" class="item-label">+1アイテム：0</div>
+                    <button id="itemButton">使用</button>
+                </div>
+
                 <button id="undoButton">1手戻る</button>
                 <button id="game4x4">リセット</button>
             </div>
