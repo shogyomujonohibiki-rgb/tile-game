@@ -28,7 +28,7 @@
 
     // --- 箱庭内を動き回るモンスタークラス ---
     class TopMonster {
-        constructor(canvasWidth, canvasHeight, tileValue = null) {
+        constructor(canvasWidth, canvasHeight, tileValue = null, initialScore = 10) {
             this.canvasWidth = canvasWidth;
             this.canvasHeight = canvasHeight;
 
@@ -40,14 +40,20 @@
             this.vx = (Math.random() - 0.5) * 1.2;
             this.vy = (Math.random() - 0.5) * 1.2;
 
-            // タイルの数値に応じた設定
+            // タイルの数値に応じた設定（ゲームオーバー時はランダムまたはスコアベース）
             if (tileValue !== null) {
                 this.type = (tileValue - 1) % 6; // 6色でサイクル
-                this.radius = Math.min(6 + tileValue, 14); // 数値が大きいと大きく（最大14px）
+                this.radius = Math.min(6 + tileValue, 14);
             } else {
                 this.type = Math.floor(Math.random() * 3);
-                this.radius = 7;
+                this.radius = 8;
             }
+
+            // 獲得スコアをランダムで攻撃力と体力に割り振る
+            const ratio = Math.random(); // 0〜1のランダムな比率
+            const atkBase = Math.floor(initialScore * ratio);
+            this.attack = Math.max(1, atkBase);
+            this.hp = Math.max(1, initialScore - this.attack);
         }
 
         update() {
@@ -102,6 +108,14 @@
             ctx.arc(this.radius * 0.35 + eyeOffsetX, -this.radius * 0.28 + eyeOffsetY, this.radius * 0.14, 0, Math.PI * 2);
             ctx.fill();
 
+            ctx.restore();
+
+            // モンスターの上にスコア（攻撃力 / 体力）を表示
+            ctx.save();
+            ctx.font = '8px Arial';
+            ctx.fillStyle = '#000';
+            ctx.textAlign = 'center';
+            ctx.fillText(`ATK:${this.attack} HP:${this.hp}`, this.x, this.y - this.radius - 4);
             ctx.restore();
         }
     }
@@ -182,6 +196,32 @@
             this.moveFq = 10;
             this.moveFrame = this.moveDuration / this.moveFq;
 
+            // 箱庭クリックでモンスター選択（削除処理など）の判定を行えるようにする
+            if (this.topCanvas) {
+                this.topCanvas.addEventListener('pointerdown', (e) => {
+                    if (this.selectingMonsterToDelete) {
+                        const rect = this.topCanvas.getBoundingClientRect();
+                        const clickX = e.clientX - rect.left;
+                        const clickY = e.clientY - rect.top;
+
+                        let clickedIndex = -1;
+                        let minDist = 20;
+                        this.topMonsters.forEach((m, idx) => {
+                            const dist = Math.hypot(m.x - clickX, m.y - clickY);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                clickedIndex = idx;
+                            }
+                        });
+
+                        if (clickedIndex !== -1) {
+                            this.topMonsters.splice(clickedIndex, 1);
+                            this.selectingMonsterToDelete = false;
+                        }
+                    }
+                });
+            }
+
             this.game4x4.addEventListener('click', () => {
                 this.reset();
                 this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
@@ -206,10 +246,8 @@
             });
 
             this.canvas.addEventListener('pointerdown', (e) => {
-                // タッチ時のブラウザデフォルト挙動（スクロール等）を無効化
                 if (e.cancelable) e.preventDefault();
-
-                if (this.isGameover) return;
+                if (this.isGameover || this.selectingMonsterToDelete) return;
 
                 if (!this.isCounting) {
                     this.isCounting = true;
@@ -231,22 +269,16 @@
 
                 if (newCol < 0 || newCol >= this.NO_COL || newRow < 0 || newRow >= this.NO_ROW) return;
 
-                // 【修正後】
                 if (this.itemActive) {
                     (async () => {
                         this.saveState();
                         this.itemActive = false;
                         if (this.itemButton) this.itemButton.classList.remove('active');
 
-                        // 先にアイテム数を減らし、タイルを成長させる
                         this.itemCount--;
                         this.tileMx[newRow][newCol].value++;
 
-                        // アニメーション再生（この間、movableCheckでの誤爆を防ぐためアニメーションフラグ等を利用するか、
-                        // あるいはアニメーション中の自動判定を制御する）
                         await this.playLevelUpAnim(newRow, newCol);
-
-                        // アニメーションと状態更新が完全に終わった後に、最新の盤面で判定・描画を行う
                         this.drawTiles();
                     })();
                     return;
@@ -262,7 +294,7 @@
 
             this.canvas.addEventListener('pointermove', (e) => {
                 if (e.cancelable) e.preventDefault();
-                if (this.isMoving || this.isGameover) return;
+                if (this.isMoving || this.isGameover || this.selectingMonsterToDelete) return;
 
                 if (this.tileChosen) {
                     const scaleX = this.canvas.width / this.rect.width;
@@ -364,8 +396,11 @@
 
         initTopGarden() {
             if (!this.topCanvas) return;
-            // 最初は0体からスタート
-            this.topMonsters = [];
+            // 最初から1体はいるようにする
+            this.topMonsters = [
+                new TopMonster(this.topCanvas.width, this.topCanvas.height, 1, 10)
+            ];
+            this.selectingMonsterToDelete = false;
         }
 
         startTopAnimation() {
@@ -418,6 +453,15 @@
                 monster.update();
                 monster.draw(this.topCtx);
             });
+
+            if (this.selectingMonsterToDelete) {
+                this.topCtx.fillStyle = 'rgba(255, 0, 0, 0.4)';
+                this.topCtx.fillRect(0, 0, w, h);
+                this.topCtx.fillStyle = '#FFF';
+                this.topCtx.font = 'bold 14px Arial';
+                this.topCtx.textAlign = 'center';
+                this.topCtx.fillText('削除するモンスターを選んでタップしてください', w / 2, 30);
+            }
         }
 
         saveState() {
@@ -507,8 +551,7 @@
                 this.tileMx[this.chsnRow][0].x = 0;
                 this.tileMx[this.chsnRow][0].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-                const mergedVal = this.tileMx[this.chsnRow][this.chsnCol + 1].value;
-                this.finishMove(mergedVal);
+                this.finishMove();
             }
         }
 
@@ -533,8 +576,7 @@
                 this.tileMx[this.chsnRow][this.NO_COL - 1].x = (this.NO_COL - 1) * (this.TILE_WIDTH + this.TILE_MARGIN);
                 this.tileMx[this.chsnRow][this.NO_COL - 1].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-                const mergedVal = this.tileMx[this.chsnRow][this.chsnCol - 1].value;
-                this.finishMove(mergedVal);
+                this.finishMove();
             }
         }
 
@@ -559,8 +601,7 @@
                 this.tileMx[0][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
                 this.tileMx[0][this.chsnCol].y = 0;
 
-                const mergedVal = this.tileMx[this.chsnRow + 1][this.chsnCol].value;
-                this.finishMove(mergedVal);
+                this.finishMove();
             }
         }
 
@@ -585,8 +626,7 @@
                 this.tileMx[this.NO_ROW - 1][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
                 this.tileMx[this.NO_ROW - 1][this.chsnCol].y = (this.NO_ROW - 1) * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-                const mergedVal = this.tileMx[this.chsnRow - 1][this.chsnCol].value;
-                this.finishMove(mergedVal);
+                this.finishMove();
             }
         }
 
@@ -651,7 +691,7 @@
 
         drawTile(row, col) {
             const tile = this.tileMx[row][col];
-            if (!tile) return; // タイルが存在しない場合は処理をスキップ
+            if (!tile) return;
 
             let offsetX = 3;
             let offsetY = 3;
@@ -669,13 +709,11 @@
                 this.ctx.shadowColor = 'rgba(0,0,0,0)';
             }
 
-            // --- 1. タイプ（色）ごとの角丸半径を設定 ---
             const width = this.TILE_WIDTH * tile.scale;
             const height = this.TILE_HEIGHT * tile.scale;
-            const cornerRadii = [0, width * 0.12, width * 0.24]; // 赤:0px, 青:少し丸み, 緑:強い丸み
+            const cornerRadii = [0, width * 0.12, width * 0.24];
             const radius = cornerRadii[tile.type] || 0;
 
-            // --- 2. 角丸描画用のパス生成関数 ---
             const drawRoundedPath = (x, y, w, h, r) => {
                 this.ctx.beginPath();
                 if (typeof this.ctx.roundRect === 'function') {
@@ -690,11 +728,9 @@
                 }
             };
 
-            // --- 3. タイル本体の描画（fillRect から角丸描画へ変更） ---
             drawRoundedPath(tile.x + offsetX, tile.y + offsetY, width, height, radius);
             this.ctx.fill();
 
-            // --- 4. 数字の描画（変更なし） ---
             this.ctx.fillStyle = 'white';
             const fontSize = Math.min(this.TILE_WIDTH, this.TILE_HEIGHT) / 2;
             this.ctx.font = `bold ${fontSize}px Arial`;
@@ -703,7 +739,6 @@
             this.ctx.textBaseline = 'middle';
             this.ctx.fillText(tile.value, tile.x + offsetX + this.TILE_WIDTH / 2, tile.y + offsetY + this.TILE_HEIGHT / 2);
 
-            // --- 5. 移動不可（!isMovable）時のグレーアウト（角丸に合わせて描画） ---
             if (!tile.isMovable) {
                 this.ctx.fillStyle = 'rgba(1,1,1,0.3)';
                 drawRoundedPath(tile.x + offsetX, tile.y + offsetY, width, height, radius);
@@ -723,13 +758,9 @@
             this.isGameover = false;
             this.minValue = 1;
             if (this.itemButton) this.itemButton.classList.remove('active');
-
-            // リセット時に箱庭モンスターもクリア
-            this.initTopGarden();
         }
 
         movableCheck() {
-            // アニメーション中や移動中は判定をスキップ
             if (this.isMoving) return;
 
             let check = 0;
@@ -759,10 +790,8 @@
                 }
             }
 
-            // 動かせるタイルがない場合
             if (check === 0) {
                 if (this.itemCount > 0) {
-                    // +1アイテムが残っている場合は自動で使用モードをONにする
                     if (!this.itemActive) {
                         this.itemActive = true;
                         if (this.itemButton) {
@@ -770,7 +799,6 @@
                         }
                     }
                 } else if (!this.isGameover) {
-                    // アイテムも無ければゲームオーバー
                     requestAnimationFrame(() => {
                         this.triggerGameOver();
                     });
@@ -791,6 +819,18 @@
             }
 
             await new Promise(resolve => setTimeout(resolve, 200));
+
+            // --- ゲームオーバー時にモンスターを1体生成する処理 ---
+            if (this.topCanvas) {
+                // スコアに応じた強さ（最低10、スコアが大きい場合は調整）を設定
+                const monsterScore = Math.max(10, Math.floor(this.score / 5));
+                this.topMonsters.push(new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore));
+
+                // 最大20体制限、21体目になった場合はプレイヤーに削除選択を求める
+                if (this.topMonsters.length > 20) {
+                    this.selectingMonsterToDelete = true;
+                }
+            }
 
             this.drawGameOverOverlay();
 
@@ -956,21 +996,10 @@
             });
         }
 
-        async finishMove(mergedValue = 1) {
+        finishMove() {
             this.mergeCount++;
             if (this.mergeCount % 10 === 0) {
                 this.itemCount++;
-            }
-
-            // --- 箱庭へのモンスター追加処理 ---
-            if (this.topCanvas) {
-                // マージ後の数値に応じたモンスターを追加
-                this.topMonsters.push(new TopMonster(this.topCanvas.width, this.topCanvas.height, mergedValue));
-
-                // 最大200体に制限（超えたら古いモンスターを削除）
-                if (this.topMonsters.length > 200) {
-                    this.topMonsters.shift();
-                }
             }
 
             this.tileChosen = false;
