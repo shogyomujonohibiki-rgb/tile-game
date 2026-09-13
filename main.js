@@ -641,67 +641,67 @@
             }
         }
 
-drawTile(row, col) {
-    const tile = this.tileMx[row][col];
-    if (!tile) return; // タイルが存在しない場合は処理をスキップ
+        drawTile(row, col) {
+            const tile = this.tileMx[row][col];
+            if (!tile) return; // タイルが存在しない場合は処理をスキップ
 
-    let offsetX = 3;
-    let offsetY = 3;
+            let offsetX = 3;
+            let offsetY = 3;
 
-    this.ctx.fillStyle = `rgb${this.COLORS[tile.type]}`;
-    this.ctx.shadowColor = 'rgb(130, 130, 130)';
+            this.ctx.fillStyle = `rgb${this.COLORS[tile.type]}`;
+            this.ctx.shadowColor = 'rgb(130, 130, 130)';
 
-    if (tile.isMovable) {
-        this.ctx.shadowBlur = 2;
-        this.ctx.shadowOffsetX = 4;
-        this.ctx.shadowOffsetY = 4;
-        offsetX = 0;
-        offsetY = 0;
-    } else {
-        this.ctx.shadowColor = 'rgba(0,0,0,0)';
-    }
+            if (tile.isMovable) {
+                this.ctx.shadowBlur = 2;
+                this.ctx.shadowOffsetX = 4;
+                this.ctx.shadowOffsetY = 4;
+                offsetX = 0;
+                offsetY = 0;
+            } else {
+                this.ctx.shadowColor = 'rgba(0,0,0,0)';
+            }
 
-    // --- 1. タイプ（色）ごとの角丸半径を設定 ---
-    const width = this.TILE_WIDTH * tile.scale;
-    const height = this.TILE_HEIGHT * tile.scale;
-    const cornerRadii = [0, width * 0.12, width * 0.24]; // 赤:0px, 青:少し丸み, 緑:強い丸み
-    const radius = cornerRadii[tile.type] || 0;
+            // --- 1. タイプ（色）ごとの角丸半径を設定 ---
+            const width = this.TILE_WIDTH * tile.scale;
+            const height = this.TILE_HEIGHT * tile.scale;
+            const cornerRadii = [0, width * 0.12, width * 0.24]; // 赤:0px, 青:少し丸み, 緑:強い丸み
+            const radius = cornerRadii[tile.type] || 0;
 
-    // --- 2. 角丸描画用のパス生成関数 ---
-    const drawRoundedPath = (x, y, w, h, r) => {
-        this.ctx.beginPath();
-        if (typeof this.ctx.roundRect === 'function') {
-            this.ctx.roundRect(x, y, w, h, r);
-        } else {
-            this.ctx.moveTo(x + r, y);
-            this.ctx.arcTo(x + w, y, x + w, y + h, r);
-            this.ctx.arcTo(x + w, y + h, x, y + h, r);
-            this.ctx.arcTo(x, y + h, x, y, r);
-            this.ctx.arcTo(x, y, x + w, y, r);
-            this.ctx.closePath();
+            // --- 2. 角丸描画用のパス生成関数 ---
+            const drawRoundedPath = (x, y, w, h, r) => {
+                this.ctx.beginPath();
+                if (typeof this.ctx.roundRect === 'function') {
+                    this.ctx.roundRect(x, y, w, h, r);
+                } else {
+                    this.ctx.moveTo(x + r, y);
+                    this.ctx.arcTo(x + w, y, x + w, y + h, r);
+                    this.ctx.arcTo(x + w, y + h, x, y + h, r);
+                    this.ctx.arcTo(x, y + h, x, y, r);
+                    this.ctx.arcTo(x, y, x + w, y, r);
+                    this.ctx.closePath();
+                }
+            };
+
+            // --- 3. タイル本体の描画（fillRect から角丸描画へ変更） ---
+            drawRoundedPath(tile.x + offsetX, tile.y + offsetY, width, height, radius);
+            this.ctx.fill();
+
+            // --- 4. 数字の描画（変更なし） ---
+            this.ctx.fillStyle = 'white';
+            const fontSize = Math.min(this.TILE_WIDTH, this.TILE_HEIGHT) / 2;
+            this.ctx.font = `bold ${fontSize}px Arial`;
+            this.ctx.shadowColor = 'rgba(0,0,0,0)';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(tile.value, tile.x + offsetX + this.TILE_WIDTH / 2, tile.y + offsetY + this.TILE_HEIGHT / 2);
+
+            // --- 5. 移動不可（!isMovable）時のグレーアウト（角丸に合わせて描画） ---
+            if (!tile.isMovable) {
+                this.ctx.fillStyle = 'rgba(1,1,1,0.3)';
+                drawRoundedPath(tile.x + offsetX, tile.y + offsetY, width, height, radius);
+                this.ctx.fill();
+            }
         }
-    };
-
-    // --- 3. タイル本体の描画（fillRect から角丸描画へ変更） ---
-    drawRoundedPath(tile.x + offsetX, tile.y + offsetY, width, height, radius);
-    this.ctx.fill();
-    
-    // --- 4. 数字の描画（変更なし） ---
-    this.ctx.fillStyle = 'white';
-    const fontSize = Math.min(this.TILE_WIDTH, this.TILE_HEIGHT) / 2;
-    this.ctx.font = `bold ${fontSize}px Arial`;
-    this.ctx.shadowColor = 'rgba(0,0,0,0)';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText(tile.value, tile.x + offsetX + this.TILE_WIDTH / 2, tile.y + offsetY + this.TILE_HEIGHT / 2);
-    
-    // --- 5. 移動不可（!isMovable）時のグレーアウト（角丸に合わせて描画） ---
-    if (!tile.isMovable) {
-        this.ctx.fillStyle = 'rgba(1,1,1,0.3)';
-        drawRoundedPath(tile.x + offsetX, tile.y + offsetY, width, height, radius);
-        this.ctx.fill();
-    }
-}
 
         reset() {
             this.tileMx = [];
@@ -748,10 +748,22 @@ drawTile(row, col) {
                 }
             }
 
-            if (check === 0 && this.itemCount === 0 && !this.isGameover) {
-                requestAnimationFrame(() => {
-                    this.triggerGameOver();
-                });
+            // 動かせるタイルがない場合
+            if (check === 0) {
+                if (this.itemCount > 0) {
+                    // +1アイテムが残っている場合は自動で使用モードをONにする
+                    if (!this.itemActive) {
+                        this.itemActive = true;
+                        if (this.itemButton) {
+                            this.itemButton.classList.add('active');
+                        }
+                    }
+                } else if (!this.isGameover) {
+                    // アイテムも無ければゲームオーバー
+                    requestAnimationFrame(() => {
+                        this.triggerGameOver();
+                    });
+                }
             }
         }
 
