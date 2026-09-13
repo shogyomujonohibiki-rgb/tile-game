@@ -276,9 +276,7 @@ export class Game {
 
     initTopGarden() {
         if (!this.topCanvas) return;
-        this.topMonsters = [
-            new TopMonster(this.topCanvas.width, this.topCanvas.height, 1, 10)
-        ];
+        this.topMonsters = [];
         this.selectingMonsterToDelete = false;
     }
 
