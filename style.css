@@ -8,8 +8,11 @@ html, body {
   height: 100%;
   overflow: hidden;
   position: fixed;
-  top: 0;
-  left: 0;
+  /* 上下のセーフエリア（ノッチ・ホームバー）を考慮した位置指定 */
+  top: env(safe-area-inset-top, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+  left: env(safe-area-inset-left, 0px);
+  right: env(safe-area-inset-right, 0px);
   touch-action: none; /* ダブルタップズームやスクロールを無効化 */
   -webkit-overflow-scrolling: auto;
   overscroll-behavior: none;
@@ -63,6 +66,9 @@ div {
   max-width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
+  /* 上下の危険エリアとの接触を防ぐスペーサー */
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
 /* 上部キャンバス */
