@@ -1,5 +1,6 @@
 @charset "UTF-8";
 
+/* 画面全体の固定・拡大スクロール（バウンス）防止 */
 html, body {
   margin: 0;
   padding: 0;
@@ -9,9 +10,12 @@ html, body {
   position: fixed;
   top: 0;
   left: 0;
-  touch-action: none;
+  touch-action: none; /* ダブルタップズームやスクロールを無効化 */
   -webkit-overflow-scrolling: auto;
   overscroll-behavior: none;
+  background-color: #fff;
+  font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
+  -webkit-tap-highlight-color: transparent; /* タップ時の青い枠を消す */
 }
 
 canvas {
@@ -19,48 +23,44 @@ canvas {
   display: block;
 }
 
-body {
-  font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
-  background-color: #fff;
-}
-
-.p1 {
-  user-select:none;
-  font-size: 32px;
-  width: 100%;
-  height: 44px;
-  text-align: center;
-  margin: 0 auto;
-}
-
-.p2 {
-  user-select:none;
-  font-size: 20px;
-  width: 100%;
-  height: 30px;
-  text-align: center;
-  margin: 0 auto;
-}
-
-.p3 {
-  user-select:none;
-  font-size: 20px;
-  color: rgb(132, 132, 132);
-  width: 100%;
-  height: 32px;
-  text-align: center;
-  margin: 0 auto;
-}
-
 div {
   background: white;
-  user-select:none;
+  user-select: none;
+  -webkit-user-select: none;
   display: block;
   margin: 0 auto;
 }
 
+/* スコア表示等の不要なデフォルト余白を除去 */
+.p1, .p2, .p3 {
+  user-select: none;
+  -webkit-user-select: none;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.p1 {
+  font-size: 28px;
+  height: 36px;
+  line-height: 36px;
+}
+
+.p2 {
+  font-size: 18px;
+  height: 24px;
+  line-height: 24px;
+}
+
+.p3 {
+  font-size: 18px;
+  color: rgb(132, 132, 132);
+  height: 24px;
+  line-height: 24px;
+}
+
 #gameArea {
   width: 343px;
+  max-width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
 }
@@ -72,6 +72,7 @@ div {
   width: 100%;
   height: 225px;
   margin: 0 0 8px 0;
+  touch-action: none;
 }
 
 /* メイン部分（Canvas + 右側コントロールパネル） */
@@ -86,10 +87,10 @@ div {
   padding: 0;
 }
 
-/* 4x4メインキャンバス（200px × 240px の固定サイズに指定） */
+/* 4x4メインキャンバス */
 #gameCanvas {
   background: white;
-  user-select:none;
+  user-select: none;
   display: block;
   width: 240px;
   height: 240px;
@@ -97,7 +98,7 @@ div {
   -webkit-user-select: none;
 }
 
-/* 右側操作パネル（高さを240pxに合わせる） */
+/* 右側操作パネル */
 #controlPanel {
   display: flex;
   flex-direction: column;
@@ -127,22 +128,6 @@ div {
   box-sizing: border-box;
 }
 
-.side-label {
-  width: 100%;
-  height: 35px;
-  font-size: 10px;
-  font-weight: bold;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f0f0f0;
-  border-radius: 6px;
-  margin: 0;
-  padding: 0 2px;
-  box-sizing: border-box;
-}
-
 button {
   all: unset;
   background-color: rgb(235, 235, 235);
@@ -158,22 +143,65 @@ button {
   justify-content: center;
   margin: 0;
   box-sizing: border-box;
+  touch-action: manipulation;
+}
+
+/* +1アイテムの箱 */
+.item-container {
+  width: 100%;
+  background: #f0f0f0;
+  border-radius: 6px;
+  padding: 4px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+#itemCountBoard {
+  width: 100%;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  color: #333;
+  margin: 0;
+  padding: 2px 0;
+}
+
+#itemButton {
+  all: unset;
+  background-color: rgb(235, 235, 235);
+  width: 100%;
+  height: 28px;
+  font-size: 11px;
+  font-weight: bold;
+  border: 1px solid black;
+  border-radius: 4px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 #itemButton.active {
   background-color: rgb(100, 200, 255);
 }
 
-/* カラーサンプルエリアの修正 */
+/* カラーサンプルエリア */
 #colorSample {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 8px;
-  width: 343px;          /* topCanvasと同じ幅に固定 */
+  width: 343px;
   max-width: 100%;
   height: 28px;
-  margin: 12px auto 12px auto; /* topCanvasとの間に12pxのスペースを配置 */
+  margin: 6px auto;
   padding: 4px;
   background: #e1e1e1;
   border-radius: 6px;
