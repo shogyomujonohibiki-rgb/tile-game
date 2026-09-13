@@ -206,6 +206,9 @@
             });
 
             this.canvas.addEventListener('pointerdown', (e) => {
+                // タッチ時のブラウザデフォルト挙動（スクロール等）を無効化
+                if (e.cancelable) e.preventDefault();
+
                 if (this.isGameover) return;
 
                 if (!this.isCounting) {
@@ -247,10 +250,12 @@
                 this.chsnRow = newRow;
                 this.tileChosen = true;
                 this.drawTiles();
-            });
+            }, { passive: false });
 
             this.canvas.addEventListener('pointermove', (e) => {
+                if (e.cancelable) e.preventDefault();
                 if (this.isMoving || this.isGameover) return;
+
                 if (this.tileChosen) {
                     const scaleX = this.canvas.width / this.rect.width;
                     const scaleY = this.canvas.height / this.rect.height;
@@ -309,7 +314,7 @@
                         }
                     }
                 }
-            });
+            }, { passive: false });
 
             window.addEventListener('pointerup', () => {
                 if (this.isMoving) return;
@@ -636,35 +641,67 @@
             }
         }
 
-        drawTile(row, col) {
-            const tile = this.tileMx[row][col];
-            let offsetX = 3;
-            let offsetY = 3;
-            this.ctx.fillStyle = `rgb${this.COLORS[tile.type]}`;
-            this.ctx.shadowColor = "gray";
-            if (tile.isMovable) {
-                this.ctx.shadowBlur = 2;
-                this.ctx.shadowOffsetX = 3;
-                this.ctx.shadowOffsetY = 3;
-                offsetX = 0;
-                offsetY = 0;
-            } else {
-                this.ctx.shadowColor = 'rgba(0,0,0,0)';
-            }
-            this.ctx.fillRect(tile.x + offsetX, tile.y + offsetY, this.TILE_WIDTH * tile.scale, this.TILE_HEIGHT * tile.scale);
-            this.ctx.fillStyle = 'white';
+drawTile(row, col) {
+    const tile = this.tileMx[row][col];
+    if (!tile) return; // タイルが存在しない場合は処理をスキップ
 
-            const fontSize = Math.min(this.TILE_WIDTH, this.TILE_HEIGHT) / 2;
-            this.ctx.font = `bold ${fontSize}px Arial`;
-            this.ctx.shadowColor = 'rgba(0,0,0,0)';
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(tile.value, tile.x + offsetX + this.TILE_WIDTH / 2, tile.y + offsetY + this.TILE_HEIGHT / 2);
-            if (!tile.isMovable) {
-                this.ctx.fillStyle = 'rgba(1,1,1,0.3)';
-                this.ctx.fillRect(tile.x + offsetX, tile.y + offsetY, this.TILE_WIDTH * tile.scale, this.TILE_HEIGHT * tile.scale);
-            }
+    let offsetX = 3;
+    let offsetY = 3;
+
+    this.ctx.fillStyle = `rgb${this.COLORS[tile.type]}`;
+    this.ctx.shadowColor = 'rgb(130, 130, 130)';
+
+    if (tile.isMovable) {
+        this.ctx.shadowBlur = 2;
+        this.ctx.shadowOffsetX = 4;
+        this.ctx.shadowOffsetY = 4;
+        offsetX = 0;
+        offsetY = 0;
+    } else {
+        this.ctx.shadowColor = 'rgba(0,0,0,0)';
+    }
+
+    // --- 1. タイプ（色）ごとの角丸半径を設定 ---
+    const width = this.TILE_WIDTH * tile.scale;
+    const height = this.TILE_HEIGHT * tile.scale;
+    const cornerRadii = [0, width * 0.12, width * 0.24]; // 赤:0px, 青:少し丸み, 緑:強い丸み
+    const radius = cornerRadii[tile.type] || 0;
+
+    // --- 2. 角丸描画用のパス生成関数 ---
+    const drawRoundedPath = (x, y, w, h, r) => {
+        this.ctx.beginPath();
+        if (typeof this.ctx.roundRect === 'function') {
+            this.ctx.roundRect(x, y, w, h, r);
+        } else {
+            this.ctx.moveTo(x + r, y);
+            this.ctx.arcTo(x + w, y, x + w, y + h, r);
+            this.ctx.arcTo(x + w, y + h, x, y + h, r);
+            this.ctx.arcTo(x, y + h, x, y, r);
+            this.ctx.arcTo(x, y, x + w, y, r);
+            this.ctx.closePath();
         }
+    };
+
+    // --- 3. タイル本体の描画（fillRect から角丸描画へ変更） ---
+    drawRoundedPath(tile.x + offsetX, tile.y + offsetY, width, height, radius);
+    this.ctx.fill();
+    
+    // --- 4. 数字の描画（変更なし） ---
+    this.ctx.fillStyle = 'white';
+    const fontSize = Math.min(this.TILE_WIDTH, this.TILE_HEIGHT) / 2;
+    this.ctx.font = `bold ${fontSize}px Arial`;
+    this.ctx.shadowColor = 'rgba(0,0,0,0)';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(tile.value, tile.x + offsetX + this.TILE_WIDTH / 2, tile.y + offsetY + this.TILE_HEIGHT / 2);
+    
+    // --- 5. 移動不可（!isMovable）時のグレーアウト（角丸に合わせて描画） ---
+    if (!tile.isMovable) {
+        this.ctx.fillStyle = 'rgba(1,1,1,0.3)';
+        drawRoundedPath(tile.x + offsetX, tile.y + offsetY, width, height, radius);
+        this.ctx.fill();
+    }
+}
 
         reset() {
             this.tileMx = [];
