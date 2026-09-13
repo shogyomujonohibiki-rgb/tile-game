@@ -1,7 +1,7 @@
 'use strict';
 
 import { Game } from './game.js';
-import { TopMonster } from './monster.js';
+import { TopMonster } from './monster.js'; // TopMonsterのインポートを追加
 
 {
     let currentAuthUserData = null;
@@ -18,7 +18,7 @@ import { TopMonster } from './monster.js';
                 localStorage.setItem('gameUserName', userData.userName);
             }
 
-            // Firestoreから保存されたモンスターデータを復元
+            // Firestoreに保存されたモンスターデータがあれば復元
             if (userData.monsters && Array.isArray(userData.monsters) && window.game && window.game.topCanvas) {
                 window.game.topMonsters = userData.monsters.map(data => {
                     const monster = new TopMonster(
@@ -43,6 +43,13 @@ import { TopMonster } from './monster.js';
             if (localName && window.saveUserDataToFirestore) {
                 window.saveUserDataToFirestore({ userName: localName });
             }
+        }
+
+        // 保存データがなかったり、モンスターデータが空の場合は初期の1体を生成する
+        if (window.game && window.game.topCanvas && window.game.topMonsters.length === 0) {
+            window.game.topMonsters = [
+                new TopMonster(window.game.topCanvas.width, window.game.topCanvas.height, 1, 10)
+            ];
         }
 
         if (window.game && window.currentUser) {
