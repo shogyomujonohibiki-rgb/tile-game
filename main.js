@@ -231,14 +231,22 @@
 
                 if (newCol < 0 || newCol >= this.NO_COL || newRow < 0 || newRow >= this.NO_ROW) return;
 
+                // 【修正後】
                 if (this.itemActive) {
                     (async () => {
                         this.saveState();
                         this.itemActive = false;
-                        this.tileMx[newRow][newCol].value++;
-                        await this.playLevelUpAnim(newRow, newCol);
+                        if (this.itemButton) this.itemButton.classList.remove('active');
+
+                        // 先にアイテム数を減らし、タイルを成長させる
                         this.itemCount--;
-                        this.itemButton.classList.remove('active');
+                        this.tileMx[newRow][newCol].value++;
+
+                        // アニメーション再生（この間、movableCheckでの誤爆を防ぐためアニメーションフラグ等を利用するか、
+                        // あるいはアニメーション中の自動判定を制御する）
+                        await this.playLevelUpAnim(newRow, newCol);
+
+                        // アニメーションと状態更新が完全に終わった後に、最新の盤面で判定・描画を行う
                         this.drawTiles();
                     })();
                     return;
@@ -721,6 +729,9 @@
         }
 
         movableCheck() {
+            // アニメーション中や移動中は判定をスキップ
+            if (this.isMoving) return;
+
             let check = 0;
             for (let row = 0; row < this.NO_ROW; row++) {
                 for (let col = 0; col < this.NO_COL; col++) {
