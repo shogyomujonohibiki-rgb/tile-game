@@ -53,7 +53,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (ES Modules) 初期化設定 -->
+<!-- Firebase SDK (ES Modules) 初期化設定 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -89,11 +89,25 @@
 
         window.currentUser = null;
 
+        // --- 🔐 認証完了を安全に待つためのヘルパー関数 ---
+        let authResolve = null;
+        let authPromise = new Promise((resolve) => {
+            authResolve = resolve;
+        });
+
+        // ログイン状態が確定するまで待機するラッパー
+        async function ensureAuth() {
+            if (window.currentUser) return window.currentUser;
+            return await authPromise;
+        }
+
         // --- データ読み込み用関数 ---
         window.loadUserDataFromFirestore = async () => {
-            if (!window.currentUser) return null;
             try {
-                const userRef = doc(db, "users", window.currentUser.uid);
+                const user = await ensureAuth(); // 認証完了を待つ
+                if (!user) return null;
+
+                const userRef = doc(db, "users", user.uid);
                 const docSnap = await getDoc(userRef);
                 if (docSnap.exists()) {
                     return docSnap.data();
@@ -106,9 +120,11 @@
 
         // --- データ保存用関数 ---
         window.saveUserDataToFirestore = async (data) => {
-            if (!window.currentUser) return;
             try {
-                const userRef = doc(db, "users", window.currentUser.uid);
+                const user = await ensureAuth(); // 認証完了を待つ
+                if (!user) return;
+
+                const userRef = doc(db, "users", user.uid);
                 await setDoc(userRef, {
                     ...data,
                     updatedAt: new Date()
@@ -121,17 +137,19 @@
 
         // --- プレイごとのスコア保存用関数 ---
         window.saveScoreToFirestore = async (score, mergeCount = 0, userName = null) => {
-            if (!window.currentUser) return;
             try {
+                const user = await ensureAuth(); // 認証完了を待つ
+                if (!user) return;
+
                 const currentName = userName
                     || localStorage.getItem('gameUserName')
-                    || window.currentUser.displayName
-                    || window.currentUser.userName
+                    || user.displayName
+                    || user.userName
                     || 'Guest';
 
                 const scoresRef = collection(db, "scores");
                 await addDoc(scoresRef, {
-                    uid: window.currentUser.uid,
+                    uid: user.uid,
                     userName: currentName,
                     score: score,
                     createdAt: serverTimestamp()
@@ -142,9 +160,10 @@
             }
         };
 
-        // --- ランキング取得用関数 ---
+        // --- ランキング取得用関数（グローバルは認証必須ではないが安全のため待機も可能） ---
         window.fetchLeaderboardFromFirestore = async function (limitCount = 20) {
             try {
+                // ランキング取得は認証がまだでも読み込めることが多いが、ルールに依存するため必要に応じて ensureAuth() を入れても良い
                 const q = query(collection(db, "scores"), orderBy("score", "desc"), limit(limitCount));
                 const querySnapshot = await getDocs(q);
 
@@ -166,13 +185,14 @@
 
         // --- マイランキング／個人の履歴取得用関数 ---
         window.fetchMyLeaderboardFromFirestore = async function (uid, limitCount = 20) {
-            const targetUid = uid || (window.currentUser ? window.currentUser.uid : null);
-            if (!targetUid) {
-                console.warn("uid が指定されていないため、マイランキングを取得できません。");
-                return [];
-            }
-
             try {
+                const user = await ensureAuth(); // 認証完了を待つ
+                const targetUid = uid || (user ? user.uid : null);
+                if (!targetUid) {
+                    console.warn("uid が指定されていないため、マイランキングを取得できません。");
+                    return [];
+                }
+
                 const q = query(
                     collection(db, "scores"),
                     where("uid", "==", targetUid),
@@ -208,14 +228,26 @@
             if (user) {
                 window.currentUser = user;
                 console.log("ログイン中 UID:", user.uid);
+                if (authResolve) {
+                    authResolve(user); // 待機している処理に通知
+                    authResolve = null;
+                }
                 window.dispatchEvent(new Event('firebase-ready'));
             } else {
                 try {
                     const cred = await signInAnonymously(auth);
                     window.currentUser = cred.user;
+                    if (authResolve) {
+                        authResolve(cred.user); // 待機している処理に通知
+                        authResolve = null;
+                    }
                     window.dispatchEvent(new Event('firebase-ready'));
                 } catch (error) {
                     console.error("ログイン失敗:", error);
+                    if (authResolve) {
+                        authResolve(null);
+                        authResolve = null;
+                    }
                 }
             }
         });
