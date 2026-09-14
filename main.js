@@ -1,12 +1,14 @@
 'use strict';
 
 import { Game } from './game.js';
-import { TopMonster } from './monster.js'; // TopMonsterのインポートを追加
+import { TopMonster } from './monster.js';
 
 {
     let currentAuthUserData = null;
 
     window.addEventListener('firebase-ready', async () => {
+        // すでに各Firestore関数内部で ensureAuth() により認証待ちが保証されているため、
+        // ここでもそのまま安全にデータを取得できます。
         const userData = await window.loadUserDataFromFirestore();
 
         if (userData) {
@@ -18,7 +20,6 @@ import { TopMonster } from './monster.js'; // TopMonsterのインポートを追
                 localStorage.setItem('gameUserName', userData.userName);
             }
 
-            // Firestoreに保存されたモンスターデータがあれば復元
             if (userData.monsters && Array.isArray(userData.monsters) && window.game && window.game.topCanvas) {
                 window.game.topMonsters = userData.monsters.map(data => {
                     const monster = new TopMonster(
@@ -45,7 +46,6 @@ import { TopMonster } from './monster.js'; // TopMonsterのインポートを追
             }
         }
 
-        // 保存データがなかったり、モンスターデータが空の場合は初期の1体を生成する
         if (window.game && window.game.topCanvas && window.game.topMonsters.length === 0) {
             window.game.topMonsters = [
                 new TopMonster(window.game.topCanvas.width, window.game.topCanvas.height, 1, 10)
