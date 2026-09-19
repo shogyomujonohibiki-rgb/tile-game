@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>マージゲーム</title>
 
     <link rel="manifest" href="manifest.json">
@@ -18,16 +16,13 @@
 
 <body>
     <p id="scoreBoard" class="p1">0</p>
-    <!-- 「マージ回数」は右操作パネル内へ移動 -->
     <p id="highScoreBoard" class="p3">0</p>
     <div id="colorSample"></div>
 
-    <!-- 左下に寄せるためのコンテナ -->
     <div id="gameArea">
-        <!-- 上部に配置する描画用Canvas（黒塗りつぶし） -->
+        <!-- 上部：箱庭エリア（シンプルな黒背景） -->
         <canvas id="topCanvas" width="240" height="150"></canvas>
 
-        <!-- メインの盤面 ＋ 右側操作パネルのコンテナ -->
         <div id="mainSection">
             <!-- メインの4x4ゲームスペース -->
             <canvas id="gameCanvas" width="200" height="250">
@@ -38,14 +33,15 @@
             <div id="controlPanel">
                 <div id="timer">00:00.00</div>
 
-                <!-- マージ回数（+1アイテムの上に配置） -->
                 <div id="mergeCountBoard">マージ回数：0</div>
 
-                <!-- +1アイテムの箱（ラベルと使用ボタンを一体化） -->
                 <div id="itemBox" class="item-container">
                     <div id="itemCountBoard">+1アイテム：0</div>
                     <button id="itemButton">使用</button>
                 </div>
+
+                <!-- パーティー編成ボタン -->
+                <button id="partyButton">パーティー編成</button>
 
                 <button id="undoButton">1手戻る</button>
                 <button id="game4x4">リセット</button>
@@ -53,7 +49,19 @@
         </div>
     </div>
 
-<!-- Firebase SDK (ES Modules) 初期化設定 -->
+    <!-- パーティー編成モーダル画面 -->
+    <div id="partyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; width: 90%; max-width: 320px; padding: 16px; border-radius: 8px; box-sizing: border-box; text-align: center; color: #333;">
+            <h3 style="margin-top: 0;">パーティー編成 (最大6匹)</h3>
+            <div id="partySelectionList" style="max-height: 220px; overflow-y: auto; border: 1px solid #ccc; margin-bottom: 12px; padding: 8px; text-align: left;">
+                <!-- 所持モンスター一覧が動的に入ります -->
+            </div>
+            <p id="partyCountText" style="font-size: 12px; margin-bottom: 12px;">選択中: 0 / 6</p>
+            <button id="closePartyModal" style="all: unset; background-color: #555; color: white; width: 100%; height: 36px; border-radius: 4px; cursor: pointer; font-weight: bold;">決定・閉じる</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (ES Modules) 初期化設定 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -72,7 +80,6 @@
             serverTimestamp
         } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        // Firebaseコンソールの設定情報
         const firebaseConfig = {
             apiKey: "AIzaSyAK9WpeKAKNeBmNCv-IIn3_ICQtuifeUoM",
             authDomain: "merge-game-4ca92.firebaseapp.com",
@@ -82,29 +89,25 @@
             appId: "1:777141437539:web:47275b67f5e199624a2456"
         };
 
-        // Firebase初期化
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         window.currentUser = null;
 
-        // --- 🔐 認証完了を安全に待つためのヘルパー関数 ---
         let authResolve = null;
         let authPromise = new Promise((resolve) => {
             authResolve = resolve;
         });
 
-        // ログイン状態が確定するまで待機するラッパー
         async function ensureAuth() {
             if (window.currentUser) return window.currentUser;
             return await authPromise;
         }
 
-        // --- データ読み込み用関数 ---
         window.loadUserDataFromFirestore = async () => {
             try {
-                const user = await ensureAuth(); // 認証完了を待つ
+                const user = await ensureAuth();
                 if (!user) return null;
 
                 const userRef = doc(db, "users", user.uid);
@@ -118,10 +121,9 @@
             return null;
         };
 
-        // --- データ保存用関数 ---
         window.saveUserDataToFirestore = async (data) => {
             try {
-                const user = await ensureAuth(); // 認証完了を待つ
+                const user = await ensureAuth();
                 if (!user) return;
 
                 const userRef = doc(db, "users", user.uid);
@@ -129,16 +131,14 @@
                     ...data,
                     updatedAt: new Date()
                 }, { merge: true });
-                console.log("Firestoreへの保存成功:", data);
             } catch (error) {
                 console.error("データ保存失敗:", error);
             }
         };
 
-        // --- プレイごとのスコア保存用関数 ---
         window.saveScoreToFirestore = async (score, mergeCount = 0, userName = null) => {
             try {
-                const user = await ensureAuth(); // 認証完了を待つ
+                const user = await ensureAuth();
                 if (!user) return;
 
                 const currentName = userName
@@ -154,16 +154,13 @@
                     score: score,
                     createdAt: serverTimestamp()
                 });
-                console.log("スコアの保存に成功しました:", score, "ユーザー名:", currentName);
             } catch (error) {
                 console.error("スコア保存失敗:", error);
             }
         };
 
-        // --- ランキング取得用関数（グローバルは認証必須ではないが安全のため待機も可能） ---
         window.fetchLeaderboardFromFirestore = async function (limitCount = 20) {
             try {
-                // ランキング取得は認証がまだでも読み込めることが多いが、ルールに依存するため必要に応じて ensureAuth() を入れても良い
                 const q = query(collection(db, "scores"), orderBy("score", "desc"), limit(limitCount));
                 const querySnapshot = await getDocs(q);
 
@@ -183,15 +180,11 @@
             }
         };
 
-        // --- マイランキング／個人の履歴取得用関数 ---
         window.fetchMyLeaderboardFromFirestore = async function (uid, limitCount = 20) {
             try {
-                const user = await ensureAuth(); // 認証完了を待つ
+                const user = await ensureAuth();
                 const targetUid = uid || (user ? user.uid : null);
-                if (!targetUid) {
-                    console.warn("uid が指定されていないため、マイランキングを取得できません。");
-                    return [];
-                }
+                if (!targetUid) return [];
 
                 const q = query(
                     collection(db, "scores"),
@@ -209,10 +202,9 @@
                     const year = dateObj.getFullYear();
                     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
                     const day = String(dateObj.getDate()).padStart(2, '0');
-                    const formattedDate = `${year}/${month}/${day}`;
 
                     leaderboard.push({
-                        dateStr: formattedDate,
+                        dateStr: `${year}/${month}/${day}`,
                         score: data.score || 0
                     });
                 });
@@ -223,13 +215,11 @@
             }
         };
 
-        // ログイン監視
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 window.currentUser = user;
-                console.log("ログイン中 UID:", user.uid);
                 if (authResolve) {
-                    authResolve(user); // 待機している処理に通知
+                    authResolve(user);
                     authResolve = null;
                 }
                 window.dispatchEvent(new Event('firebase-ready'));
@@ -238,7 +228,7 @@
                     const cred = await signInAnonymously(auth);
                     window.currentUser = cred.user;
                     if (authResolve) {
-                        authResolve(cred.user); // 待機している処理に通知
+                        authResolve(cred.user);
                         authResolve = null;
                     }
                     window.dispatchEvent(new Event('firebase-ready'));
@@ -254,49 +244,5 @@
     </script>
 
     <script type="module" src="main.js"></script>
-
-    <!-- Service Workerの登録 -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=9').then((registration) => {
-                    const checkUpdate = () => {
-                        registration.update().catch(err => console.error('SW Update check failed:', err));
-                    };
-
-                    checkUpdate();
-                    document.addEventListener('visibilitychange', () => {
-                        if (document.visibilityState === 'visible') {
-                            checkUpdate();
-                        }
-                    });
-
-                    registration.onupdatefound = () => {
-                        const installingWorker = registration.installing;
-                        if (installingWorker == null) return;
-
-                        installingWorker.onstatechange = () => {
-                            if (installingWorker.state === 'installed') {
-                                if (navigator.serviceWorker.controller) {
-                                    console.log('新しいバージョンが更新されました。');
-                                }
-                            }
-                        };
-                    };
-                }).catch((error) => {
-                    console.error('Service Worker 登録失敗:', error);
-                });
-            });
-
-            let refreshing = false;
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (!refreshing) {
-                    refreshing = true;
-                    window.location.reload();
-                }
-            });
-        }
-    </script>
 </body>
-
 </html>
