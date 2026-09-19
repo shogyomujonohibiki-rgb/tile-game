@@ -17,7 +17,7 @@ export class Game {
         this.partyModal = document.getElementById('partyModal');
         this.closePartyModal = document.getElementById('closePartyModal');
 
-        this.modeMonsterGetBtn = document.getElementById('modeMonsterGet');
+        this.modeScoutBtn = document.getElementById('modeMonsterGet');
         this.modeDungeonBtn = document.getElementById('modeDungeon');
 
         this.scoreBoard = document.getElementById('scoreBoard');
@@ -27,8 +27,8 @@ export class Game {
 
         this.uid = window.currentUser ? window.currentUser.uid : null;
 
-        // モード管理 ('monsterGet' または 'dungeon')
-        this.currentMode = 'monsterGet';
+        // モード管理 ('scout' または 'dungeon')
+        this.currentMode = 'scout';
 
         this.TILE_MARGIN = 5;
         this.COLORS = ['(230, 82, 82)', '(79, 54, 219)', '(74, 162, 74)'];
@@ -41,6 +41,12 @@ export class Game {
         this.maxMonsterCount = 20;
         this.topMonsters = [];
         this.partyMonsterIds = [];
+
+        // ダンジョン用ステータス
+        this.dungeonFloor = 1;
+        this.enemyHp = 50;
+        this.enemyMaxHp = 50;
+        this.enemyAtk = 10;
 
         this.resizeCanvas();
         window.addEventListener('resize', () => {
@@ -89,20 +95,18 @@ export class Game {
         this.moveFrame = this.moveDuration / this.moveFq;
 
         this.game4x4.addEventListener('click', () => {
-            if (this.currentMode !== 'monsterGet') return;
             this.reset();
             this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
         });
 
         if (this.undoButton) {
             this.undoButton.addEventListener('click', () => {
-                if (this.currentMode !== 'monsterGet') return;
+                if (this.currentMode !== 'scout') return;
                 this.undo();
             });
         }
 
         this.itemButton.addEventListener('click', () => {
-            if (this.currentMode !== 'monsterGet') return;
             if (this.itemCount > 0) {
                 this.itemActive = !this.itemActive;
             }
@@ -115,10 +119,15 @@ export class Game {
 
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.currentMode !== 'monsterGet') return;
-            if (this.isGameover) return;
+            if (this.isGameover) {
+                if (this.currentMode === 'dungeon') {
+                    this.resetDungeonProgress();
+                    this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
+                }
+                return;
+            }
 
-            if (!this.isCounting) {
+            if (!this.isCounting && this.currentMode === 'scout') {
                 this.isCounting = true;
                 this.startTime = Date.now();
                 this.countUp();
@@ -139,7 +148,7 @@ export class Game {
 
             if (this.itemActive) {
                 (async () => {
-                    this.saveState();
+                    if (this.currentMode === 'scout') this.saveState();
                     this.itemActive = false;
                     if (this.itemButton) this.itemButton.classList.remove('active');
 
@@ -162,7 +171,6 @@ export class Game {
 
         this.canvas.addEventListener('pointermove', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.currentMode !== 'monsterGet') return;
             if (this.isMoving || this.isGameover) return;
 
             if (this.tileChosen) {
@@ -189,7 +197,7 @@ export class Game {
                     if (!this.canMergeTile(this.chsnRow, this.chsnCol + 1)) {
                         this.release();
                     } else {
-                        this.saveState();
+                        if (this.currentMode === 'scout') this.saveState();
                         this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                         this.isMoving = true;
                         this.moveRight();
@@ -198,7 +206,7 @@ export class Game {
                     if (!this.canMergeTile(this.chsnRow, this.chsnCol - 1)) {
                         this.release();
                     } else {
-                        this.saveState();
+                        if (this.currentMode === 'scout') this.saveState();
                         this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                         this.isMoving = true;
                         this.moveLeft();
@@ -207,7 +215,7 @@ export class Game {
                     if (!this.canMergeTile(this.chsnRow + 1, this.chsnCol)) {
                         this.release();
                     } else {
-                        this.saveState();
+                        if (this.currentMode === 'scout') this.saveState();
                         this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                         this.isMoving = true;
                         this.moveDown();
@@ -216,7 +224,7 @@ export class Game {
                     if (!this.canMergeTile(this.chsnRow - 1, this.chsnCol)) {
                         this.release();
                     } else {
-                        this.saveState();
+                        if (this.currentMode === 'scout') this.saveState();
                         this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
                         this.isMoving = true;
                         this.moveUp();
@@ -226,13 +234,11 @@ export class Game {
         }, { passive: false });
 
         window.addEventListener('pointerup', () => {
-            if (this.currentMode !== 'monsterGet') return;
             if (this.isMoving) return;
             this.release();
         });
 
         window.addEventListener('pointerout', () => {
-            if (this.currentMode !== 'monsterGet') return;
             if (this.isMoving) return;
             this.release();
         });
@@ -241,9 +247,9 @@ export class Game {
     }
 
     initModeSwitchEvents() {
-        if (this.modeMonsterGetBtn && this.modeDungeonBtn) {
-            this.modeMonsterGetBtn.addEventListener('click', () => {
-                this.switchMode('monsterGet');
+        if (this.modeScoutBtn && this.modeDungeonBtn) {
+            this.modeScoutBtn.addEventListener('click', () => {
+                this.switchMode('scout');
             });
             this.modeDungeonBtn.addEventListener('click', () => {
                 this.switchMode('dungeon');
@@ -251,35 +257,39 @@ export class Game {
         }
     }
 
-    switchMode(mode) {
+switchMode(mode) {
         if (this.currentMode === mode) return;
         this.currentMode = mode;
 
-        if (mode === 'monsterGet') {
-            this.modeMonsterGetBtn.classList.add('active');
+        // モード切替時にパズルをリセットする
+        this.reset();
+        this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
+
+        if (mode === 'scout') {
+            this.modeScoutBtn.classList.add('active');
             this.modeDungeonBtn.classList.remove('active');
+            if (this.modeScoutBtn.textContent !== 'スカウト') this.modeScoutBtn.textContent = 'スカウト';
+            this.isGameover = false;
             this.drawTiles();
         } else if (mode === 'dungeon') {
             this.modeDungeonBtn.classList.add('active');
-            this.modeMonsterGetBtn.classList.remove('active');
-            this.drawDungeonScreen();
+            this.modeScoutBtn.classList.remove('active');
+            if (this.modeDungeonBtn.textContent !== 'ダンジョン') this.modeDungeonBtn.textContent = 'ダンジョン';
+            this.resetDungeonProgress();
+            this.drawTiles();
         }
     }
 
-    drawDungeonScreen() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.fillStyle = '#222';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        this.ctx.fillStyle = '#FFD700';
-        this.ctx.font = 'bold 14px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText('ダンジョン挑戦モード', this.canvas.width / 2, this.canvas.height / 2 - 15);
-
-        this.ctx.fillStyle = '#AAA';
-        this.ctx.font = '11px Arial';
-        this.ctx.fillText('（現在未実装です）', this.canvas.width / 2, this.canvas.height / 2 + 15);
+    resetDungeonProgress() {
+        this.dungeonFloor = 1;
+        this.enemyMaxHp = 50;
+        this.enemyHp = this.enemyMaxHp;
+        this.enemyAtk = 10;
+        this.isGameover = false;
+        // ダンジョン用モンスターのHP全回復
+        this.topMonsters.forEach(m => {
+            m.currentHp = m.hp;
+        });
     }
 
     resizeCanvas() {
@@ -326,8 +336,32 @@ export class Game {
         const w = this.topCanvas.width;
         const h = this.topCanvas.height;
 
-        this.topCtx.fillStyle = '#000000';
+        this.topCtx.fillStyle = '#111122';
         this.topCtx.fillRect(0, 0, w, h);
+
+        if (this.currentMode === 'dungeon') {
+            this.topCtx.fillStyle = '#FFD700';
+            this.topCtx.font = 'bold 11px Arial';
+            this.topCtx.textAlign = 'left';
+            this.topCtx.fillText(`【ダンジョン】 B${this.dungeonFloor}F`, 10, 18);
+
+            this.topCtx.fillStyle = '#FF4444';
+            this.topCtx.fillText(`敵 HP: ${this.enemyHp} / ${this.enemyMaxHp}`, 10, 32);
+
+            this.topCtx.fillStyle = '#8B0000';
+            this.topCtx.beginPath();
+            this.topCtx.arc(w - 40, 25, 15, 0, Math.PI * 2);
+            this.topCtx.fill();
+            this.topCtx.fillStyle = '#FFF';
+            this.topCtx.font = '9px Arial';
+            this.topCtx.textAlign = 'center';
+            this.topCtx.fillText('敵', w - 40, 28);
+        } else {
+            this.topCtx.fillStyle = '#666';
+            this.topCtx.font = '11px Arial';
+            this.topCtx.textAlign = 'left';
+            this.topCtx.fillText('【ダンジョン（拠点）】 パーティーメンバー一覧', 10, 18);
+        }
 
         const partyList = this.getPartyMonsters();
         const count = partyList.length;
@@ -336,14 +370,34 @@ export class Game {
             const spacing = w / (count + 1);
             partyList.forEach((monster, index) => {
                 monster.x = spacing * (index + 1);
-                monster.y = h / 2 + 10;
+                monster.y = h / 2 + 20;
                 monster.draw(this.topCtx);
+
+                if (this.currentMode === 'dungeon') {
+                    if (monster.currentHp === undefined) monster.currentHp = monster.hp;
+                    const barW = 30;
+                    const barH = 4;
+                    const bx = monster.x - barW / 2;
+                    const by = monster.y + 18;
+
+                    this.topCtx.fillStyle = '#555';
+                    this.topCtx.fillRect(bx, by, barW, barH);
+
+                    const ratio = Math.max(0, monster.currentHp / monster.hp);
+                    this.topCtx.fillStyle = ratio > 0.3 ? '#00FF00' : '#FF0000';
+                    this.topCtx.fillRect(bx, by, barW * ratio, barH);
+
+                    this.topCtx.fillStyle = '#FFF';
+                    this.topCtx.font = '8px Arial';
+                    this.topCtx.textAlign = 'center';
+                    this.topCtx.fillText(`${monster.currentHp}/${monster.hp}`, monster.x, by + 12);
+                }
             });
         } else {
             this.topCtx.fillStyle = '#666';
             this.topCtx.font = '12px Arial';
             this.topCtx.textAlign = 'center';
-            this.topCtx.fillText('パーティーにモンスターがいません', w / 2, h / 2);
+            this.topCtx.fillText('パーティーにモンスターがいません', w / 2, h / 2 + 10);
         }
     }
 
@@ -497,7 +551,9 @@ export class Game {
         this.highScore = parseInt(localStorage.getItem(highScoreKey), 10) || 0;
         this.history = [];
         this.createTiles();
-        this.saveState();
+        if (this.currentMode === 'scout') {
+            this.saveState();
+        }
         this.drawTiles();
     }
 
@@ -631,8 +687,6 @@ export class Game {
     }
 
     drawTiles() {
-        if (this.currentMode !== 'monsterGet') return;
-
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.movableCheck();
 
@@ -773,13 +827,18 @@ export class Game {
                 }
             } else if (!this.isGameover) {
                 requestAnimationFrame(() => {
-                    this.triggerGameOver();
+                    if (this.currentMode === 'scout') {
+                        this.triggerScoutGameOver();
+                    } else {
+                        // ダンジョンモードで手詰まりになった場合も全滅扱いでゲームオーバー（リザルト画面）へ
+                        this.triggerDungeonGameOver();
+                    }
                 });
             }
         }
     }
 
-    async triggerGameOver() {
+    async triggerScoutGameOver() {
         if (this.isGameover) return;
         this.isGameover = true;
         this.isCounting = false;
@@ -798,7 +857,6 @@ export class Game {
             const newMonster = new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore);
             this.topMonsters.push(newMonster);
 
-            // 所持数が上限（20匹）を超えている場合、新しく獲得したものを含めた21匹の中から捨てる1匹を選ぶモーダルを表示
             if (this.topMonsters.length > this.maxMonsterCount) {
                 await this.promptMonsterLimitSelection();
             }
@@ -837,7 +895,33 @@ export class Game {
         this.drawTiles();
     }
 
-    // 20匹オーバー時に捨てる1匹を選択するモーダルを開く処理
+    async triggerDungeonGameOver() {
+        if (this.isGameover) return;
+        this.isGameover = true;
+        this.isCounting = false;
+
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        for (let row = 0; row < this.NO_ROW; row++) {
+            for (let col = 0; col < this.NO_COL; col++) {
+                this.drawTile(row, col);
+            }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        this.drawGameOverOverlay();
+
+        if (window.currentUser) {
+            this.uid = window.currentUser.uid;
+        }
+
+        await this.saveCloudData();
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        this.drawTiles();
+    }
+
     promptMonsterLimitSelection() {
         return new Promise((resolve) => {
             let modal = document.getElementById('monsterLimitModal');
@@ -860,7 +944,6 @@ export class Game {
             const submitBtn = modal.querySelector('#limitSubmitBtn');
             listContainer.innerHTML = '';
 
-            // デフォルトで一番上（最も古い）のモンスターを初期選択しておく
             let selectedIndex = 0;
 
             const updateListUI = () => {
@@ -908,7 +991,6 @@ export class Game {
                 submitBtn.removeEventListener('click', submitHandler);
                 modal.style.display = 'none';
 
-                // 選択された1匹を除外する
                 const newTopMonsters = [];
                 const oldToNewIndexMap = new Map();
                 
@@ -923,7 +1005,6 @@ export class Game {
 
                 this.topMonsters = newTopMonsters;
 
-                // パーティー編成IDも再割り当て
                 this.partyMonsterIds = this.partyMonsterIds
                     .map(oldId => oldToNewIndexMap.get(oldId))
                     .filter(newId => newId !== undefined);
@@ -964,6 +1045,24 @@ export class Game {
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.88)';
         this.ctx.fillRect(0, 0, width, height);
 
+        if (this.currentMode === 'dungeon') {
+            // ダンジョンモード用のリザルト表示（到達階など）
+            this.ctx.fillStyle = '#FF4444';
+            this.ctx.font = 'bold 12px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('ゲームオーバー (全滅)', width / 2, 30);
+
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.font = 'bold 14px Arial';
+            this.ctx.fillText(`到達階: B${this.dungeonFloor}F`, width / 2, 60);
+
+            this.ctx.fillStyle = '#AAAAAA';
+            this.ctx.font = '9px Arial';
+            this.ctx.fillText('画面をクリックで再挑戦', width / 2, 100);
+            return;
+        }
+
+        // スカウトモード用の既存ランキング表示
         const padding = 6;
         const centerGap = 10;
         const colWidth = (width - (padding * 2) - centerGap) / 2;
@@ -1085,10 +1184,49 @@ export class Game {
             this.itemCount++;
         }
 
+        // ダンジョンモード時の戦闘処理
+        if (this.currentMode === 'dungeon') {
+            this.processDungeonCombat();
+        }
+
         this.tileChosen = false;
         this.frameCount = 0;
         this.isMoving = false;
         this.drawTiles();
+    }
+
+    processDungeonCombat() {
+        const party = this.getPartyMonsters();
+        if (party.length === 0) return;
+
+        // プレイヤー側から敵への攻撃（パーティー全体の攻撃力の総和）
+        let totalAtk = party.reduce((sum, m) => sum + (m.attack || 10), 0);
+        this.enemyHp -= totalAtk;
+
+        if (this.enemyHp <= 0) {
+            // 敵撃破：次の階層へ進む
+            this.dungeonFloor++;
+            this.enemyMaxHp = Math.floor(50 * Math.pow(1.2, this.dungeonFloor - 1));
+            this.enemyHp = this.enemyMaxHp;
+            this.enemyAtk = Math.floor(10 * Math.pow(1.15, this.dungeonFloor - 1));
+        } else {
+            // 敵からの反撃：先頭のモンスターから順にダメージを受ける
+            let livingMonster = party.find(m => (m.currentHp !== undefined ? m.currentHp : m.hp) > 0);
+            if (livingMonster) {
+                if (livingMonster.currentHp === undefined) livingMonster.currentHp = livingMonster.hp;
+                livingMonster.currentHp -= this.enemyAtk;
+
+                if (livingMonster.currentHp <= 0) {
+                    livingMonster.currentHp = 0;
+                }
+            }
+
+            // 全モンスターが死亡したかチェック
+            const allDead = party.every(m => (m.currentHp !== undefined ? m.currentHp : m.hp) <= 0);
+            if (allDead) {
+                this.triggerDungeonGameOver();
+            }
+        }
     }
 
     canMergeTile(targetRow, targetCol) {
