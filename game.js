@@ -17,12 +17,18 @@ export class Game {
         this.partyModal = document.getElementById('partyModal');
         this.closePartyModal = document.getElementById('closePartyModal');
 
+        this.modeMonsterGetBtn = document.getElementById('modeMonsterGet');
+        this.modeDungeonBtn = document.getElementById('modeDungeon');
+
         this.scoreBoard = document.getElementById('scoreBoard');
         this.highScoreBoard = document.getElementById('highScoreBoard');
         this.mergeCountBoard = document.getElementById('mergeCountBoard');
         this.itemCountBoard = document.getElementById('itemCountBoard');
 
         this.uid = window.currentUser ? window.currentUser.uid : null;
+
+        // モード管理 ('monsterGet' または 'dungeon')
+        this.currentMode = 'monsterGet';
 
         this.TILE_MARGIN = 5;
         this.COLORS = ['(230, 82, 82)', '(79, 54, 219)', '(74, 162, 74)'];
@@ -31,7 +37,7 @@ export class Game {
         this.NO_COL = 4;
         this.NO_TYPES = [5, 5, 6];
 
-        // モンスター所持数上限パラメータ（初期値20）およびパーティー編成管理
+        // モンスター所持数上限パラメータ（20）およびパーティー編成管理
         this.maxMonsterCount = 20;
         this.topMonsters = [];
         this.partyMonsterIds = [];
@@ -46,6 +52,7 @@ export class Game {
         this.startTopAnimation();
         this.initializeColorSample();
         this.initPartyModalEvents();
+        this.initModeSwitchEvents();
 
         const savedName = localStorage.getItem('gameUserName');
         if (!savedName) {
@@ -82,17 +89,20 @@ export class Game {
         this.moveFrame = this.moveDuration / this.moveFq;
 
         this.game4x4.addEventListener('click', () => {
+            if (this.currentMode !== 'monsterGet') return;
             this.reset();
             this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
         });
 
         if (this.undoButton) {
             this.undoButton.addEventListener('click', () => {
+                if (this.currentMode !== 'monsterGet') return;
                 this.undo();
             });
         }
 
         this.itemButton.addEventListener('click', () => {
+            if (this.currentMode !== 'monsterGet') return;
             if (this.itemCount > 0) {
                 this.itemActive = !this.itemActive;
             }
@@ -105,6 +115,7 @@ export class Game {
 
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
+            if (this.currentMode !== 'monsterGet') return;
             if (this.isGameover) return;
 
             if (!this.isCounting) {
@@ -151,6 +162,7 @@ export class Game {
 
         this.canvas.addEventListener('pointermove', (e) => {
             if (e.cancelable) e.preventDefault();
+            if (this.currentMode !== 'monsterGet') return;
             if (this.isMoving || this.isGameover) return;
 
             if (this.tileChosen) {
@@ -214,16 +226,60 @@ export class Game {
         }, { passive: false });
 
         window.addEventListener('pointerup', () => {
+            if (this.currentMode !== 'monsterGet') return;
             if (this.isMoving) return;
             this.release();
         });
 
         window.addEventListener('pointerout', () => {
+            if (this.currentMode !== 'monsterGet') return;
             if (this.isMoving) return;
             this.release();
         });
 
         this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
+    }
+
+    initModeSwitchEvents() {
+        if (this.modeMonsterGetBtn && this.modeDungeonBtn) {
+            this.modeMonsterGetBtn.addEventListener('click', () => {
+                this.switchMode('monsterGet');
+            });
+            this.modeDungeonBtn.addEventListener('click', () => {
+                this.switchMode('dungeon');
+            });
+        }
+    }
+
+    switchMode(mode) {
+        if (this.currentMode === mode) return;
+        this.currentMode = mode;
+
+        if (mode === 'monsterGet') {
+            this.modeMonsterGetBtn.classList.add('active');
+            this.modeDungeonBtn.classList.remove('active');
+            this.drawTiles();
+        } else if (mode === 'dungeon') {
+            this.modeDungeonBtn.classList.add('active');
+            this.modeMonsterGetBtn.classList.remove('active');
+            this.drawDungeonScreen();
+        }
+    }
+
+    drawDungeonScreen() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = '#222';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 14px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('ダンジョン挑戦モード', this.canvas.width / 2, this.canvas.height / 2 - 15);
+
+        this.ctx.fillStyle = '#AAA';
+        this.ctx.font = '11px Arial';
+        this.ctx.fillText('（現在未実装です）', this.canvas.width / 2, this.canvas.height / 2 + 15);
     }
 
     resizeCanvas() {
@@ -264,18 +320,15 @@ export class Game {
         requestAnimationFrame(loop);
     }
 
-    // 箱庭：シンプルな黒背景で、パーティーモンスターを下部に一列で並べて描画（動かない）
     drawTopCanvas() {
         if (!this.topCtx || !this.topCanvas) return;
 
         const w = this.topCanvas.width;
         const h = this.topCanvas.height;
 
-        // 箱庭背景をシンプルに黒一色
         this.topCtx.fillStyle = '#000000';
         this.topCtx.fillRect(0, 0, w, h);
 
-        // パーティーメンバーを取得（未設定なら最初の最大6匹）
         const partyList = this.getPartyMonsters();
         const count = partyList.length;
 
@@ -283,7 +336,7 @@ export class Game {
             const spacing = w / (count + 1);
             partyList.forEach((monster, index) => {
                 monster.x = spacing * (index + 1);
-                monster.y = h / 2 + 10; // 下部中央付近に一列固定
+                monster.y = h / 2 + 10;
                 monster.draw(this.topCtx);
             });
         } else {
@@ -578,6 +631,8 @@ export class Game {
     }
 
     drawTiles() {
+        if (this.currentMode !== 'monsterGet') return;
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.movableCheck();
 
@@ -740,17 +795,12 @@ export class Game {
 
         if (this.topCanvas) {
             const monsterScore = Math.max(10, Math.floor(this.score / 5));
-            this.topMonsters.push(new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore));
+            const newMonster = new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore);
+            this.topMonsters.push(newMonster);
 
-            // 所持数上限を超えた場合、一番古いモンスターを削除（FIFO）
+            // 所持数が上限（20匹）を超えている場合、新しく獲得したものを含めた21匹の中から捨てる1匹を選ぶモーダルを表示
             if (this.topMonsters.length > this.maxMonsterCount) {
-                const removedCount = this.topMonsters.length - this.maxMonsterCount;
-                this.topMonsters.splice(0, removedCount);
-
-                // パーティーメンバーのインデックス整合性を保持
-                this.partyMonsterIds = this.partyMonsterIds
-                    .map(id => id - removedCount)
-                    .filter(id => id >= 0 && id < this.topMonsters.length);
+                await this.promptMonsterLimitSelection();
             }
         }
 
@@ -785,6 +835,105 @@ export class Game {
         }
 
         this.drawTiles();
+    }
+
+    // 20匹オーバー時に捨てる1匹を選択するモーダルを開く処理
+    promptMonsterLimitSelection() {
+        return new Promise((resolve) => {
+            let modal = document.getElementById('monsterLimitModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'monsterLimitModal';
+                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; justify-content: center; align-items: center;';
+                modal.innerHTML = `
+                    <div style="background: white; width: 90%; max-width: 320px; padding: 16px; border-radius: 8px; box-sizing: border-box; text-align: center; color: #333;">
+                        <h3 style="margin-top: 0; font-size: 14px;">モンスターが上限（20匹）を超えました</h3>
+                        <p style="font-size: 11px; margin-bottom: 8px;">捨てるモンスターを<strong>1匹</strong>選択してください</p>
+                        <div id="limitSelectionList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; margin-bottom: 12px; padding: 6px; text-align: left;"></div>
+                        <button id="limitSubmitBtn" style="all: unset; background-color: #dc3545; color: white; width: 100%; height: 36px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">選択した1匹を捨てる</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            const listContainer = modal.querySelector('#limitSelectionList');
+            const submitBtn = modal.querySelector('#limitSubmitBtn');
+            listContainer.innerHTML = '';
+
+            // デフォルトで一番上（最も古い）のモンスターを初期選択しておく
+            let selectedIndex = 0;
+
+            const updateListUI = () => {
+                listContainer.innerHTML = '';
+                this.topMonsters.forEach((m, index) => {
+                    const div = document.createElement('div');
+                    div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 4px; border-bottom: 1px solid #eee; font-size: 11px; cursor: pointer;';
+                    
+                    if (index === selectedIndex) {
+                        div.style.backgroundColor = '#ffe6e6';
+                    }
+
+                    const label = document.createElement('label');
+                    label.style.cursor = 'pointer';
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = 'dropMonster';
+                    radio.value = index;
+                    radio.checked = (index === selectedIndex);
+
+                    radio.addEventListener('change', () => {
+                        selectedIndex = index;
+                        updateListUI();
+                    });
+
+                    div.addEventListener('click', () => {
+                        selectedIndex = index;
+                        radio.checked = true;
+                        updateListUI();
+                    });
+
+                    const isNew = index === this.topMonsters.length - 1;
+                    const badge = isNew ? ' <span style="color: red; font-weight: bold;">[NEW]</span>' : '';
+
+                    label.appendChild(radio);
+                    label.appendChild(document.createElement('span')).innerHTML = ` #${index + 1} (ATK:${m.attack} HP:${m.hp})${badge}`;
+                    div.appendChild(label);
+                    listContainer.appendChild(div);
+                });
+            };
+
+            updateListUI();
+
+            const submitHandler = () => {
+                submitBtn.removeEventListener('click', submitHandler);
+                modal.style.display = 'none';
+
+                // 選択された1匹を除外する
+                const newTopMonsters = [];
+                const oldToNewIndexMap = new Map();
+                
+                let newIdx = 0;
+                this.topMonsters.forEach((m, oldIdx) => {
+                    if (oldIdx !== selectedIndex) {
+                        newTopMonsters.push(m);
+                        oldToNewIndexMap.set(oldIdx, newIdx);
+                        newIdx++;
+                    }
+                });
+
+                this.topMonsters = newTopMonsters;
+
+                // パーティー編成IDも再割り当て
+                this.partyMonsterIds = this.partyMonsterIds
+                    .map(oldId => oldToNewIndexMap.get(oldId))
+                    .filter(newId => newId !== undefined);
+
+                resolve();
+            };
+
+            submitBtn.onclick = submitHandler;
+            modal.style.display = 'flex';
+        });
     }
 
     async saveCloudData() {
