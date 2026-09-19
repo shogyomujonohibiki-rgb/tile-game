@@ -13,6 +13,10 @@ export class Game {
         this.game4x4 = document.getElementById('game4x4');
         this.undoButton = document.getElementById('undoButton');
         this.itemButton = document.getElementById('itemButton');
+        this.partyButton = document.getElementById('partyButton');
+        this.partyModal = document.getElementById('partyModal');
+        this.closePartyModal = document.getElementById('closePartyModal');
+
         this.scoreBoard = document.getElementById('scoreBoard');
         this.highScoreBoard = document.getElementById('highScoreBoard');
         this.mergeCountBoard = document.getElementById('mergeCountBoard');
@@ -22,13 +26,15 @@ export class Game {
 
         this.TILE_MARGIN = 5;
         this.COLORS = ['(230, 82, 82)', '(79, 54, 219)', '(74, 162, 74)'];
-        this.ANIMATION_DURATION = 150;
 
         this.NO_ROW = 4;
         this.NO_COL = 4;
         this.NO_TYPES = [5, 5, 6];
 
+        // モンスター所持数上限パラメータ（初期値20）およびパーティー編成管理
+        this.maxMonsterCount = 20;
         this.topMonsters = [];
+        this.partyMonsterIds = [];
 
         this.resizeCanvas();
         window.addEventListener('resize', () => {
@@ -38,8 +44,8 @@ export class Game {
 
         this.initTopGarden();
         this.startTopAnimation();
-
         this.initializeColorSample();
+        this.initPartyModalEvents();
 
         const savedName = localStorage.getItem('gameUserName');
         if (!savedName) {
@@ -66,41 +72,14 @@ export class Game {
 
         this.minValue = 1;
         this.startTime = null;
-
         this.startX = 0;
         this.startY = 0;
-
         this.chsnCol = 0;
         this.chsnRow = 0;
         this.frameCount = 0;
         this.moveDuration = 100;
         this.moveFq = 10;
         this.moveFrame = this.moveDuration / this.moveFq;
-
-        if (this.topCanvas) {
-            this.topCanvas.addEventListener('pointerdown', (e) => {
-                if (this.selectingMonsterToDelete) {
-                    const rect = this.topCanvas.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const clickY = e.clientY - rect.top;
-
-                    let clickedIndex = -1;
-                    let minDist = 20;
-                    this.topMonsters.forEach((m, idx) => {
-                        const dist = Math.hypot(m.x - clickX, m.y - clickY);
-                        if (dist < minDist) {
-                            minDist = dist;
-                            clickedIndex = idx;
-                        }
-                    });
-
-                    if (clickedIndex !== -1) {
-                        this.topMonsters.splice(clickedIndex, 1);
-                        this.selectingMonsterToDelete = false;
-                    }
-                }
-            });
-        }
 
         this.game4x4.addEventListener('click', () => {
             this.reset();
@@ -117,7 +96,6 @@ export class Game {
             if (this.itemCount > 0) {
                 this.itemActive = !this.itemActive;
             }
-
             if (this.itemActive) {
                 this.itemButton.classList.add('active');
             } else {
@@ -127,7 +105,7 @@ export class Game {
 
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isGameover || this.selectingMonsterToDelete) return;
+            if (this.isGameover) return;
 
             if (!this.isCounting) {
                 this.isCounting = true;
@@ -137,7 +115,6 @@ export class Game {
             if (this.isMoving) return;
 
             this.rect = this.canvas.getBoundingClientRect();
-
             const scaleX = this.canvas.width / this.rect.width;
             const scaleY = this.canvas.height / this.rect.height;
 
@@ -174,7 +151,7 @@ export class Game {
 
         this.canvas.addEventListener('pointermove', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isMoving || this.isGameover || this.selectingMonsterToDelete) return;
+            if (this.isMoving || this.isGameover) return;
 
             if (this.tileChosen) {
                 const scaleX = this.canvas.width / this.rect.width;
@@ -256,7 +233,7 @@ export class Game {
         if (this.topCanvas) {
             const topRect = this.topCanvas.getBoundingClientRect();
             this.topCanvas.width = topRect.width || 343;
-            this.topCanvas.height = 225;
+            this.topCanvas.height = 150;
         }
 
         this.TILE_WIDTH = this.canvas.width / this.NO_COL - this.TILE_MARGIN;
@@ -277,7 +254,6 @@ export class Game {
     initTopGarden() {
         if (!this.topCanvas) return;
         this.topMonsters = [];
-        this.selectingMonsterToDelete = false;
     }
 
     startTopAnimation() {
@@ -288,56 +264,122 @@ export class Game {
         requestAnimationFrame(loop);
     }
 
+    // 箱庭：シンプルな黒背景で、パーティーモンスターを下部に一列で並べて描画（動かない）
     drawTopCanvas() {
         if (!this.topCtx || !this.topCanvas) return;
 
         const w = this.topCanvas.width;
         const h = this.topCanvas.height;
 
-        this.topCtx.fillStyle = '#7ec850';
+        // 箱庭背景をシンプルに黒一色
+        this.topCtx.fillStyle = '#000000';
         this.topCtx.fillRect(0, 0, w, h);
 
-        this.topCtx.fillStyle = '#d7ccc8';
-        this.topCtx.beginPath();
-        this.topCtx.arc(w / 2, h / 2, Math.min(w, h) * 0.35, 0, Math.PI * 2);
-        this.topCtx.fill();
+        // パーティーメンバーを取得（未設定なら最初の最大6匹）
+        const partyList = this.getPartyMonsters();
+        const count = partyList.length;
 
-        this.topCtx.fillStyle = '#7ec850';
-        this.topCtx.beginPath();
-        this.topCtx.arc(w / 2, h / 2, Math.min(w, h) * 0.23, 0, Math.PI * 2);
-        this.topCtx.fill();
-
-        const trees = [
-            { x: 30, y: 30 },
-            { x: w - 30, y: 30 },
-            { x: 30, y: h - 30 },
-            { x: w - 30, y: h - 30 }
-        ];
-
-        trees.forEach(tree => {
-            this.topCtx.fillStyle = 'rgba(0,0,0,0.15)';
-            this.topCtx.beginPath();
-            this.topCtx.arc(tree.x + 2, tree.y + 2, 12, 0, Math.PI * 2);
-            this.topCtx.fill();
-
-            this.topCtx.fillStyle = '#2e7d32';
-            this.topCtx.beginPath();
-            this.topCtx.arc(tree.x, tree.y, 12, 0, Math.PI * 2);
-            this.topCtx.fill();
-        });
-
-        this.topMonsters.forEach(monster => {
-            monster.update();
-            monster.draw(this.topCtx);
-        });
-
-        if (this.selectingMonsterToDelete) {
-            this.topCtx.fillStyle = 'rgba(255, 0, 0, 0.4)';
-            this.topCtx.fillRect(0, 0, w, h);
-            this.topCtx.fillStyle = '#FFF';
-            this.topCtx.font = 'bold 14px Arial';
+        if (count > 0) {
+            const spacing = w / (count + 1);
+            partyList.forEach((monster, index) => {
+                monster.x = spacing * (index + 1);
+                monster.y = h / 2 + 10; // 下部中央付近に一列固定
+                monster.draw(this.topCtx);
+            });
+        } else {
+            this.topCtx.fillStyle = '#666';
+            this.topCtx.font = '12px Arial';
             this.topCtx.textAlign = 'center';
-            this.topCtx.fillText('削除するモンスターを選んでタップしてください', w / 2, 30);
+            this.topCtx.fillText('パーティーにモンスターがいません', w / 2, h / 2);
+        }
+    }
+
+    getPartyMonsters() {
+        if (!this.topMonsters || this.topMonsters.length === 0) return [];
+
+        let party = [];
+        if (this.partyMonsterIds && this.partyMonsterIds.length > 0) {
+            party = this.partyMonsterIds
+                .map(id => this.topMonsters[id])
+                .filter(m => m !== undefined);
+        }
+
+        if (party.length === 0) {
+            party = this.topMonsters.slice(0, 6);
+        }
+        return party;
+    }
+
+    initPartyModalEvents() {
+        if (this.partyButton && this.partyModal) {
+            this.partyButton.addEventListener('click', () => {
+                this.openPartyModal();
+            });
+        }
+        if (this.closePartyModal && this.partyModal) {
+            this.closePartyModal.addEventListener('click', () => {
+                this.closePartyModalScreen();
+            });
+        }
+    }
+
+    openPartyModal() {
+        if (!this.partyModal) return;
+        const listContainer = document.getElementById('partySelectionList');
+        const countText = document.getElementById('partyCountText');
+        listContainer.innerHTML = '';
+
+        if (!this.partyMonsterIds || this.partyMonsterIds.length === 0) {
+            this.partyMonsterIds = this.topMonsters.slice(0, 6).map((_, i) => i);
+        }
+
+        this.topMonsters.forEach((m, index) => {
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'space-between';
+            div.style.padding = '6px 4px';
+            div.style.borderBottom = '1px solid #eee';
+
+            const label = document.createElement('label');
+            label.style.cursor = 'pointer';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = index;
+            checkbox.checked = this.partyMonsterIds.includes(index);
+
+            checkbox.addEventListener('change', () => {
+                const checkedBoxes = listContainer.querySelectorAll('input[type="checkbox"]:checked');
+                if (checkedBoxes.length > 6) {
+                    checkbox.checked = false;
+                    alert('パーティーに選べるのは最大6匹までです。');
+                    return;
+                }
+                countText.textContent = `選択中: ${checkedBoxes.length} / 6`;
+            });
+
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(` モンスター #${index + 1} (ATK:${m.attack} HP:${m.hp})`));
+            div.appendChild(label);
+            listContainer.appendChild(div);
+        });
+
+        const selectedCount = this.partyMonsterIds.length;
+        countText.textContent = `選択中: ${selectedCount} / 6`;
+        this.partyModal.style.display = 'flex';
+    }
+
+    closePartyModalScreen() {
+        if (!this.partyModal) return;
+        const listContainer = document.getElementById('partySelectionList');
+        const checkedBoxes = listContainer.querySelectorAll('input[type="checkbox"]:checked');
+
+        this.partyMonsterIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value, 10));
+        this.partyModal.style.display = 'none';
+        this.drawTopCanvas();
+
+        if (window.saveUserDataToFirestore) {
+            this.saveCloudData();
         }
     }
 
@@ -379,7 +421,6 @@ export class Game {
     changeUserName(isFirstTime = false) {
         const promptMessage = 'プレイヤー名を入力してください:';
         const defaultName = (this.userName && this.userName !== 'Guest') ? this.userName : '';
-
         const inputName = prompt(promptMessage, defaultName);
 
         if (inputName !== null && inputName.trim() !== '') {
@@ -701,8 +742,15 @@ export class Game {
             const monsterScore = Math.max(10, Math.floor(this.score / 5));
             this.topMonsters.push(new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore));
 
-            if (this.topMonsters.length > 20) {
-                this.selectingMonsterToDelete = true;
+            // 所持数上限を超えた場合、一番古いモンスターを削除（FIFO）
+            if (this.topMonsters.length > this.maxMonsterCount) {
+                const removedCount = this.topMonsters.length - this.maxMonsterCount;
+                this.topMonsters.splice(0, removedCount);
+
+                // パーティーメンバーのインデックス整合性を保持
+                this.partyMonsterIds = this.partyMonsterIds
+                    .map(id => id - removedCount)
+                    .filter(id => id >= 0 && id < this.topMonsters.length);
             }
         }
 
@@ -716,26 +764,7 @@ export class Game {
             this.uid = window.currentUser.uid;
         }
 
-        if (window.saveUserDataToFirestore) {
-            // TopMonsterインスタンスをプレーンなオブジェクト配列に変換
-            const monstersData = this.topMonsters.map(m => ({
-                x: m.x,
-                y: m.y,
-                vx: m.vx,
-                vy: m.vy,
-                type: m.type,
-                radius: m.radius,
-                attack: m.attack,
-                hp: m.hp
-            }));
-
-            await window.saveUserDataToFirestore({
-                uid: this.uid,
-                userName: this.userName,
-                highScore: this.highScore,
-                monsters: monstersData // モンスターデータを追加
-            });
-        }
+        await this.saveCloudData();
 
         if (window.saveScoreToFirestore) {
             await window.saveScoreToFirestore(this.score, this.mergeCount, this.userName);
@@ -758,6 +787,27 @@ export class Game {
         this.drawTiles();
     }
 
+    async saveCloudData() {
+        if (!window.saveUserDataToFirestore) return;
+
+        const monstersData = this.topMonsters.map(m => ({
+            x: m.x,
+            y: m.y,
+            type: m.type,
+            radius: m.radius,
+            attack: m.attack,
+            hp: m.hp
+        }));
+
+        await window.saveUserDataToFirestore({
+            uid: this.uid,
+            userName: this.userName,
+            highScore: this.highScore,
+            monsters: monstersData,
+            partyMonsterIds: this.partyMonsterIds
+        });
+    }
+
     drawGameOverOverlay() {
         const width = this.canvas.width;
         const height = this.canvas.height;
@@ -777,13 +827,13 @@ export class Game {
         this.ctx.fillStyle = '#FFD700';
         this.ctx.font = 'bold 10px Arial';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText('全国', col1X, startY - 4);
+        this.ctx.fillText('全国ランキング', col1X, startY - 4);
         this.renderRankingList(this.globalLeaderboard, col1X, colWidth, startY + 8, lineHeight);
 
         this.ctx.fillStyle = '#00FFFF';
         this.ctx.font = 'bold 10px Arial';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText('マイ', col2X, startY - 4);
+        this.ctx.fillText('マイランキング', col2X, startY - 4);
         this.renderMyRankingList(this.myLeaderboard, col2X, colWidth, startY + 8, lineHeight);
     }
 
@@ -798,7 +848,6 @@ export class Game {
 
         dataList.slice(0, 20).forEach((item, index) => {
             const currentY = startY + (index * lineHeight);
-
             this.ctx.fillStyle = '#FFFFFF';
             this.ctx.font = index < 3 ? 'bold 8px Arial' : '7.5px Arial';
 
@@ -823,7 +872,6 @@ export class Game {
 
         dataList.slice(0, 20).forEach((item, index) => {
             const currentY = startY + (index * lineHeight);
-
             this.ctx.fillStyle = '#FFFFFF';
             this.ctx.font = index < 3 ? 'bold 7.5px Arial' : '7px Arial';
 
@@ -868,7 +916,6 @@ export class Game {
             const anim = () => {
                 frame++;
                 tile.scale = 1 - Math.sin((frame / totalFrames) * Math.PI);
-
                 this.drawTiles();
 
                 if (frame < totalFrames) {
