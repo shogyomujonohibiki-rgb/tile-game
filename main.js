@@ -7,8 +7,6 @@ import { TopMonster } from './monster.js';
     let currentAuthUserData = null;
 
     window.addEventListener('firebase-ready', async () => {
-        // すでに各Firestore関数内部で ensureAuth() により認証待ちが保証されているため、
-        // ここでもそのまま安全にデータを取得できます。
         const userData = await window.loadUserDataFromFirestore();
 
         if (userData) {
@@ -30,14 +28,16 @@ import { TopMonster } from './monster.js';
                     );
                     monster.x = data.x;
                     monster.y = data.y;
-                    monster.vx = data.vx;
-                    monster.vy = data.vy;
                     monster.type = data.type;
                     monster.radius = data.radius;
                     monster.attack = data.attack;
                     monster.hp = data.hp;
                     return monster;
                 });
+            }
+
+            if (userData.partyMonsterIds && Array.isArray(userData.partyMonsterIds) && window.game) {
+                window.game.partyMonsterIds = userData.partyMonsterIds;
             }
         } else {
             const localName = localStorage.getItem('gameUserName');
