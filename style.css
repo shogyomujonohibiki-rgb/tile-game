@@ -1,6 +1,5 @@
 @charset "UTF-8";
 
-/* 画面全体の固定・拡大スクロール（バウンス）防止 */
 html, body {
   margin: 0;
   padding: 0;
@@ -8,17 +7,16 @@ html, body {
   height: 100%;
   overflow: hidden;
   position: fixed;
-  /* 上下のセーフエリア（ノッチ・ホームバー）を考慮した位置指定 */
   top: env(safe-area-inset-top, 0px);
   bottom: env(safe-area-inset-bottom, 0px);
   left: env(safe-area-inset-left, 0px);
   right: env(safe-area-inset-right, 0px);
-  touch-action: none; /* ダブルタップズームやスクロールを無効化 */
+  touch-action: none;
   -webkit-overflow-scrolling: auto;
   overscroll-behavior: none;
   background-color: #fff;
   font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
-  -webkit-tap-highlight-color: transparent; /* タップ時の青い枠を消す */
+  -webkit-tap-highlight-color: transparent;
 }
 
 canvas {
@@ -34,7 +32,6 @@ div {
   margin: 0 auto;
 }
 
-/* スコア表示等の不要なデフォルト余白を除去 */
 .p1, .p2, .p3 {
   user-select: none;
   -webkit-user-select: none;
@@ -46,12 +43,6 @@ div {
   font-size: 28px;
   height: 36px;
   line-height: 36px;
-}
-
-.p2 {
-  font-size: 18px;
-  height: 24px;
-  line-height: 24px;
 }
 
 .p3 {
@@ -66,22 +57,21 @@ div {
   max-width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
-  /* 上下の危険エリアとの接触を防ぐスペーサー */
   padding-top: max(8px, env(safe-area-inset-top));
   padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
 
-/* 上部キャンバス */
+/* 上部キャンバス（箱庭：黒背景） */
 #topCanvas {
   background: black;
   display: block;
   width: 100%;
-  height: 225px;
+  height: 150px;
   margin: 0 0 8px 0;
   touch-action: none;
+  border-radius: 6px;
 }
 
-/* メイン部分（Canvas + 右側コントロールパネル） */
 #mainSection {
   display: flex;
   flex-direction: row;
@@ -93,25 +83,23 @@ div {
   padding: 0;
 }
 
-/* 4x4メインキャンバス */
 #gameCanvas {
   background: white;
   user-select: none;
   display: block;
   width: 240px;
-  height: 240px;
+  height: 250px;
   touch-action: none;
   -webkit-user-select: none;
 }
 
-/* 右側操作パネル */
 #controlPanel {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
   width: 85px;
-  height: 240px;
+  height: 250px;
   margin: 0;
   padding: 0;
   gap: 4px;
@@ -120,9 +108,9 @@ div {
 
 #timer {
   width: 100%;
-  height: 32px;
+  height: 28px;
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   text-align: center;
   background: gainsboro;
@@ -134,7 +122,6 @@ div {
   box-sizing: border-box;
 }
 
-/* マージ回数（パネル用スタイル） */
 #mergeCountBoard {
   width: 100%;
   font-size: 10px;
@@ -150,8 +137,8 @@ button {
   all: unset;
   background-color: rgb(235, 235, 235);
   width: 100%;
-  height: 40px;
-  font-size: 13px;
+  height: 36px;
+  font-size: 12px;
   font-weight: bold;
   border: 1px solid black;
   border-radius: 8px;
@@ -162,9 +149,13 @@ button {
   margin: 0;
   box-sizing: border-box;
   touch-action: manipulation;
+  cursor: pointer;
 }
 
-/* +1アイテムの箱 */
+button:hover {
+  background-color: rgb(220, 220, 220);
+}
+
 .item-container {
   width: 100%;
   background: #f0f0f0;
@@ -192,7 +183,7 @@ button {
   all: unset;
   background-color: rgb(235, 235, 235);
   width: 100%;
-  height: 28px;
+  height: 26px;
   font-size: 11px;
   font-weight: bold;
   border: 1px solid black;
@@ -210,7 +201,6 @@ button {
   background-color: rgb(100, 200, 255);
 }
 
-/* カラーサンプルエリア */
 #colorSample {
   display: flex;
   justify-content: center;
