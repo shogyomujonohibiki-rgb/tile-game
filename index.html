@@ -40,19 +40,17 @@
                     <button id="itemButton">使用</button>
                 </div>
 
-                <!-- パーティー編成ボタン -->
-                <button id="partyButton">パーティー編成</button>
-
                 <button id="undoButton">1手戻る</button>
                 <button id="game4x4">リセット</button>
             </div>
         </div>
+    </div>
 
-        <!-- 下部：モード切り替えボタンエリア -->
-        <div id="modeSelectPanel">
-            <button id="modeMonsterGet" class="mode-btn active">モンスターゲット</button>
-            <button id="modeDungeon" class="mode-btn">ダンジョン挑戦</button>
-        </div>
+    <!-- モード切替およびパーティー編成ボタンエリア（一番下に配置） -->
+    <div id="modeSelectArea" style="display: flex; justify-content: center; gap: 6px; width: 343px; max-width: 100%; margin: 6px auto 0 auto; box-sizing: border-box;">
+        <button id="modeMonsterGet" class="active" style="flex: 1; height: 32px; font-size: 11px;">スカウト</button>
+        <button id="modeDungeon" style="flex: 1; height: 32px; font-size: 11px;">ダンジョン</button>
+        <button id="partyButton" style="flex: 1.2; height: 32px; font-size: 11px;">パーティー編成</button>
     </div>
 
     <!-- パーティー編成モーダル画面 -->
