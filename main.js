@@ -39,6 +39,13 @@ import { TopMonster } from './monster.js';
             if (userData.partyMonsterIds && Array.isArray(userData.partyMonsterIds) && window.game) {
                 window.game.partyMonsterIds = userData.partyMonsterIds;
             }
+
+            if (userData.dungeonFloor !== undefined && window.game) {
+                window.game.dungeonFloor = userData.dungeonFloor;
+                window.game.enemyMaxHp = Math.floor(50 * Math.pow(1.2, window.game.dungeonFloor - 1));
+                window.game.enemyHp = window.game.enemyMaxHp;
+                window.game.enemyAtk = Math.floor(10 * Math.pow(1.15, window.game.dungeonFloor - 1));
+            }
         } else {
             const localName = localStorage.getItem('gameUserName');
             if (localName && window.saveUserDataToFirestore) {
