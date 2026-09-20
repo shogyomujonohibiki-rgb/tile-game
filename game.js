@@ -121,7 +121,7 @@ export class Game {
             if (e.cancelable) e.preventDefault();
             if (this.isGameover) {
                 if (this.currentMode === 'dungeon') {
-                    this.resetDungeonProgress();
+                    this.reset();
                     this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
                 }
                 return;
@@ -285,22 +285,13 @@ export class Game {
         } else if (mode === 'dungeon') {
             this.modeDungeonBtn.classList.add('active');
             this.modeScoutBtn.classList.remove('active');
-            // ダンジョンモード切替時はパズル未開始なのでパーティー編成ボタンを有効にしておく
             this.setPartyButtonEnabled(true);
-            this.resetDungeonProgress();
+            this.enemyMaxHp = Math.floor(50 * Math.pow(1.2, this.dungeonFloor - 1));
+            this.enemyHp = this.enemyMaxHp;
+            this.enemyAtk = Math.floor(10 * Math.pow(1.15, this.dungeonFloor - 1));
+            this.isGameover = false;
             this.drawTiles();
         }
-    }
-
-    resetDungeonProgress() {
-        this.dungeonFloor = 1;
-        this.enemyMaxHp = 50;
-        this.enemyHp = this.enemyMaxHp;
-        this.enemyAtk = 10;
-        this.isGameover = false;
-        this.topMonsters.forEach(m => {
-            m.currentHp = m.hp;
-        });
     }
 
     resizeCanvas() {
@@ -566,7 +557,6 @@ export class Game {
         if (this.currentMode === 'scout') {
             this.saveState();
         } else {
-            // ダンジョンモード開始時はパズル未開始なのでパーティー編成を有効に
             this.setPartyButtonEnabled(true);
         }
         this.drawTiles();
@@ -581,6 +571,7 @@ export class Game {
             this.drawTiles();
             requestAnimationFrame(() => this.moveRight());
         } else {
+            const originalValue = this.tileMx[this.chsnRow][this.chsnCol + 1].value; // インクリメント前の値を取得
             this.tileMx[this.chsnRow][this.chsnCol + 1].value += 1;
             for (let c = 0; c < this.chsnCol; c++) {
                 this.tileMx[this.chsnRow][this.chsnCol - c].value = this.tileMx[this.chsnRow][this.chsnCol - 1 - c].value;
@@ -593,7 +584,7 @@ export class Game {
             this.tileMx[this.chsnRow][0].x = 0;
             this.tileMx[this.chsnRow][0].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-            this.finishMove();
+            this.finishMove(originalValue);
         }
     }
 
@@ -606,6 +597,7 @@ export class Game {
             this.drawTiles();
             requestAnimationFrame(() => this.moveLeft());
         } else {
+            const originalValue = this.tileMx[this.chsnRow][this.chsnCol - 1].value; // インクリメント前の値を取得
             this.tileMx[this.chsnRow][this.chsnCol - 1].value += 1;
             for (let c = 0; c < this.NO_COL - this.chsnCol - 1; c++) {
                 this.tileMx[this.chsnRow][this.chsnCol + c].value = this.tileMx[this.chsnRow][this.chsnCol + 1 + c].value;
@@ -618,7 +610,7 @@ export class Game {
             this.tileMx[this.chsnRow][this.NO_COL - 1].x = (this.NO_COL - 1) * (this.TILE_WIDTH + this.TILE_MARGIN);
             this.tileMx[this.chsnRow][this.NO_COL - 1].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-            this.finishMove();
+            this.finishMove(originalValue);
         }
     }
 
@@ -631,6 +623,7 @@ export class Game {
             this.drawTiles();
             requestAnimationFrame(() => this.moveDown());
         } else {
+            const originalValue = this.tileMx[this.chsnRow + 1][this.chsnCol].value; // インクリメント前の値を取得
             this.tileMx[this.chsnRow + 1][this.chsnCol].value += 1;
             for (let c = 0; c < this.chsnRow; c++) {
                 this.tileMx[this.chsnRow - c][this.chsnCol].value = this.tileMx[this.chsnRow - 1 - c][this.chsnCol].value;
@@ -643,7 +636,7 @@ export class Game {
             this.tileMx[0][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
             this.tileMx[0][this.chsnCol].y = 0;
 
-            this.finishMove();
+            this.finishMove(originalValue);
         }
     }
 
@@ -656,6 +649,7 @@ export class Game {
             this.drawTiles();
             requestAnimationFrame(() => this.moveUp());
         } else {
+            const originalValue = this.tileMx[this.chsnRow - 1][this.chsnCol].value; // インクリメント前の値を取得
             this.tileMx[this.chsnRow - 1][this.chsnCol].value += 1;
             for (let c = 0; c < this.NO_ROW - this.chsnRow - 1; c++) {
                 this.tileMx[this.chsnRow + c][this.chsnCol].value = this.tileMx[this.chsnRow + 1 + c][this.chsnCol].value;
@@ -668,7 +662,7 @@ export class Game {
             this.tileMx[this.NO_ROW - 1][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
             this.tileMx[this.NO_ROW - 1][this.chsnCol].y = (this.NO_ROW - 1) * (this.TILE_HEIGHT + this.TILE_MARGIN);
 
-            this.finishMove();
+            this.finishMove(originalValue);
         }
     }
 
@@ -800,6 +794,14 @@ export class Game {
         this.isGameover = false;
         this.minValue = 1;
         if (this.itemButton) this.itemButton.classList.remove('active');
+
+        // リセット時：敵HPを初期化し、パーティーメンバーのHPを全回復
+        this.enemyHp = this.enemyMaxHp;
+        if (this.topMonsters && this.topMonsters.length > 0) {
+            this.topMonsters.forEach(m => {
+                m.currentHp = m.hp;
+            });
+        }
     }
 
     movableCheck() {
@@ -845,8 +847,7 @@ export class Game {
                     if (this.currentMode === 'scout') {
                         this.triggerScoutGameOver();
                     } else {
-                        this.reset();
-                        this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
+                        this.triggerDungeonGameOver();
                     }
                 });
             }
@@ -966,7 +967,7 @@ export class Game {
                 this.topMonsters.forEach((m, index) => {
                     const div = document.createElement('div');
                     div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 4px; border-bottom: 1px solid #eee; font-size: 11px; cursor: pointer;';
-                    
+
                     if (index === selectedIndex) {
                         div.style.backgroundColor = '#ffe6e6';
                     }
@@ -1008,7 +1009,7 @@ export class Game {
 
                 const newTopMonsters = [];
                 const oldToNewIndexMap = new Map();
-                
+
                 let newIdx = 0;
                 this.topMonsters.forEach((m, oldIdx) => {
                     if (oldIdx !== selectedIndex) {
@@ -1049,7 +1050,8 @@ export class Game {
             userName: this.userName,
             highScore: this.highScore,
             monsters: monstersData,
-            partyMonsterIds: this.partyMonsterIds
+            partyMonsterIds: this.partyMonsterIds,
+            dungeonFloor: this.dungeonFloor
         });
     }
 
@@ -1191,14 +1193,14 @@ export class Game {
         });
     }
 
-    finishMove() {
+    finishMove(tileValue = 1) {
         this.mergeCount++;
         if (this.mergeCount % 10 === 0) {
             this.itemCount++;
         }
 
         if (this.currentMode === 'dungeon') {
-            this.processDungeonCombat();
+            this.processDungeonCombat(tileValue);
         }
 
         this.tileChosen = false;
@@ -1207,18 +1209,22 @@ export class Game {
         this.drawTiles();
     }
 
-    processDungeonCombat() {
+    processDungeonCombat(tileValue = 1) {
         const party = this.getPartyMonsters();
         if (party.length === 0) return;
 
         let totalAtk = party.reduce((sum, m) => sum + (m.attack || 10), 0);
-        this.enemyHp -= totalAtk;
+        let totalDamage = totalAtk * tileValue; // 攻撃力 × インクリメント前のタイルの数字
+        this.enemyHp -= totalDamage;
 
         if (this.enemyHp <= 0) {
             this.dungeonFloor++;
             this.enemyMaxHp = Math.floor(50 * Math.pow(1.2, this.dungeonFloor - 1));
             this.enemyHp = this.enemyMaxHp;
             this.enemyAtk = Math.floor(10 * Math.pow(1.15, this.dungeonFloor - 1));
+            if (window.saveUserDataToFirestore) {
+                this.saveCloudData();
+            }
         } else {
             let livingMonster = party.find(m => (m.currentHp !== undefined ? m.currentHp : m.hp) > 0);
             if (livingMonster) {
