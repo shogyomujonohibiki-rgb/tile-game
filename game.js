@@ -127,10 +127,15 @@ export class Game {
                 return;
             }
 
-            if (!this.isCounting && this.currentMode === 'scout') {
+            if (!this.isCounting) {
                 this.isCounting = true;
                 this.startTime = Date.now();
                 this.countUp();
+
+                // ダンジョンモードでパズルが開始されたらパーティー編成ボタンを無効にする
+                if (this.currentMode === 'dungeon') {
+                    this.setPartyButtonEnabled(false);
+                }
             }
             if (this.isMoving) return;
 
@@ -257,24 +262,31 @@ export class Game {
         }
     }
 
-switchMode(mode) {
+    setPartyButtonEnabled(enabled) {
+        if (!this.partyButton) return;
+        this.partyButton.disabled = !enabled;
+        this.partyButton.style.opacity = enabled ? '1' : '0.5';
+        this.partyButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    }
+
+    switchMode(mode) {
         if (this.currentMode === mode) return;
         this.currentMode = mode;
 
-        // モード切替時にパズルをリセットする
         this.reset();
         this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
 
         if (mode === 'scout') {
             this.modeScoutBtn.classList.add('active');
             this.modeDungeonBtn.classList.remove('active');
-            if (this.modeScoutBtn.textContent !== 'スカウト') this.modeScoutBtn.textContent = 'スカウト';
+            this.setPartyButtonEnabled(true);
             this.isGameover = false;
             this.drawTiles();
         } else if (mode === 'dungeon') {
             this.modeDungeonBtn.classList.add('active');
             this.modeScoutBtn.classList.remove('active');
-            if (this.modeDungeonBtn.textContent !== 'ダンジョン') this.modeDungeonBtn.textContent = 'ダンジョン';
+            // ダンジョンモード切替時はパズル未開始なのでパーティー編成ボタンを有効にしておく
+            this.setPartyButtonEnabled(true);
             this.resetDungeonProgress();
             this.drawTiles();
         }
@@ -286,7 +298,6 @@ switchMode(mode) {
         this.enemyHp = this.enemyMaxHp;
         this.enemyAtk = 10;
         this.isGameover = false;
-        // ダンジョン用モンスターのHP全回復
         this.topMonsters.forEach(m => {
             m.currentHp = m.hp;
         });
@@ -420,6 +431,7 @@ switchMode(mode) {
     initPartyModalEvents() {
         if (this.partyButton && this.partyModal) {
             this.partyButton.addEventListener('click', () => {
+                if (this.partyButton.disabled) return;
                 this.openPartyModal();
             });
         }
@@ -553,6 +565,9 @@ switchMode(mode) {
         this.createTiles();
         if (this.currentMode === 'scout') {
             this.saveState();
+        } else {
+            // ダンジョンモード開始時はパズル未開始なのでパーティー編成を有効に
+            this.setPartyButtonEnabled(true);
         }
         this.drawTiles();
     }
@@ -830,8 +845,8 @@ switchMode(mode) {
                     if (this.currentMode === 'scout') {
                         this.triggerScoutGameOver();
                     } else {
-                        // ダンジョンモードで手詰まりになった場合も全滅扱いでゲームオーバー（リザルト画面）へ
-                        this.triggerDungeonGameOver();
+                        this.reset();
+                        this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
                     }
                 });
             }
@@ -1046,7 +1061,6 @@ switchMode(mode) {
         this.ctx.fillRect(0, 0, width, height);
 
         if (this.currentMode === 'dungeon') {
-            // ダンジョンモード用のリザルト表示（到達階など）
             this.ctx.fillStyle = '#FF4444';
             this.ctx.font = 'bold 12px Arial';
             this.ctx.textAlign = 'center';
@@ -1062,7 +1076,6 @@ switchMode(mode) {
             return;
         }
 
-        // スカウトモード用の既存ランキング表示
         const padding = 6;
         const centerGap = 10;
         const colWidth = (width - (padding * 2) - centerGap) / 2;
@@ -1184,7 +1197,6 @@ switchMode(mode) {
             this.itemCount++;
         }
 
-        // ダンジョンモード時の戦闘処理
         if (this.currentMode === 'dungeon') {
             this.processDungeonCombat();
         }
@@ -1199,18 +1211,15 @@ switchMode(mode) {
         const party = this.getPartyMonsters();
         if (party.length === 0) return;
 
-        // プレイヤー側から敵への攻撃（パーティー全体の攻撃力の総和）
         let totalAtk = party.reduce((sum, m) => sum + (m.attack || 10), 0);
         this.enemyHp -= totalAtk;
 
         if (this.enemyHp <= 0) {
-            // 敵撃破：次の階層へ進む
             this.dungeonFloor++;
             this.enemyMaxHp = Math.floor(50 * Math.pow(1.2, this.dungeonFloor - 1));
             this.enemyHp = this.enemyMaxHp;
             this.enemyAtk = Math.floor(10 * Math.pow(1.15, this.dungeonFloor - 1));
         } else {
-            // 敵からの反撃：先頭のモンスターから順にダメージを受ける
             let livingMonster = party.find(m => (m.currentHp !== undefined ? m.currentHp : m.hp) > 0);
             if (livingMonster) {
                 if (livingMonster.currentHp === undefined) livingMonster.currentHp = livingMonster.hp;
@@ -1221,7 +1230,6 @@ switchMode(mode) {
                 }
             }
 
-            // 全モンスターが死亡したかチェック
             const allDead = party.every(m => (m.currentHp !== undefined ? m.currentHp : m.hp) <= 0);
             if (allDead) {
                 this.triggerDungeonGameOver();
