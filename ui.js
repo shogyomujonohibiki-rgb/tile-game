@@ -114,53 +114,112 @@ export class UI {
         });
     }
 
-    // パーティー編成モーダルの表示
+    // パーティー編成モーダルの表示（順番変更・並び替え対応）
     openPartyModal(topMonsters, partyMonsterIds) {
         if (!this.partyModal || !this.partySelectionList || !this.partyCountText) return;
 
-        this.partySelectionList.innerHTML = '';
+        // 現在選択中のID配列の複製
+        let currentParty = [...partyMonsterIds];
 
-        topMonsters.forEach((m, index) => {
-            const div = document.createElement('div');
-            div.style.display = 'flex';
-            div.style.alignItems = 'center';
-            div.style.justifyContent = 'space-between';
-            div.style.padding = '6px 4px';
-            div.style.borderBottom = '1px solid #eee';
+        const renderList = () => {
+            this.partySelectionList.innerHTML = '';
 
-            const label = document.createElement('label');
-            label.style.cursor = 'pointer';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = index;
-            checkbox.checked = partyMonsterIds.includes(index);
+            topMonsters.forEach((m, index) => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 6px 4px; border-bottom: 1px solid #eee;';
 
-            checkbox.addEventListener('change', () => {
-                const checkedBoxes = this.partySelectionList.querySelectorAll('input[type="checkbox"]:checked');
-                if (checkedBoxes.length > 6) {
-                    checkbox.checked = false;
-                    alert('パーティーに選べるのは最大6匹までです。');
-                    return;
+                const partyPos = currentParty.indexOf(index);
+                const isSelected = partyPos !== -1;
+
+                const leftArea = document.createElement('div');
+                leftArea.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = index;
+                checkbox.checked = isSelected;
+
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        if (currentParty.length >= 6) {
+                            checkbox.checked = false;
+                            alert('パーティーに選べるのは最大6匹までです。');
+                            return;
+                        }
+                        currentParty.push(index);
+                    } else {
+                        currentParty = currentParty.filter(id => id !== index);
+                    }
+                    renderList();
+                });
+
+                const labelText = document.createElement('span');
+                labelText.style.fontSize = '12px';
+                labelText.textContent = ` モンスター #${index + 1} (ATK:${m.attack} HP:${m.hp})`;
+
+                leftArea.appendChild(checkbox);
+                leftArea.appendChild(labelText);
+                div.appendChild(leftArea);
+
+                // 選択されているモンスターのみ「順番変更ボタン」を表示
+                const rightArea = document.createElement('div');
+                rightArea.style.cssText = 'display: flex; align-items: center; gap: 4px;';
+
+                if (isSelected) {
+                    const orderBadge = document.createElement('span');
+                    orderBadge.style.cssText = 'font-weight: bold; color: #007bff; font-size: 11px; margin-right: 4px;';
+                    orderBadge.textContent = `[先頭${partyPos + 1}]`;
+
+                    const upBtn = document.createElement('button');
+                    upBtn.textContent = '▲';
+                    upBtn.style.cssText = 'padding: 2px 5px; font-size: 10px; cursor: pointer;';
+                    upBtn.disabled = partyPos === 0;
+                    upBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (partyPos > 0) {
+                            const temp = currentParty[partyPos];
+                            currentParty[partyPos] = currentParty[partyPos - 1];
+                            currentParty[partyPos - 1] = temp;
+                            renderList();
+                        }
+                    });
+
+                    const downBtn = document.createElement('button');
+                    downBtn.textContent = '▼';
+                    downBtn.style.cssText = 'padding: 2px 5px; font-size: 10px; cursor: pointer;';
+                    downBtn.disabled = partyPos === currentParty.length - 1;
+                    downBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (partyPos < currentParty.length - 1) {
+                            const temp = currentParty[partyPos];
+                            currentParty[partyPos] = currentParty[partyPos + 1];
+                            currentParty[partyPos + 1] = temp;
+                            renderList();
+                        }
+                    });
+
+                    rightArea.appendChild(orderBadge);
+                    rightArea.appendChild(upBtn);
+                    rightArea.appendChild(downBtn);
                 }
-                this.partyCountText.textContent = `選択中: ${checkedBoxes.length} / 6`;
+
+                div.appendChild(rightArea);
+                this.partySelectionList.appendChild(div);
             });
 
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(` モンスター #${index + 1} (ATK:${m.attack} HP:${m.hp})`));
-            div.appendChild(label);
-            this.partySelectionList.appendChild(div);
-        });
+            this.partyCountText.textContent = `選択中: ${currentParty.length} / 6`;
+            this.partySelectionList.dataset.currentParty = JSON.stringify(currentParty);
+        };
 
-        const selectedCount = partyMonsterIds.length;
-        this.partyCountText.textContent = `選択中: ${selectedCount} / 6`;
+        renderList();
         this.partyModal.style.display = 'flex';
     }
 
-    // 選択されたパーティーのインデックス一覧を取得
+    // 選択・並び替えされたパーティーのインデックス一覧を取得
     getSelectedPartyIds() {
         if (!this.partySelectionList) return [];
-        const checkedBoxes = this.partySelectionList.querySelectorAll('input[type="checkbox"]:checked');
-        return Array.from(checkedBoxes).map(cb => parseInt(cb.value, 10));
+        const raw = this.partySelectionList.dataset.currentParty;
+        return raw ? JSON.parse(raw) : [];
     }
 
     // パーティー編成モーダルを閉じる
