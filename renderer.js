@@ -119,7 +119,7 @@ export class GameRenderer {
         });
     }
 
-    // 上部ダンジョンエリアの描画
+   // 上部ダンジョンエリアの描画
     drawTopCanvas(game) {
         if (!this.topCtx || !this.topCanvas) return;
 
@@ -135,23 +135,47 @@ export class GameRenderer {
             this.topCtx.textAlign = 'left';
             this.topCtx.fillText(`【ダンジョン】 B${game.battleManager.dungeonFloor}F`, 10, 18);
 
+            // --- 敵ステータス & HPバー表示 ---
+            const enemyHp = game.battleManager.enemyHp;
+            const enemyMaxHp = game.battleManager.enemyMaxHp;
+            const enemyRatio = Math.max(0, Math.min(1, enemyHp / enemyMaxHp));
+
             this.topCtx.fillStyle = '#FF4444';
-            this.topCtx.fillText(`敵 HP: ${game.battleManager.enemyHp} / ${game.battleManager.enemyMaxHp}`, 10, 32);
-            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, 10, 46);
+            this.topCtx.fillText(`敵 HP: ${enemyHp} / ${enemyMaxHp}`, 10, 32);
+
+            // 敵のHPバー背景
+            const enemyBarX = 10;
+            const enemyBarY = 36;
+            const enemyBarW = 100;
+            const enemyBarH = 6;
+            this.topCtx.fillStyle = '#555';
+            this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW, enemyBarH);
+
+            // 敵のHPバー本体
+            this.topCtx.fillStyle = enemyRatio > 0.3 ? '#FF4444' : '#FF0000';
+            this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW * enemyRatio, enemyBarH);
+
+            // 敵ATK・味方ATKの表示
+            this.topCtx.fillStyle = '#FF8888';
+            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, 10, 54);
 
             const partyList = game.getPartyMonsters();
             const totalAtk = game.battleManager.getTotalAtk(partyList);
             this.topCtx.fillStyle = '#00FFFF'; // 味方のステータス用の色（シアン）
-            this.topCtx.fillText(`合計 ATK: ${totalAtk}`, 10, 60);
+            this.topCtx.fillText(`合計 ATK: ${totalAtk}`, 10, 68);
 
+            // 敵アイコン表示（右側）
+            const enemyIconX = w - 40;
+            const enemyIconY = 25;
             this.topCtx.fillStyle = '#8B0000';
             this.topCtx.beginPath();
-            this.topCtx.arc(w - 40, 25, 15, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX, enemyIconY, 15, 0, Math.PI * 2);
             this.topCtx.fill();
             this.topCtx.fillStyle = '#FFF';
             this.topCtx.font = '9px Arial';
             this.topCtx.textAlign = 'center';
-            this.topCtx.fillText('敵', w - 40, 28);
+            this.topCtx.fillText('敵', enemyIconX, enemyIconY + 3);
+
         } else {
             this.topCtx.fillStyle = '#666';
             this.topCtx.font = '11px Arial';
