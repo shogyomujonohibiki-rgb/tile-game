@@ -8,6 +8,34 @@
 //   - Board のメソッドは value と type だけを書き換え、tiles 配列そのものは差し替えない
 //     （呼び出し側が board.tiles を別名で参照していても壊れないようにするため）。
 
+// 引き直しの上限（[5,5,6] の 4x4 なら手詰まりは約4,000回に1回なので、まず到達しない）
+const MAX_CREATE_ATTEMPTS = 1000;
+
+// 色の枚数どおりにランダムに並べた盤面を1つ作る（手詰まりかどうかは問わない）
+function layoutBoard(rows, cols, typeCounts, rng) {
+    const pool = [];
+    typeCounts.forEach((count, type) => {
+        for (let i = 0; i < count; i++) pool.push(type);
+    });
+
+    // Fisher-Yates シャッフル（旧実装の「残り枚数で重み付け抽選」と同じ分布）
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+
+    const board = new Board(rows, cols, typeCounts.length);
+    let k = 0;
+    for (let r = 0; r < rows; r++) {
+        const line = [];
+        for (let c = 0; c < cols; c++) {
+            line.push({ value: 1, type: pool[k++] });
+        }
+        board.tiles.push(line);
+    }
+    return board;
+}
+
 export class Board {
     constructor(rows, cols, typeCount) {
         this.rows = rows;
@@ -18,31 +46,19 @@ export class Board {
 
     // 初期盤面を作る。typeCounts は色ごとの初期枚数（例: [5, 5, 6]）。
     // rng は 0以上1未満を返す関数。テストや日替わりシードのために差し替えられる。
+    // 最初から手詰まり（合体できる組が1つもない）の配置になった場合は、引き直す。
     static create(rows, cols, typeCounts, rng = Math.random) {
-        const pool = [];
-        typeCounts.forEach((count, type) => {
-            for (let i = 0; i < count; i++) pool.push(type);
-        });
-        if (pool.length !== rows * cols) {
-            throw new Error(`色の枚数の合計(${pool.length})が盤面のマス数(${rows * cols})と一致しません`);
+        const total = typeCounts.reduce((sum, n) => sum + n, 0);
+        if (total !== rows * cols) {
+            throw new Error(`色の枚数の合計(${total})が盤面のマス数(${rows * cols})と一致しません`);
         }
 
-        // Fisher-Yates シャッフル（旧実装の「残り枚数で重み付け抽選」と同じ分布）
-        for (let i = pool.length - 1; i > 0; i--) {
-            const j = Math.floor(rng() * (i + 1));
-            [pool[i], pool[j]] = [pool[j], pool[i]];
+        for (let attempt = 0; attempt < MAX_CREATE_ATTEMPTS; attempt++) {
+            const board = layoutBoard(rows, cols, typeCounts, rng);
+            if (!board.isDeadlocked()) return board;
         }
-
-        const board = new Board(rows, cols, typeCounts.length);
-        let k = 0;
-        for (let r = 0; r < rows; r++) {
-            const line = [];
-            for (let c = 0; c < cols; c++) {
-                line.push({ value: 1, type: pool[k++] });
-            }
-            board.tiles.push(line);
-        }
-        return board;
+        // 色の枚数の指定によっては、どう並べても手詰まりになる（例: 各色1枚ずつ）
+        throw new Error('手詰まりにならない初期配置を作れませんでした（色の枚数の指定を見直してください）');
     }
 
     // テスト用: [[{value, type}, ...], ...] から盤面を作る
