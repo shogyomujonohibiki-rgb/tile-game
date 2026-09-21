@@ -96,6 +96,29 @@ export class GameRenderer {
         }
     }
 
+    // リセット演出用オーバーレイ描画
+    drawResetOverlay(text, alpha) {
+        if (alpha <= 0) return;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+
+        this.ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+        this.ctx.fillRect(0, 0, width, height);
+
+        this.ctx.fillStyle = `rgba(255, 215, 0, ${Math.min(1, alpha * 1.2)})`;
+        this.ctx.font = 'bold 16px Arial';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+
+        const lines = text.split('\n');
+        const lineHeight = 24;
+        const startY = height / 2 - ((lines.length - 1) * lineHeight) / 2;
+
+        lines.forEach((line, index) => {
+            this.ctx.fillText(line, width / 2, startY + index * lineHeight);
+        });
+    }
+
     // 上部箱庭・ダンジョンエリアの描画
     drawTopCanvas(game) {
         if (!this.topCtx || !this.topCanvas) return;
@@ -106,11 +129,7 @@ export class GameRenderer {
         this.topCtx.fillStyle = '#111122';
         this.topCtx.fillRect(0, 0, w, h);
 
-        const partyList = game.getPartyMonsters();
-
         if (game.currentMode === 'dungeon') {
-            const totalAtk = game.battleManager.getTotalAtk(partyList);
-
             this.topCtx.fillStyle = '#FFD700';
             this.topCtx.font = 'bold 11px Arial';
             this.topCtx.textAlign = 'left';
@@ -119,9 +138,6 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#FF4444';
             this.topCtx.fillText(`敵 HP: ${game.battleManager.enemyHp} / ${game.battleManager.enemyMaxHp}`, 10, 32);
             this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, 10, 46);
-
-            this.topCtx.fillStyle = '#00FFFF';
-            this.topCtx.fillText(`Total ATK: ${totalAtk}`, 10, 60);
 
             this.topCtx.fillStyle = '#8B0000';
             this.topCtx.beginPath();
@@ -138,6 +154,7 @@ export class GameRenderer {
             this.topCtx.fillText('【スカウト】', 10, 18);
         }
 
+        const partyList = game.getPartyMonsters();
         const count = partyList.length;
 
         if (count > 0) {
