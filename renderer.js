@@ -119,7 +119,7 @@ export class GameRenderer {
         });
     }
 
-    // 上部箱庭・ダンジョンエリアの描画
+    // 上部ダンジョンエリアの描画
     drawTopCanvas(game) {
         if (!this.topCtx || !this.topCanvas) return;
 
@@ -138,6 +138,11 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#FF4444';
             this.topCtx.fillText(`敵 HP: ${game.battleManager.enemyHp} / ${game.battleManager.enemyMaxHp}`, 10, 32);
             this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, 10, 46);
+
+            const partyList = game.getPartyMonsters();
+            const totalAtk = game.battleManager.getTotalAtk(partyList);
+            this.topCtx.fillStyle = '#00FFFF'; // 味方のステータス用の色（シアン）
+            this.topCtx.fillText(`合計 ATK: ${totalAtk}`, 10, 60);
 
             this.topCtx.fillStyle = '#8B0000';
             this.topCtx.beginPath();
