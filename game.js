@@ -296,8 +296,8 @@ export class Game {
                 this.openPartyModal();
             });
         }
-        if (this.ui.closePartyModal && this.ui.partyModal) {
-            this.ui.closePartyModal.addEventListener('click', () => {
+        if (this.ui.closePartyModalBtn && this.ui.partyModal) {
+            this.ui.closePartyModalBtn.addEventListener('click', () => {
                 this.closePartyModalScreen();
             });
         }
