@@ -125,6 +125,8 @@ export class Game {
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
 
+            if (this.isGameover) return;
+
             if (!this.isCounting) {
                 this.isCounting = true;
                 this.startTime = Date.now();
