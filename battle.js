@@ -30,12 +30,21 @@ export class BattleManager {
         }
     }
 
+    // 生存中のパーティの合計攻撃力を取得
+    getTotalAtk(partyMonsters) {
+        if (!partyMonsters || partyMonsters.length === 0) return 0;
+        return partyMonsters.reduce((sum, m) => {
+            const currentHp = m.currentHp !== undefined ? m.currentHp : m.hp;
+            return currentHp > 0 ? sum + m.attack : sum;
+        }, 0);
+    }
+
     // 戦闘計算処理
     // 戻り値: { isFloorCleared: boolean, isGameOver: boolean }
     processCombat(partyMonsters, tileValue) {
         if (partyMonsters.length === 0) return { isFloorCleared: false, isGameOver: false };
 
-        const totalAtk = partyMonsters.reduce((sum, m) => sum + m.attack, 0);
+        const totalAtk = this.getTotalAtk(partyMonsters);
         const totalDamage = totalAtk * tileValue;
         this.enemyHp -= totalDamage;
 
