@@ -1,6 +1,8 @@
 'use strict';
 
 import { TopMonster } from './monster.js';
+import { BOARD, STORAGE_KEYS, MONSTER } from './config.js';
+import { Dungeon } from './dungeon.js';
 
 export class Game {
     constructor() {
@@ -30,15 +32,15 @@ export class Game {
         // モード管理 ('scout' または 'dungeon')
         this.currentMode = 'scout';
 
-        this.TILE_MARGIN = 5;
-        this.COLORS = ['(230, 82, 82)', '(79, 54, 219)', '(74, 162, 74)'];
+        this.TILE_MARGIN = BOARD.TILE_MARGIN;
+        this.COLORS = BOARD.COLORS;
 
-        this.NO_ROW = 4;
-        this.NO_COL = 4;
-        this.NO_TYPES = [5, 5, 6];
+        this.NO_ROW = BOARD.ROWS;
+        this.NO_COL = BOARD.COLS;
+        this.NO_TYPES = BOARD.TYPE_COUNTS;
 
         // モンスター所持数上限パラメータ（20）およびパーティー編成管理
-        this.maxMonsterCount = 20;
+        this.maxMonsterCount = MONSTER.MAX_OWNED;
         this.topMonsters = [];
         this.partyMonsterIds = [];
 
@@ -47,6 +49,8 @@ export class Game {
         this.enemyHp = 50;
         this.enemyMaxHp = 50;
         this.enemyAtk = 1;
+
+        this.setFloor(1);
 
         this.resizeCanvas();
         window.addEventListener('resize', () => {
@@ -96,7 +100,7 @@ export class Game {
 
         this.game4x4.addEventListener('click', () => {
             this.reset();
-            this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
+            this.startBoard();
         });
 
         if (this.undoButton) {
@@ -245,7 +249,7 @@ export class Game {
             this.release();
         });
 
-        this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
+        this.startBoard();
     }
 
     initModeSwitchEvents() {
@@ -266,12 +270,25 @@ export class Game {
         this.partyButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
     }
 
+    // 階層を設定し、その階層の敵ステータスを反映する（敵の値を変える入口はここだけ）
+    setFloor(floor) {
+        this.dungeonFloor = floor;
+        const enemy = Dungeon.enemyFor(floor);
+        this.enemyMaxHp = enemy.maxHp;
+        this.enemyHp = enemy.maxHp;
+        this.enemyAtk = enemy.atk;
+    }
+
+    startBoard() {
+        this.gameStart(BOARD.ROWS, BOARD.COLS, BOARD.TYPE_COUNTS, STORAGE_KEYS.HIGH_SCORE_4X4);
+    }
+
     switchMode(mode) {
         if (this.currentMode === mode) return;
         this.currentMode = mode;
 
         this.reset();
-        this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
+        this.startBoard();
 
         if (mode === 'scout') {
             this.modeScoutBtn.classList.add('active');
@@ -283,9 +300,6 @@ export class Game {
             this.modeDungeonBtn.classList.add('active');
             this.modeScoutBtn.classList.remove('active');
             this.setPartyButtonEnabled(true);
-            this.enemyMaxHp = Math.floor(50 * Math.pow(1.2, this.dungeonFloor - 1));
-            this.enemyHp = this.enemyMaxHp;
-            this.enemyAtk = Math.floor(10 * Math.pow(1.15, this.dungeonFloor - 1));
             this.isGameover = false;
             this.drawTiles();
         }
@@ -1234,10 +1248,7 @@ export class Game {
         this.enemyHp -= totalDamage;
 
         if (this.enemyHp <= 0) {
-            this.dungeonFloor++;
-            this.enemyMaxHp = Math.floor(200 * Math.pow(1.2, this.dungeonFloor - 1));
-            this.enemyHp = this.enemyMaxHp;
-            this.enemyAtk = Math.floor(1 * Math.pow(1.1, this.dungeonFloor - 1));
+            this.setFloor(this.dungeonFloor + 1);
             if (window.saveUserDataToFirestore) {
                 this.saveCloudData();
             }
