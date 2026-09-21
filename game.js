@@ -349,6 +349,7 @@ export class Game {
 
             this.topCtx.fillStyle = '#FF4444';
             this.topCtx.fillText(`敵 HP: ${this.enemyHp} / ${this.enemyMaxHp}`, 10, 32);
+            this.topCtx.fillText(`敵 ATK: ${this.enemyAtk}`, 10, 46);
 
             this.topCtx.fillStyle = '#8B0000';
             this.topCtx.beginPath();
@@ -362,7 +363,7 @@ export class Game {
             this.topCtx.fillStyle = '#666';
             this.topCtx.font = '11px Arial';
             this.topCtx.textAlign = 'left';
-            this.topCtx.fillText('【ダンジョン（拠点）】 パーティーメンバー一覧', 10, 18);
+            this.topCtx.fillText('【スカウト】', 10, 18);
         }
 
         const partyList = this.getPartyMonsters();
@@ -1219,9 +1220,9 @@ export class Game {
 
         if (this.enemyHp <= 0) {
             this.dungeonFloor++;
-            this.enemyMaxHp = Math.floor(50 * Math.pow(1.2, this.dungeonFloor - 1));
+            this.enemyMaxHp = Math.floor(200 * Math.pow(1.2, this.dungeonFloor - 1));
             this.enemyHp = this.enemyMaxHp;
-            this.enemyAtk = Math.floor(10 * Math.pow(1.15, this.dungeonFloor - 1));
+            this.enemyAtk = Math.floor(5 * Math.pow(1.1, this.dungeonFloor - 1));
             if (window.saveUserDataToFirestore) {
                 this.saveCloudData();
             }
