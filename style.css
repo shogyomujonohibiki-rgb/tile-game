@@ -251,3 +251,78 @@ button:hover {
   font-weight: bold;
   background-color: transparent;
 }
+
+/* モード選択・パーティー編成ボタンエリア */
+#modeSelectArea {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    width: 343px;
+    max-width: 100%;
+    margin: 6px auto 0 auto;
+    box-sizing: border-box;
+}
+
+#modeSelectArea button {
+    flex: 1;
+    height: 32px;
+    font-size: 11px;
+}
+
+#modeSelectArea #partyButton {
+    flex: 1.2;
+}
+
+/* パーティー編成モーダル */
+#partyModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.party-modal-content {
+    background: white;
+    width: 90%;
+    max-width: 320px;
+    padding: 16px;
+    border-radius: 8px;
+    box-sizing: border-box;
+    text-align: center;
+    color: #333;
+}
+
+.party-modal-content h3 {
+    margin-top: 0;
+}
+
+#partySelectionList {
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    margin-bottom: 12px;
+    padding: 8px;
+    text-align: left;
+}
+
+#partyCountText {
+    font-size: 12px;
+    margin-bottom: 12px;
+}
+
+#closePartyModal {
+    all: unset;
+    background-color: #555;
+    color: white;
+    width: 100%;
+    height: 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
