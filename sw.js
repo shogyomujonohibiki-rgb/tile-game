@@ -1,10 +1,21 @@
-const CACHE_NAME = 'game-v10.1'; // ★更新時はここを書き換える
+const CACHE_NAME = 'game-v11'; // ★更新時はここを書き換える
 const ASSETS = [
   './',
   './index.html',
-  './main.js',
   './style.css',
-  './manifest.json'
+  './manifest.json',
+  // JSモジュールを網羅
+  './main.js',
+  './game.js',
+  './board.js',
+  './battle.js',
+  './dungeon.js',
+  './monster.js',
+  './renderer.js',
+  './ui.js',
+  './data.js',
+  './config.js',
+  './firebase-config.js'
 ];
 
 // インストール：アセットの事前キャッシュ ＋ 即時スキップ待機
@@ -34,6 +45,10 @@ self.addEventListener('activate', (e) => {
 // フェッチ：ネットワーク優先（Network First）
 // オンライン時は常にサーバーから最新を取得し、失敗時（オフライン時）にキャッシュを使う
 self.addEventListener('fetch', (e) => {
+  // GETリクエスト以外（POSTなど）はキャッシュ処理を行わずにネットワークへ流す
+  if (e.request.method !== 'GET') {
+    return;
+  }
   // HTTP / HTTPS 以外のリクエスト（chrome-extension等）は除外
   if (!e.request.url.startsWith('http')) return;
 
