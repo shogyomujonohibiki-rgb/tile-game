@@ -46,7 +46,7 @@ export class Game {
         this.dungeonFloor = 1;
         this.enemyHp = 50;
         this.enemyMaxHp = 50;
-        this.enemyAtk = 10;
+        this.enemyAtk = 1;
 
         this.resizeCanvas();
         window.addEventListener('resize', () => {
@@ -108,6 +108,10 @@ export class Game {
 
         this.itemButton.addEventListener('click', () => {
             if (this.itemCount > 0) {
+                // 手詰まり中かつアイテムがアクティブのときは、クリックしてもオフにさせない
+                if (this.checkIsDeadlocked() && this.itemActive) {
+                    return;
+                }
                 this.itemActive = !this.itemActive;
             }
             if (this.itemActive) {
@@ -119,13 +123,6 @@ export class Game {
 
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isGameover) {
-                if (this.currentMode === 'dungeon') {
-                    this.reset();
-                    this.gameStart(4, 4, [5, 5, 6], 'highScore4x4');
-                }
-                return;
-            }
 
             if (!this.isCounting) {
                 this.isCounting = true;
@@ -805,6 +802,27 @@ export class Game {
         }
     }
 
+    checkIsDeadlocked() {
+        let check = 0;
+        for (let row = 0; row < this.NO_ROW; row++) {
+            for (let col = 0; col < this.NO_COL - 1; col++) {
+                if (this.tileMx[row][col].value === this.tileMx[row][col + 1].value &&
+                    this.tileMx[row][col].type === this.tileMx[row][col + 1].type) {
+                    check++;
+                }
+            }
+        }
+        for (let col = 0; col < this.NO_COL; col++) {
+            for (let row = 0; row < this.NO_ROW - 1; row++) {
+                if (this.tileMx[row][col].value === this.tileMx[row + 1][col].value &&
+                    this.tileMx[row][col].type === this.tileMx[row + 1][col].type) {
+                    check++;
+                }
+            }
+        }
+        return check === 0;
+    }
+
     movableCheck() {
         if (this.isMoving) return;
 
@@ -1073,9 +1091,6 @@ export class Game {
             this.ctx.font = 'bold 14px Arial';
             this.ctx.fillText(`到達階: B${this.dungeonFloor}F`, width / 2, 60);
 
-            this.ctx.fillStyle = '#AAAAAA';
-            this.ctx.font = '9px Arial';
-            this.ctx.fillText('画面をクリックで再挑戦', width / 2, 100);
             return;
         }
 
@@ -1222,7 +1237,7 @@ export class Game {
             this.dungeonFloor++;
             this.enemyMaxHp = Math.floor(200 * Math.pow(1.2, this.dungeonFloor - 1));
             this.enemyHp = this.enemyMaxHp;
-            this.enemyAtk = Math.floor(5 * Math.pow(1.1, this.dungeonFloor - 1));
+            this.enemyAtk = Math.floor(1 * Math.pow(1.1, this.dungeonFloor - 1));
             if (window.saveUserDataToFirestore) {
                 this.saveCloudData();
             }
