@@ -4,29 +4,16 @@ import { TopMonster } from './monster.js';
 import { BOARD, STORAGE_KEYS, MONSTER } from './config.js';
 import { Dungeon } from './dungeon.js';
 import { Board } from './board.js';
+import { UI } from './ui.js';
 
 export class Game {
     constructor() {
+        this.ui = new UI();
+
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.topCanvas = document.getElementById('topCanvas');
         this.topCtx = this.topCanvas ? this.topCanvas.getContext('2d') : null;
-
-        this.timer = document.getElementById('timer');
-        this.game4x4 = document.getElementById('game4x4');
-        this.undoButton = document.getElementById('undoButton');
-        this.itemButton = document.getElementById('itemButton');
-        this.partyButton = document.getElementById('partyButton');
-        this.partyModal = document.getElementById('partyModal');
-        this.closePartyModal = document.getElementById('closePartyModal');
-
-        this.modeScoutBtn = document.getElementById('modeMonsterGet');
-        this.modeDungeonBtn = document.getElementById('modeDungeon');
-
-        this.scoreBoard = document.getElementById('scoreBoard');
-        this.highScoreBoard = document.getElementById('highScoreBoard');
-        this.mergeCountBoard = document.getElementById('mergeCountBoard');
-        this.itemCountBoard = document.getElementById('itemCountBoard');
 
         this.uid = window.currentUser ? window.currentUser.uid : null;
 
@@ -56,7 +43,7 @@ export class Game {
 
         this.initTopGarden();
         this.startTopAnimation();
-        this.initializeColorSample();
+        this.ui.initializeColorSample(this.COLORS);
         this.initPartyModalEvents();
         this.initModeSwitchEvents();
 
@@ -95,32 +82,32 @@ export class Game {
         this.moveFq = 10;
         this.moveFrame = this.moveDuration / this.moveFq;
 
-        this.game4x4.addEventListener('click', () => {
-            this.reset();
-            this.startBoard();
-        });
+        if (this.ui.game4x4) {
+            this.ui.game4x4.addEventListener('click', () => {
+                this.reset();
+                this.startBoard();
+            });
+        }
 
-        if (this.undoButton) {
-            this.undoButton.addEventListener('click', () => {
+        if (this.ui.undoButton) {
+            this.ui.undoButton.addEventListener('click', () => {
                 if (this.currentMode !== 'scout') return;
                 this.undo();
             });
         }
 
-        this.itemButton.addEventListener('click', () => {
-            if (this.itemCount > 0) {
-                // 手詰まり中かつアイテムがアクティブのときは、クリックしてもオフにさせない
-                if (this.checkIsDeadlocked() && this.itemActive) {
-                    return;
+        if (this.ui.itemButton) {
+            this.ui.itemButton.addEventListener('click', () => {
+                if (this.itemCount > 0) {
+                    // 手詰まり中かつアイテムがアクティブのときは、クリックしてもオフにさせない
+                    if (this.checkIsDeadlocked() && this.itemActive) {
+                        return;
+                    }
+                    this.itemActive = !this.itemActive;
                 }
-                this.itemActive = !this.itemActive;
-            }
-            if (this.itemActive) {
-                this.itemButton.classList.add('active');
-            } else {
-                this.itemButton.classList.remove('active');
-            }
-        });
+                this.ui.setItemActive(this.itemActive);
+            });
+        }
 
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
@@ -134,7 +121,7 @@ export class Game {
 
                 // ダンジョンモードでパズルが開始されたらパーティー編成ボタンを無効にする
                 if (this.currentMode === 'dungeon') {
-                    this.setPartyButtonEnabled(false);
+                    this.ui.setPartyButtonEnabled(false);
                 }
             }
             if (this.isMoving) return;
@@ -155,7 +142,7 @@ export class Game {
                 (async () => {
                     if (this.currentMode === 'scout') this.saveState();
                     this.itemActive = false;
-                    if (this.itemButton) this.itemButton.classList.remove('active');
+                    this.ui.setItemActive(false);
 
                     this.itemCount--;
                     this.board.bump(newRow, newCol);
@@ -216,21 +203,14 @@ export class Game {
     }
 
     initModeSwitchEvents() {
-        if (this.modeScoutBtn && this.modeDungeonBtn) {
-            this.modeScoutBtn.addEventListener('click', () => {
+        if (this.ui.modeScoutBtn && this.ui.modeDungeonBtn) {
+            this.ui.modeScoutBtn.addEventListener('click', () => {
                 this.switchMode('scout');
             });
-            this.modeDungeonBtn.addEventListener('click', () => {
+            this.ui.modeDungeonBtn.addEventListener('click', () => {
                 this.switchMode('dungeon');
             });
         }
-    }
-
-    setPartyButtonEnabled(enabled) {
-        if (!this.partyButton) return;
-        this.partyButton.disabled = !enabled;
-        this.partyButton.style.opacity = enabled ? '1' : '0.5';
-        this.partyButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
     }
 
     // 階層を設定し、その階層の敵ステータスを反映する（敵の値を変える入口はここだけ）
@@ -253,19 +233,10 @@ export class Game {
         this.reset();
         this.startBoard();
 
-        if (mode === 'scout') {
-            this.modeScoutBtn.classList.add('active');
-            this.modeDungeonBtn.classList.remove('active');
-            this.setPartyButtonEnabled(true);
-            this.isGameover = false;
-            this.drawTiles();
-        } else if (mode === 'dungeon') {
-            this.modeDungeonBtn.classList.add('active');
-            this.modeScoutBtn.classList.remove('active');
-            this.setPartyButtonEnabled(true);
-            this.isGameover = false;
-            this.drawTiles();
-        }
+        this.ui.switchModeUI(mode);
+        this.ui.setPartyButtonEnabled(true);
+        this.isGameover = false;
+        this.drawTiles();
     }
 
     resizeCanvas() {
@@ -395,72 +366,30 @@ export class Game {
     }
 
     initPartyModalEvents() {
-        if (this.partyButton && this.partyModal) {
-            this.partyButton.addEventListener('click', () => {
-                if (this.partyButton.disabled) return;
+        if (this.ui.partyButton && this.ui.partyModal) {
+            this.ui.partyButton.addEventListener('click', () => {
+                if (this.ui.partyButton.disabled) return;
                 this.openPartyModal();
             });
         }
-        if (this.closePartyModal && this.partyModal) {
-            this.closePartyModal.addEventListener('click', () => {
+        if (this.ui.closePartyModal && this.ui.partyModal) {
+            this.ui.closePartyModal.addEventListener('click', () => {
                 this.closePartyModalScreen();
             });
         }
     }
 
     openPartyModal() {
-        if (!this.partyModal) return;
-        const listContainer = document.getElementById('partySelectionList');
-        const countText = document.getElementById('partyCountText');
-        listContainer.innerHTML = '';
-
         if (!this.partyMonsterIds || this.partyMonsterIds.length === 0) {
             this.partyMonsterIds = this.topMonsters.slice(0, 6).map((_, i) => i);
         }
 
-        this.topMonsters.forEach((m, index) => {
-            const div = document.createElement('div');
-            div.style.display = 'flex';
-            div.style.alignItems = 'center';
-            div.style.justifyContent = 'space-between';
-            div.style.padding = '6px 4px';
-            div.style.borderBottom = '1px solid #eee';
-
-            const label = document.createElement('label');
-            label.style.cursor = 'pointer';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = index;
-            checkbox.checked = this.partyMonsterIds.includes(index);
-
-            checkbox.addEventListener('change', () => {
-                const checkedBoxes = listContainer.querySelectorAll('input[type="checkbox"]:checked');
-                if (checkedBoxes.length > 6) {
-                    checkbox.checked = false;
-                    alert('パーティーに選べるのは最大6匹までです。');
-                    return;
-                }
-                countText.textContent = `選択中: ${checkedBoxes.length} / 6`;
-            });
-
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(` モンスター #${index + 1} (ATK:${m.attack} HP:${m.hp})`));
-            div.appendChild(label);
-            listContainer.appendChild(div);
-        });
-
-        const selectedCount = this.partyMonsterIds.length;
-        countText.textContent = `選択中: ${selectedCount} / 6`;
-        this.partyModal.style.display = 'flex';
+        this.ui.openPartyModal(this.topMonsters, this.partyMonsterIds);
     }
 
     closePartyModalScreen() {
-        if (!this.partyModal) return;
-        const listContainer = document.getElementById('partySelectionList');
-        const checkedBoxes = listContainer.querySelectorAll('input[type="checkbox"]:checked');
-
-        this.partyMonsterIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value, 10));
-        this.partyModal.style.display = 'none';
+        this.partyMonsterIds = this.ui.getSelectedPartyIds();
+        this.ui.closePartyModal();
         this.drawTopCanvas();
 
         if (window.saveUserDataToFirestore) {
@@ -498,7 +427,7 @@ export class Game {
 
         this.tileChosen = false;
         this.itemActive = false;
-        if (this.itemButton) this.itemButton.classList.remove('active');
+        this.ui.setItemActive(false);
 
         this.drawTiles();
     }
@@ -532,7 +461,7 @@ export class Game {
         if (this.currentMode === 'scout') {
             this.saveState();
         } else {
-            this.setPartyButtonEnabled(true);
+            this.ui.setPartyButtonEnabled(true);
         }
         this.drawTiles();
     }
@@ -638,16 +567,14 @@ export class Game {
             this.drawGameOverOverlay();
         }
 
-        this.scoreBoard.innerHTML = `スコア ${this.score}`;
+        this.ui.updateScore(this.score);
         this.highScore = Math.max(this.highScore, this.score);
         if (this.NO_ROW === 4 && this.NO_COL === 4) {
             localStorage.setItem(STORAGE_KEYS.HIGH_SCORE_4X4, this.highScore);
-            this.highScoreBoard.innerHTML = `ハイスコア ${this.highScore}`;
+            this.ui.updateHighScore(this.highScore);
         }
-        this.mergeCountBoard.innerHTML = `マージ回数：${this.mergeCount}`;
-        if (this.itemCountBoard) {
-            this.itemCountBoard.innerHTML = `+1アイテム：${this.itemCount}`;
-        }
+        this.ui.updateMergeCount(this.mergeCount);
+        this.ui.updateItemCount(this.itemCount);
     }
 
     drawTile(row, col) {
@@ -714,11 +641,11 @@ export class Game {
         this.mergeCount = 0;
         this.itemCount = 0;
         this.itemActive = false;
-        if (this.timer) this.timer.textContent = '00:00.00';
+        this.ui.updateTimer('00:00.00');
         this.isCounting = false;
         this.isGameover = false;
         this.minValue = 1;
-        if (this.itemButton) this.itemButton.classList.remove('active');
+        this.ui.setItemActive(false);
 
         // リセット時：敵HPを初期化し、パーティーメンバーのHPを全回復
         this.enemyHp = this.enemyMaxHp;
@@ -751,9 +678,7 @@ export class Game {
             if (this.itemCount > 0) {
                 if (!this.itemActive) {
                     this.itemActive = true;
-                    if (this.itemButton) {
-                        this.itemButton.classList.add('active');
-                    }
+                    this.ui.setItemActive(true);
                 }
             } else if (!this.isGameover) {
                 requestAnimationFrame(() => {
@@ -851,99 +776,26 @@ export class Game {
         this.drawTiles();
     }
 
-    promptMonsterLimitSelection() {
-        return new Promise((resolve) => {
-            let modal = document.getElementById('monsterLimitModal');
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'monsterLimitModal';
-                modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; justify-content: center; align-items: center;';
-                modal.innerHTML = `
-                    <div style="background: white; width: 90%; max-width: 320px; padding: 16px; border-radius: 8px; box-sizing: border-box; text-align: center; color: #333;">
-                        <h3 style="margin-top: 0; font-size: 14px;">モンスターが上限（20匹）を超えました</h3>
-                        <p style="font-size: 11px; margin-bottom: 8px;">捨てるモンスターを<strong>1匹</strong>選択してください</p>
-                        <div id="limitSelectionList" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; margin-bottom: 12px; padding: 6px; text-align: left;"></div>
-                        <button id="limitSubmitBtn" style="all: unset; background-color: #dc3545; color: white; width: 100%; height: 36px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">選択した1匹を捨てる</button>
-                    </div>
-                `;
-                document.body.appendChild(modal);
+    async promptMonsterLimitSelection() {
+        const selectedIndex = await this.ui.promptMonsterLimitSelection(this.topMonsters);
+
+        const newTopMonsters = [];
+        const oldToNewIndexMap = new Map();
+
+        let newIdx = 0;
+        this.topMonsters.forEach((m, oldIdx) => {
+            if (oldIdx !== selectedIndex) {
+                newTopMonsters.push(m);
+                oldToNewIndexMap.set(oldIdx, newIdx);
+                newIdx++;
             }
-
-            const listContainer = modal.querySelector('#limitSelectionList');
-            const submitBtn = modal.querySelector('#limitSubmitBtn');
-            listContainer.innerHTML = '';
-
-            let selectedIndex = 0;
-
-            const updateListUI = () => {
-                listContainer.innerHTML = '';
-                this.topMonsters.forEach((m, index) => {
-                    const div = document.createElement('div');
-                    div.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 4px; border-bottom: 1px solid #eee; font-size: 11px; cursor: pointer;';
-
-                    if (index === selectedIndex) {
-                        div.style.backgroundColor = '#ffe6e6';
-                    }
-
-                    const label = document.createElement('label');
-                    label.style.cursor = 'pointer';
-                    const radio = document.createElement('input');
-                    radio.type = 'radio';
-                    radio.name = 'dropMonster';
-                    radio.value = index;
-                    radio.checked = (index === selectedIndex);
-
-                    radio.addEventListener('change', () => {
-                        selectedIndex = index;
-                        updateListUI();
-                    });
-
-                    div.addEventListener('click', () => {
-                        selectedIndex = index;
-                        radio.checked = true;
-                        updateListUI();
-                    });
-
-                    const isNew = index === this.topMonsters.length - 1;
-                    const badge = isNew ? ' <span style="color: red; font-weight: bold;">[NEW]</span>' : '';
-
-                    label.appendChild(radio);
-                    label.appendChild(document.createElement('span')).innerHTML = ` #${index + 1} (ATK:${m.attack} HP:${m.hp})${badge}`;
-                    div.appendChild(label);
-                    listContainer.appendChild(div);
-                });
-            };
-
-            updateListUI();
-
-            const submitHandler = () => {
-                submitBtn.removeEventListener('click', submitHandler);
-                modal.style.display = 'none';
-
-                const newTopMonsters = [];
-                const oldToNewIndexMap = new Map();
-
-                let newIdx = 0;
-                this.topMonsters.forEach((m, oldIdx) => {
-                    if (oldIdx !== selectedIndex) {
-                        newTopMonsters.push(m);
-                        oldToNewIndexMap.set(oldIdx, newIdx);
-                        newIdx++;
-                    }
-                });
-
-                this.topMonsters = newTopMonsters;
-
-                this.partyMonsterIds = this.partyMonsterIds
-                    .map(oldId => oldToNewIndexMap.get(oldId))
-                    .filter(newId => newId !== undefined);
-
-                resolve();
-            };
-
-            submitBtn.onclick = submitHandler;
-            modal.style.display = 'flex';
         });
+
+        this.topMonsters = newTopMonsters;
+
+        this.partyMonsterIds = this.partyMonsterIds
+            .map(oldId => oldToNewIndexMap.get(oldId))
+            .filter(newId => newId !== undefined);
     }
 
     async saveCloudData() {
@@ -1073,9 +925,7 @@ export class Game {
         const m = String(d.getMinutes()).padStart(2, '0');
         const s = String(d.getSeconds()).padStart(2, '0');
         const ms = String(Math.floor(d.getMilliseconds() / 10)).padStart(2, '0');
-        if (this.timer) {
-            this.timer.textContent = `${m}:${s}.${ms}`;
-        }
+        this.ui.updateTimer(`${m}:${s}.${ms}`);
         setTimeout(this.countUp.bind(this), 10);
     }
 
@@ -1148,27 +998,5 @@ export class Game {
                 this.triggerDungeonGameOver();
             }
         }
-    }
-
-    initializeColorSample() {
-        const colorSample = document.getElementById('colorSample');
-        if (!colorSample) return;
-
-        colorSample.innerHTML = '';
-        const colorSequence = [...this.COLORS, this.COLORS[0]];
-
-        colorSequence.forEach((color, index) => {
-            const box = document.createElement('div');
-            box.className = 'sample-box';
-            box.style.backgroundColor = `rgb${color}`;
-            colorSample.appendChild(box);
-
-            if (index < colorSequence.length - 1) {
-                const arrow = document.createElement('span');
-                arrow.className = 'sample-arrow';
-                arrow.textContent = '→';
-                colorSample.appendChild(arrow);
-            }
-        });
     }
 }
