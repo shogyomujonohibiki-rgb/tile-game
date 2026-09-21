@@ -44,7 +44,7 @@ import { TopMonster } from './monster.js';
                 window.game.dungeonFloor = userData.dungeonFloor;
                 window.game.enemyMaxHp = Math.floor(200 * Math.pow(1.2, window.game.dungeonFloor - 1));
                 window.game.enemyHp = window.game.enemyMaxHp;
-                window.game.enemyAtk = Math.floor(1 * Math.pow(1.15, window.game.dungeonFloor - 1));
+                window.game.enemyAtk = Math.floor(1 * Math.pow(1.1, window.game.dungeonFloor - 1));
             }
         } else {
             const localName = localStorage.getItem('gameUserName');
