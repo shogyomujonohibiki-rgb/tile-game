@@ -239,7 +239,7 @@ export class Game {
         if (this.topCanvas) {
             const topRect = this.topCanvas.getBoundingClientRect();
             this.topCanvas.width = topRect.width || 343;
-            this.topCanvas.height = 150;
+            this.topCanvas.height = 200;
         }
 
         this.TILE_WIDTH = this.canvas.width / this.NO_COL - this.TILE_MARGIN;
@@ -728,6 +728,13 @@ export class Game {
 
     processDungeonCombat(tileValue = 1) {
         const party = this.getPartyMonsters();
+        const totalAtk = this.battleManager.getTotalAtk(party);
+
+        // 攻撃アニメーション開始 (HIT数: tileValue, ダメージ: totalAtk)
+        if (party.length > 0) {
+            this.renderer.startAttackAnimation(tileValue, totalAtk);
+        }
+        
         const { isFloorCleared, isGameOver } = this.battleManager.processCombat(party, tileValue);
 
         if (isFloorCleared) {
