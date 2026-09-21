@@ -21,9 +21,9 @@ import { TopMonster } from './monster.js';
             if (userData.monsters && Array.isArray(userData.monsters) && window.game && window.game.topCanvas) {
                 window.game.topMonsters = userData.monsters.map(data => {
                     const monster = new TopMonster(
-                        window.game.topCanvas.width, 
-                        window.game.topCanvas.height, 
-                        null, 
+                        window.game.topCanvas.width,
+                        window.game.topCanvas.height,
+                        null,
                         data.attack + data.hp
                     );
                     monster.x = data.x;
@@ -41,10 +41,7 @@ import { TopMonster } from './monster.js';
             }
 
             if (userData.dungeonFloor !== undefined && window.game) {
-                window.game.dungeonFloor = userData.dungeonFloor;
-                window.game.enemyMaxHp = Math.floor(200 * Math.pow(1.2, window.game.dungeonFloor - 1));
-                window.game.enemyHp = window.game.enemyMaxHp;
-                window.game.enemyAtk = Math.floor(1 * Math.pow(1.1, window.game.dungeonFloor - 1));
+                window.game.setFloor(userData.dungeonFloor);
             }
         } else {
             const localName = localStorage.getItem('gameUserName');
