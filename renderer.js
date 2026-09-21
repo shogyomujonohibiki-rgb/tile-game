@@ -6,6 +6,36 @@ export class GameRenderer {
         this.ctx = ctx;
         this.topCanvas = topCanvas;
         this.topCtx = topCtx;
+
+        // アニメーション・エフェクト管理用変数
+        this.attackEffects = []; // { x, y, damage, progress, maxLife, delay }
+        this.monsterJumpProgress = 0; // 味方のジャンプ進行度 (0 ~ 1)
+        this.isJumping = false;
+    }
+
+    // 攻撃アニメーションの開始処理
+    startAttackAnimation(hitCount, damage) {
+        this.isJumping = true;
+        this.monsterJumpProgress = 0;
+
+        // 敵の位置（中央上部）
+        const enemyX = this.topCanvas ? this.topCanvas.width / 2 : 170;
+        const enemyY = 60;
+
+        // マージ数 (hitCount) の分だけ連続ヒットエフェクトを生成（時間をずらして発生）
+        for (let i = 0; i < hitCount; i++) {
+            const offsetX = (Math.random() - 0.5) * 40;
+            const offsetY = (Math.random() - 0.5) * 30;
+
+            this.attackEffects.push({
+                x: enemyX + offsetX,
+                y: enemyY + offsetY,
+                damage: damage,
+                progress: 0,
+                maxLife: 30, // アニメーションフレーム数
+                delay: i * 6 // ヒット間のディレイフレーム
+            });
+        }
     }
 
     // メインキャンバスの描画
@@ -119,15 +149,27 @@ export class GameRenderer {
         });
     }
 
-   // 上部ダンジョンエリアの描画
+    // 上部ダンジョンエリアの描画
     drawTopCanvas(game) {
-        if (!this.topCtx || !this.topCanvas) return;
+if (!this.topCtx || !this.topCanvas) return;
 
         const w = this.topCanvas.width;
         const h = this.topCanvas.height;
 
         this.topCtx.fillStyle = '#111122';
         this.topCtx.fillRect(0, 0, w, h);
+
+        // --- 味方モンスターの跳ね上がり（ジャンプ）アニメーション計算 ---
+        let baseJumpOffset = 0;
+        if (this.isJumping) {
+            this.monsterJumpProgress += 0.08;
+            if (this.monsterJumpProgress >= 1) {
+                this.isJumping = false;
+                this.monsterJumpProgress = 0;
+            } else {
+                baseJumpOffset = -Math.sin(this.monsterJumpProgress * Math.PI) * 18;
+            }
+        }
 
         if (game.currentMode === 'dungeon') {
             this.topCtx.fillStyle = '#FFD700';
@@ -146,7 +188,7 @@ export class GameRenderer {
             // 敵のHPバー背景
             const enemyBarX = 10;
             const enemyBarY = 36;
-            const enemyBarW = 100;
+            const enemyBarW = 90;
             const enemyBarH = 6;
             this.topCtx.fillStyle = '#555';
             this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW, enemyBarH);
@@ -161,20 +203,42 @@ export class GameRenderer {
 
             const partyList = game.getPartyMonsters();
             const totalAtk = game.battleManager.getTotalAtk(partyList);
-            this.topCtx.fillStyle = '#00FFFF'; // 味方のステータス用の色（シアン）
-            this.topCtx.fillText(`合計 ATK: ${totalAtk}`, 10, 68);
+            this.topCtx.fillStyle = '#00FFFF';
+            this.topCtx.fillText(`合計 ATK: ${totalAtk}`, 10, 120);
 
-            // 敵アイコン表示（右側）
-            const enemyIconX = w - 40;
-            const enemyIconY = 25;
+            // --- 敵キャラクター表示（左右中央・拡大） ---
+            const enemyIconX = w / 2;
+            const enemyIconY = 60;
+            const enemyRadius = 28;
+
+            this.topCtx.save();
             this.topCtx.fillStyle = '#8B0000';
             this.topCtx.beginPath();
-            this.topCtx.arc(enemyIconX, enemyIconY, 15, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX, enemyIconY, enemyRadius, 0, Math.PI * 2);
             this.topCtx.fill();
+
+            this.topCtx.strokeStyle = '#FF4444';
+            this.topCtx.lineWidth = 3;
+            this.topCtx.stroke();
+
+            // 敵の顔・目
+            this.topCtx.fillStyle = '#FFEB3B';
+            this.topCtx.beginPath();
+            this.topCtx.arc(enemyIconX - 8, enemyIconY - 5, 5, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX + 8, enemyIconY - 5, 5, 0, Math.PI * 2);
+            this.topCtx.fill();
+
+            this.topCtx.fillStyle = '#000';
+            this.topCtx.beginPath();
+            this.topCtx.arc(enemyIconX - 7, enemyIconY - 5, 2, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX + 7, enemyIconY - 5, 2, 0, Math.PI * 2);
+            this.topCtx.fill();
+
             this.topCtx.fillStyle = '#FFF';
-            this.topCtx.font = '9px Arial';
+            this.topCtx.font = 'bold 12px Arial';
             this.topCtx.textAlign = 'center';
-            this.topCtx.fillText('敵', enemyIconX, enemyIconY + 3);
+            this.topCtx.fillText('BOSS', enemyIconX, enemyIconY + 14);
+            this.topCtx.restore();
 
         } else {
             this.topCtx.fillStyle = '#666';
@@ -183,6 +247,7 @@ export class GameRenderer {
             this.topCtx.fillText('【スカウト】', 10, 18);
         }
 
+        // --- 味方モンスター描画 ---
         const partyList = game.getPartyMonsters();
         const count = partyList.length;
 
@@ -190,7 +255,13 @@ export class GameRenderer {
             const spacing = w / (count + 1);
             partyList.forEach((monster, index) => {
                 monster.x = spacing * (index + 1);
-                monster.y = h / 2 + 20;
+
+                // 死亡しているモンスターはジャンプさせない
+                const isDead = (game.currentMode === 'dungeon' && monster.currentHp !== undefined && monster.currentHp <= 0);
+                const jumpYOffset = isDead ? 0 : baseJumpOffset;
+
+                // 味方のY位置（ジャンプオフセット適用）
+                monster.y = h - 35 + jumpYOffset;
                 monster.draw(this.topCtx);
 
                 if (game.currentMode === 'dungeon') {
@@ -217,7 +288,66 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#666';
             this.topCtx.font = '12px Arial';
             this.topCtx.textAlign = 'center';
-            this.topCtx.fillText('パーティーにモンスターがいません', w / 2, h / 2 + 10);
+            this.topCtx.fillText('パーティーにモンスターがいません', w / 2, h / 2 + 30);
+        }
+
+        // --- 打撃エフェクト & totalATK ポップアップ描画 ---
+        if (this.attackEffects.length > 0) {
+            this.renderAttackEffects(this.topCtx);
+        }
+    }
+
+    // 打撃効果ビジュアル ＆ ダメージ数値ポップアップ処理
+    renderAttackEffects(ctx) {
+        for (let i = this.attackEffects.length - 1; i >= 0; i--) {
+            const fx = this.attackEffects[i];
+
+            if (fx.delay > 0) {
+                fx.delay--;
+                continue;
+            }
+
+            fx.progress++;
+            const lifeRatio = fx.progress / fx.maxLife;
+
+            if (lifeRatio >= 1) {
+                this.attackEffects.splice(i, 1);
+                continue;
+            }
+
+            ctx.save();
+
+            // --- 1. 打撃効果（インパクト星型フラッシュ） ---
+            const flashRadius = 16 * (1 - lifeRatio * 0.5);
+            ctx.fillStyle = lifeRatio < 0.3 ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 200, 0, 0.7)';
+            ctx.beginPath();
+            for (let k = 0; k < 8; k++) {
+                const angle = (Math.PI / 4) * k;
+                const r = k % 2 === 0 ? flashRadius : flashRadius * 0.4;
+                const px = fx.x + Math.cos(angle) * r;
+                const py = fx.y + Math.sin(angle) * r;
+                if (k === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // --- 2. totalATK (ダメージ数値) ポップアップ ---
+            const alpha = 1 - lifeRatio;
+            const floatY = fx.y - (fx.progress * 1.2); // 上方へ浮き上がる
+
+            ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
+            ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.font = 'italic bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const damageText = `-${fx.damage}`;
+            ctx.strokeText(damageText, fx.x, floatY);
+            ctx.fillText(damageText, fx.x, floatY);
+
+            ctx.restore();
         }
     }
 
