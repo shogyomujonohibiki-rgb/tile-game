@@ -1229,7 +1229,7 @@ export class Game {
         const party = this.getPartyMonsters();
         if (party.length === 0) return;
 
-        let totalAtk = party.reduce((sum, m) => sum + (m.attack || 10), 0);
+        let totalAtk = party.reduce((sum, m) => sum + (m.attack), 0);
         let totalDamage = totalAtk * tileValue; // 攻撃力 × インクリメント前のタイルの数字
         this.enemyHp -= totalDamage;
 
