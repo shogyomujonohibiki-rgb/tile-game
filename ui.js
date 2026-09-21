@@ -19,7 +19,7 @@ export class UI {
 
         // モーダル関連要素
         this.partyModal = document.getElementById('partyModal');
-        this.closePartyModal = document.getElementById('closePartyModal');
+        this.closePartyModalBtn = document.getElementById('closePartyModal');
         this.partySelectionList = document.getElementById('partySelectionList');
         this.partyCountText = document.getElementById('partyCountText');
 
