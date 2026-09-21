@@ -62,7 +62,7 @@ export class TopMonster {
         ctx.font = '8px Arial';
         ctx.fillStyle = '#FFF';
         ctx.textAlign = 'center';
-        ctx.fillText(`ATK:${this.attack} HP:${this.hp}`, this.x, this.y - this.radius - 4);
+        ctx.fillText(`ATK:${this.attack}`, this.x, this.y - this.radius - 4);
         ctx.restore();
     }
 }
