@@ -106,7 +106,11 @@ export class GameRenderer {
         this.topCtx.fillStyle = '#111122';
         this.topCtx.fillRect(0, 0, w, h);
 
+        const partyList = game.getPartyMonsters();
+
         if (game.currentMode === 'dungeon') {
+            const totalAtk = game.battleManager.getTotalAtk(partyList);
+
             this.topCtx.fillStyle = '#FFD700';
             this.topCtx.font = 'bold 11px Arial';
             this.topCtx.textAlign = 'left';
@@ -115,6 +119,9 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#FF4444';
             this.topCtx.fillText(`敵 HP: ${game.battleManager.enemyHp} / ${game.battleManager.enemyMaxHp}`, 10, 32);
             this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, 10, 46);
+
+            this.topCtx.fillStyle = '#00FFFF';
+            this.topCtx.fillText(`Total ATK: ${totalAtk}`, 10, 60);
 
             this.topCtx.fillStyle = '#8B0000';
             this.topCtx.beginPath();
@@ -131,7 +138,6 @@ export class GameRenderer {
             this.topCtx.fillText('【スカウト】', 10, 18);
         }
 
-        const partyList = game.getPartyMonsters();
         const count = partyList.length;
 
         if (count > 0) {
