@@ -3,6 +3,7 @@
 import { TopMonster } from './monster.js';
 import { BOARD, STORAGE_KEYS, MONSTER } from './config.js';
 import { Dungeon } from './dungeon.js';
+import { Board } from './board.js';
 
 export class Game {
     constructor() {
@@ -44,12 +45,7 @@ export class Game {
         this.topMonsters = [];
         this.partyMonsterIds = [];
 
-        // ダンジョン用ステータス
-        this.dungeonFloor = 1;
-        this.enemyHp = 50;
-        this.enemyMaxHp = 50;
-        this.enemyAtk = 1;
-
+        // ダンジョン用ステータス（dungeonFloor / enemyHp / enemyMaxHp / enemyAtk は setFloor が設定する）
         this.setFloor(1);
 
         this.resizeCanvas();
@@ -72,7 +68,8 @@ export class Game {
             this.userName = savedName;
         }
 
-        this.tileMx = [];
+        this.board = null; // 盤面ロジック（board.js）。createTiles() で作られる
+        this.tileMx = [];  // board.tiles と同じ配列。ここに x, y など表示用の値を足して使う
         this.history = [];
         this.score = 0;
         this.highScore = 0;
@@ -159,7 +156,7 @@ export class Game {
                     if (this.itemButton) this.itemButton.classList.remove('active');
 
                     this.itemCount--;
-                    this.tileMx[newRow][newCol].value++;
+                    this.board.bump(newRow, newCol);
 
                     await this.playLevelUpAnim(newRow, newCol);
                     this.drawTiles();
@@ -199,43 +196,7 @@ export class Game {
                 );
                 this.drawTiles();
 
-                if (dx > this.TILE_WIDTH && this.chsnCol < this.NO_COL - 1) {
-                    if (!this.canMergeTile(this.chsnRow, this.chsnCol + 1)) {
-                        this.release();
-                    } else {
-                        if (this.currentMode === 'scout') this.saveState();
-                        this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
-                        this.isMoving = true;
-                        this.moveRight();
-                    }
-                } else if (dx < this.TILE_WIDTH * -1 && this.chsnCol > 0) {
-                    if (!this.canMergeTile(this.chsnRow, this.chsnCol - 1)) {
-                        this.release();
-                    } else {
-                        if (this.currentMode === 'scout') this.saveState();
-                        this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
-                        this.isMoving = true;
-                        this.moveLeft();
-                    }
-                } else if (dy > this.TILE_HEIGHT && this.chsnRow < this.NO_ROW - 1) {
-                    if (!this.canMergeTile(this.chsnRow + 1, this.chsnCol)) {
-                        this.release();
-                    } else {
-                        if (this.currentMode === 'scout') this.saveState();
-                        this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
-                        this.isMoving = true;
-                        this.moveDown();
-                    }
-                } else if (dy < this.TILE_HEIGHT * -1 && this.chsnRow > 0) {
-                    if (!this.canMergeTile(this.chsnRow - 1, this.chsnCol)) {
-                        this.release();
-                    } else {
-                        if (this.currentMode === 'scout') this.saveState();
-                        this.score += this.tileMx[this.chsnRow][this.chsnCol].value ** 2;
-                        this.isMoving = true;
-                        this.moveUp();
-                    }
-                }
+                this.tryStartMove(dx, dy);
             }
         }, { passive: false });
 
@@ -507,7 +468,7 @@ export class Game {
 
     saveState() {
         const snapshot = {
-            tileMx: JSON.parse(JSON.stringify(this.tileMx)),
+            tiles: this.board.snapshot(),
             score: this.score,
             mergeCount: this.mergeCount,
             itemCount: this.itemCount
@@ -519,7 +480,7 @@ export class Game {
         if (this.isGameover || this.isMoving || this.history.length === 0) return;
 
         const previousState = this.history.pop();
-        this.tileMx = previousState.tileMx;
+        this.board.restore(previousState.tiles);
         this.score = previousState.score;
         this.mergeCount = previousState.mergeCount;
         this.itemCount = previousState.itemCount;
@@ -574,136 +535,86 @@ export class Game {
         this.drawTiles();
     }
 
-    moveRight() {
+    // ドラッグ量から移動方向を決め、合体できるならアニメーションを始める
+    tryStartMove(dx, dy) {
+        const r = this.chsnRow;
+        const c = this.chsnCol;
+
+        let dir = null; // [dr, dc]
+        if (dx > this.TILE_WIDTH && c < this.NO_COL - 1) dir = [0, 1];
+        else if (dx < -this.TILE_WIDTH && c > 0) dir = [0, -1];
+        else if (dy > this.TILE_HEIGHT && r < this.NO_ROW - 1) dir = [1, 0];
+        else if (dy < -this.TILE_HEIGHT && r > 0) dir = [-1, 0];
+        if (!dir) return;
+
+        const [dr, dc] = dir;
+        if (!this.board.canMerge(r, c, r + dr, c + dc)) {
+            this.release();
+            return;
+        }
+
+        if (this.currentMode === 'scout') this.saveState();
+        this.score += this.tileMx[r][c].value ** 2;
+        this.isMoving = true;
+        this.animateMove(dr, dc);
+    }
+
+    // 合体アニメーション（4方向共通）。終わったら Board に合体を反映する
+    animateMove(dr, dc) {
         if (this.frameCount < this.moveFrame) {
             this.frameCount++;
-            for (let c = 0; c < this.chsnCol; c++) {
-                this.tileMx[this.chsnRow][this.chsnCol - 1 - c].x += (this.TILE_WIDTH + this.TILE_MARGIN) / this.moveFrame;
+            // 選んだタイルの「後ろ側」のタイルを、動かす方向へ少しずつずらす
+            let r = this.chsnRow - dr;
+            let c = this.chsnCol - dc;
+            while (this.board.inBounds(r, c)) {
+                this.tileMx[r][c].x += dc * (this.TILE_WIDTH + this.TILE_MARGIN) / this.moveFrame;
+                this.tileMx[r][c].y += dr * (this.TILE_HEIGHT + this.TILE_MARGIN) / this.moveFrame;
+                r -= dr;
+                c -= dc;
             }
             this.drawTiles();
-            requestAnimationFrame(() => this.moveRight());
+            requestAnimationFrame(() => this.animateMove(dr, dc));
         } else {
-            const originalValue = this.tileMx[this.chsnRow][this.chsnCol + 1].value; // インクリメント前の値を取得
-            this.tileMx[this.chsnRow][this.chsnCol + 1].value += 1;
-            for (let c = 0; c < this.chsnCol; c++) {
-                this.tileMx[this.chsnRow][this.chsnCol - c].value = this.tileMx[this.chsnRow][this.chsnCol - 1 - c].value;
-                this.tileMx[this.chsnRow][this.chsnCol - c].type = this.tileMx[this.chsnRow][this.chsnCol - 1 - c].type;
-                this.tileMx[this.chsnRow][this.chsnCol - c].x = (this.chsnCol - c) * (this.TILE_WIDTH + this.TILE_MARGIN);
-                this.tileMx[this.chsnRow][this.chsnCol - c].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
-            }
-            this.tileMx[this.chsnRow][0].value = this.tileMx[this.chsnRow][this.chsnCol + 1].value - 1;
-            this.tileMx[this.chsnRow][0].type = (this.tileMx[this.chsnRow][this.chsnCol + 1].type + 1) % 3;
-            this.tileMx[this.chsnRow][0].x = 0;
-            this.tileMx[this.chsnRow][0].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
+            const result = this.board.move(this.chsnRow, this.chsnCol, dr, dc);
+            this.resetTilePositions();
 
-            this.finishMove(originalValue);
+            if (!result) {
+                // アニメーション中に盤面がリセットされた等で、合体が成立しなかった場合
+                this.tileChosen = false;
+                this.frameCount = 0;
+                this.isMoving = false;
+                this.drawTiles();
+                return;
+            }
+            this.finishMove(result.valueBefore); // 合体前の値（ダンジョンのダメージ計算に使う）
         }
     }
 
-    moveLeft() {
-        if (this.frameCount < this.moveFrame) {
-            this.frameCount++;
-            for (let c = 0; c < this.NO_COL - this.chsnCol - 1; c++) {
-                this.tileMx[this.chsnRow][this.chsnCol + 1 + c].x += -(this.TILE_WIDTH + this.TILE_MARGIN) / this.moveFrame;
+    // 全タイルの表示位置をマス目にそろえる
+    resetTilePositions() {
+        for (let r = 0; r < this.NO_ROW; r++) {
+            for (let c = 0; c < this.NO_COL; c++) {
+                this.tileMx[r][c].x = c * (this.TILE_WIDTH + this.TILE_MARGIN);
+                this.tileMx[r][c].y = r * (this.TILE_HEIGHT + this.TILE_MARGIN);
             }
-            this.drawTiles();
-            requestAnimationFrame(() => this.moveLeft());
-        } else {
-            const originalValue = this.tileMx[this.chsnRow][this.chsnCol - 1].value; // インクリメント前の値を取得
-            this.tileMx[this.chsnRow][this.chsnCol - 1].value += 1;
-            for (let c = 0; c < this.NO_COL - this.chsnCol - 1; c++) {
-                this.tileMx[this.chsnRow][this.chsnCol + c].value = this.tileMx[this.chsnRow][this.chsnCol + 1 + c].value;
-                this.tileMx[this.chsnRow][this.chsnCol + c].type = this.tileMx[this.chsnRow][this.chsnCol + 1 + c].type;
-                this.tileMx[this.chsnRow][this.chsnCol + c].x = (this.chsnCol + c) * (this.TILE_WIDTH + this.TILE_MARGIN);
-                this.tileMx[this.chsnRow][this.chsnCol + c].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
-            }
-            this.tileMx[this.chsnRow][this.NO_COL - 1].value = this.tileMx[this.chsnRow][this.chsnCol - 1].value - 1;
-            this.tileMx[this.chsnRow][this.NO_COL - 1].type = (this.tileMx[this.chsnRow][this.chsnCol - 1].type + 1) % 3;
-            this.tileMx[this.chsnRow][this.NO_COL - 1].x = (this.NO_COL - 1) * (this.TILE_WIDTH + this.TILE_MARGIN);
-            this.tileMx[this.chsnRow][this.NO_COL - 1].y = this.chsnRow * (this.TILE_HEIGHT + this.TILE_MARGIN);
-
-            this.finishMove(originalValue);
-        }
-    }
-
-    moveDown() {
-        if (this.frameCount < this.moveFrame) {
-            this.frameCount++;
-            for (let c = 0; c < this.chsnRow; c++) {
-                this.tileMx[this.chsnRow - 1 - c][this.chsnCol].y += (this.TILE_HEIGHT + this.TILE_MARGIN) / this.moveFrame;
-            }
-            this.drawTiles();
-            requestAnimationFrame(() => this.moveDown());
-        } else {
-            const originalValue = this.tileMx[this.chsnRow + 1][this.chsnCol].value; // インクリメント前の値を取得
-            this.tileMx[this.chsnRow + 1][this.chsnCol].value += 1;
-            for (let c = 0; c < this.chsnRow; c++) {
-                this.tileMx[this.chsnRow - c][this.chsnCol].value = this.tileMx[this.chsnRow - 1 - c][this.chsnCol].value;
-                this.tileMx[this.chsnRow - c][this.chsnCol].type = this.tileMx[this.chsnRow - 1 - c][this.chsnCol].type;
-                this.tileMx[this.chsnRow - c][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
-                this.tileMx[this.chsnRow - c][this.chsnCol].y = (this.chsnRow - c) * (this.TILE_HEIGHT + this.TILE_MARGIN);
-            }
-            this.tileMx[0][this.chsnCol].value = this.tileMx[this.chsnRow + 1][this.chsnCol].value - 1;
-            this.tileMx[0][this.chsnCol].type = (this.tileMx[this.chsnRow + 1][this.chsnCol].type + 1) % 3;
-            this.tileMx[0][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
-            this.tileMx[0][this.chsnCol].y = 0;
-
-            this.finishMove(originalValue);
-        }
-    }
-
-    moveUp() {
-        if (this.frameCount < this.moveFrame) {
-            this.frameCount++;
-            for (let c = 0; c < this.NO_ROW - this.chsnRow - 1; c++) {
-                this.tileMx[this.chsnRow + 1 - c][this.chsnCol].y += -(this.TILE_HEIGHT + this.TILE_MARGIN) / this.moveFrame;
-            }
-            this.drawTiles();
-            requestAnimationFrame(() => this.moveUp());
-        } else {
-            const originalValue = this.tileMx[this.chsnRow - 1][this.chsnCol].value; // インクリメント前の値を取得
-            this.tileMx[this.chsnRow - 1][this.chsnCol].value += 1;
-            for (let c = 0; c < this.NO_ROW - this.chsnRow - 1; c++) {
-                this.tileMx[this.chsnRow + c][this.chsnCol].value = this.tileMx[this.chsnRow + 1 + c][this.chsnCol].value;
-                this.tileMx[this.chsnRow + c][this.chsnCol].type = this.tileMx[this.chsnRow + 1 + c][this.chsnCol].type;
-                this.tileMx[this.chsnRow + c][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
-                this.tileMx[this.chsnRow + c][this.chsnCol].y = (this.chsnRow + c) * (this.TILE_HEIGHT + this.TILE_MARGIN);
-            }
-            this.tileMx[this.NO_ROW - 1][this.chsnCol].value = this.tileMx[this.chsnRow - 1][this.chsnCol].value - 1;
-            this.tileMx[this.NO_ROW - 1][this.chsnCol].type = (this.tileMx[this.chsnRow - 1][this.chsnCol].type + 1) % 3;
-            this.tileMx[this.NO_ROW - 1][this.chsnCol].x = this.chsnCol * (this.TILE_WIDTH + this.TILE_MARGIN);
-            this.tileMx[this.NO_ROW - 1][this.chsnCol].y = (this.NO_ROW - 1) * (this.TILE_HEIGHT + this.TILE_MARGIN);
-
-            this.finishMove(originalValue);
         }
     }
 
     createTiles() {
-        const typesCopy = [...this.NO_TYPES];
-        this.tileMx = [];
-        for (let row = 0; row < this.NO_ROW; row++) {
-            let tileRows = [];
-            for (let col = 0; col < this.NO_COL; col++) {
-                let tColor;
-                do {
-                    const t = Math.floor(Math.random() * (typesCopy[0] + typesCopy[1] + typesCopy[2]));
-                    tColor = (t < typesCopy[0]) ? 0 :
-                        (t < typesCopy[0] + typesCopy[1]) ? 1 : 2;
-                } while (typesCopy[tColor] < 1);
-                typesCopy[tColor] -= 1;
+        this.board = Board.create(this.NO_ROW, this.NO_COL, this.NO_TYPES);
+        this.tileMx = this.board.tiles;
 
-                let tile = {
+        // 表示用のプロパティを足す（value / type は Board が持つ）
+        for (let row = 0; row < this.NO_ROW; row++) {
+            for (let col = 0; col < this.NO_COL; col++) {
+                Object.assign(this.tileMx[row][col], {
                     x: col * (this.TILE_WIDTH + this.TILE_MARGIN),
                     y: row * (this.TILE_HEIGHT + this.TILE_MARGIN),
-                    value: 1,
-                    type: tColor,
                     isMovable: true,
                     scale: 1,
                     isAnimating: false
-                };
-                tileRows.push(tile);
+                });
             }
-            this.tileMx.push(tileRows);
         }
     }
 
@@ -728,7 +639,7 @@ export class Game {
         this.scoreBoard.innerHTML = `スコア ${this.score}`;
         this.highScore = Math.max(this.highScore, this.score);
         if (this.NO_ROW === 4 && this.NO_COL === 4) {
-            localStorage.setItem('highScore4x4', this.highScore);
+            localStorage.setItem(STORAGE_KEYS.HIGH_SCORE_4X4, this.highScore);
             this.highScoreBoard.innerHTML = `ハイスコア ${this.highScore}`;
         }
         this.mergeCountBoard.innerHTML = `マージ回数：${this.mergeCount}`;
@@ -817,57 +728,24 @@ export class Game {
     }
 
     checkIsDeadlocked() {
-        let check = 0;
-        for (let row = 0; row < this.NO_ROW; row++) {
-            for (let col = 0; col < this.NO_COL - 1; col++) {
-                if (this.tileMx[row][col].value === this.tileMx[row][col + 1].value &&
-                    this.tileMx[row][col].type === this.tileMx[row][col + 1].type) {
-                    check++;
-                }
-            }
-        }
-        for (let col = 0; col < this.NO_COL; col++) {
-            for (let row = 0; row < this.NO_ROW - 1; row++) {
-                if (this.tileMx[row][col].value === this.tileMx[row + 1][col].value &&
-                    this.tileMx[row][col].type === this.tileMx[row + 1][col].type) {
-                    check++;
-                }
-            }
-        }
-        return check === 0;
+        return this.board.isDeadlocked();
     }
 
     movableCheck() {
         if (this.isMoving) return;
 
-        let check = 0;
         for (let row = 0; row < this.NO_ROW; row++) {
             for (let col = 0; col < this.NO_COL; col++) {
                 this.tileMx[row][col].isMovable = false;
             }
         }
-        for (let row = 0; row < this.NO_ROW; row++) {
-            for (let col = 0; col < this.NO_COL - 1; col++) {
-                if (this.tileMx[row][col].value === this.tileMx[row][col + 1].value &&
-                    this.tileMx[row][col].type === this.tileMx[row][col + 1].type) {
-                    this.tileMx[row][col].isMovable = true;
-                    this.tileMx[row][col + 1].isMovable = true;
-                    check++;
-                }
-            }
-        }
-        for (let col = 0; col < this.NO_COL; col++) {
-            for (let row = 0; row < this.NO_ROW - 1; row++) {
-                if (this.tileMx[row][col].value === this.tileMx[row + 1][col].value &&
-                    this.tileMx[row][col].type === this.tileMx[row + 1][col].type) {
-                    this.tileMx[row][col].isMovable = true;
-                    this.tileMx[row + 1][col].isMovable = true;
-                    check++;
-                }
-            }
+        const pairs = this.board.findMergePairs();
+        for (const [r1, c1, r2, c2] of pairs) {
+            this.tileMx[r1][c1].isMovable = true;
+            this.tileMx[r2][c2].isMovable = true;
         }
 
-        if (check === 0) {
+        if (pairs.length === 0) {
             if (this.itemCount > 0) {
                 if (!this.itemActive) {
                     this.itemActive = true;
@@ -1268,12 +1146,6 @@ export class Game {
                 this.triggerDungeonGameOver();
             }
         }
-    }
-
-    canMergeTile(targetRow, targetCol) {
-        const currentTile = this.tileMx[this.chsnRow][this.chsnCol];
-        const targetTile = this.tileMx[targetRow][targetCol];
-        return currentTile.type === targetTile.type && currentTile.value === targetTile.value;
     }
 
     initializeColorSample() {
