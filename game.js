@@ -67,6 +67,7 @@ export class Game {
         this.isGameover = false;
         this.isMoving = false;
         this.tileChosen = false;
+        this.isResetting = false;
 
         this.globalLeaderboard = [];
         this.myLeaderboard = [];
@@ -110,7 +111,7 @@ export class Game {
 
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isGameover) return;
+            if (this.isGameover || this.isResetting) return;
 
             if (!this.isCounting) {
                 this.isCounting = true;
@@ -160,7 +161,7 @@ export class Game {
 
         this.canvas.addEventListener('pointermove', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isMoving || this.isGameover) return;
+            if (this.isMoving || this.isGameover || this.isResetting) return;
 
             if (this.tileChosen) {
                 const scaleX = this.canvas.width / this.rect.width;
@@ -330,7 +331,7 @@ export class Game {
     }
 
     undo() {
-        if (this.isGameover || this.isMoving || this.history.length === 0) return;
+        if (this.isGameover || this.isMoving || this.isResetting || this.history.length === 0) return;
 
         const previousState = this.history.pop();
         this.board.restore(previousState.tiles);
@@ -473,6 +474,7 @@ export class Game {
         this.ui.updateTimer('00:00.00');
         this.isCounting = false;
         this.isGameover = false;
+        this.isResetting = false;
         this.minValue = 1;
         this.ui.setItemActive(false);
 
@@ -484,7 +486,7 @@ export class Game {
     }
 
     movableCheck() {
-        if (this.isMoving) return;
+        if (this.isMoving || this.isResetting) return;
 
         for (let row = 0; row < this.NO_ROW; row++) {
             for (let col = 0; col < this.NO_COL; col++) {
@@ -503,16 +505,71 @@ export class Game {
                     this.itemActive = true;
                     this.ui.setItemActive(true);
                 }
-            } else if (!this.isGameover) {
-                requestAnimationFrame(() => {
+            } else if (!this.isGameover && !this.isResetting) {
+                requestAnimationFrame(async () => {
                     if (this.currentMode === 'scout') {
                         this.triggerScoutGameOver();
                     } else {
-                        this.triggerDungeonGameOver();
+                        await this.resetPuzzleBoard();
                     }
                 });
             }
         }
+    }
+
+    // ダンジョンモード用：手詰まり時の画面効果付き盤面初期化
+    async resetPuzzleBoard() {
+        if (this.isGameover || this.isResetting) return;
+        this.isResetting = true;
+        this.itemActive = false;
+        this.ui.setItemActive(false);
+
+        await this.playResetAnimation();
+
+        this.isResetting = false;
+        this.drawTiles();
+    }
+
+    // 盤面リセット時の演出処理
+    playResetAnimation() {
+        return new Promise((resolve) => {
+            const duration = 1200; // 演出時間 (ms)
+            const startTime = Date.now();
+
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(1, elapsed / duration);
+
+                let alpha = 0;
+                if (progress < 0.3) {
+                    // フェードイン
+                    alpha = (progress / 0.3) * 0.85;
+                } else if (progress < 0.7) {
+                    // 保持・裏で盤面初期化
+                    alpha = 0.85;
+                    if (!this.hasResetTilesInAnim) {
+                        this.createTiles();
+                        this.hasResetTilesInAnim = true;
+                    }
+                } else {
+                    // フェードアウト
+                    alpha = ((1 - progress) / 0.3) * 0.85;
+                }
+
+                this.drawTiles();
+                this.renderer.drawResetOverlay('', alpha);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    this.hasResetTilesInAnim = false;
+                    resolve();
+                }
+            };
+
+            this.hasResetTilesInAnim = false;
+            requestAnimationFrame(animate);
+        });
     }
 
     async triggerScoutGameOver() {
