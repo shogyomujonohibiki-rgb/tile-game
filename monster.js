@@ -44,16 +44,17 @@ export class TopMonster {
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
+        // 右向きの状態で、目を横並びに2個配置（少し前後にずらして奥行き表現）
         ctx.fillStyle = '#FFF';
         ctx.beginPath();
-        ctx.arc(-this.radius * 0.35, -this.radius * 0.28, this.radius * 0.3, 0, Math.PI * 2);
-        ctx.arc(this.radius * 0.35, -this.radius * 0.28, this.radius * 0.3, 0, Math.PI * 2);
+        ctx.arc(this.radius * 0.1, -this.radius * 0.25, this.radius * 0.24, 0, Math.PI * 2);
+        ctx.arc(this.radius * 0.4, -0, this.radius * 0.24, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = '#000';
         ctx.beginPath();
-        ctx.arc(-this.radius * 0.35, -this.radius * 0.28, this.radius * 0.14, 0, Math.PI * 2);
-        ctx.arc(this.radius * 0.35, -this.radius * 0.28, this.radius * 0.14, 0, Math.PI * 2);
+        ctx.arc(this.radius * 0.15, -this.radius * 0.25, this.radius * 0.11, 0, Math.PI * 2);
+        ctx.arc(this.radius * 0.45, -0, this.radius * 0.11, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.restore();
@@ -62,7 +63,7 @@ export class TopMonster {
         ctx.font = '8px Arial';
         ctx.fillStyle = '#FFF';
         ctx.textAlign = 'center';
-        ctx.fillText(`ATK:${this.attack}`, this.x, this.y - this.radius - 4);
+        this.ctx?.fillText ? this.ctx.fillText(`ATK:${this.attack}`, this.x, this.y - this.radius - 4) : ctx.fillText(`ATK:${this.attack}`, this.x, this.y - this.radius - 4);
         ctx.restore();
     }
 }
