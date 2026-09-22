@@ -230,7 +230,7 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#FFF';
             this.topCtx.font = 'bold 12px Arial';
             this.topCtx.textAlign = 'center';
-            this.topCtx.fillText('BOSS', enemyIconX, enemyIconY + 18);
+            this.topCtx.fillText('', enemyIconX, enemyIconY + 18);
             this.topCtx.restore();
 
         } else {
