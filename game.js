@@ -219,7 +219,7 @@ export class Game {
         this.gameStart(BOARD.ROWS, BOARD.COLS, BOARD.TYPE_COUNTS, STORAGE_KEYS.HIGH_SCORE_4X4);
     }
 
-    switchMode(mode) {
+    async switchMode(mode) {
         if (this.currentMode === mode) return;
         this.currentMode = mode;
 
@@ -230,6 +230,11 @@ export class Game {
         this.ui.setPartyButtonEnabled(true);
         this.isGameover = false;
         this.drawTiles();
+
+        // ダンジョンモードに切り替えたときに敵をフェードインさせる
+        if (mode === 'dungeon' && this.renderer && typeof this.renderer.playMonsterFadeIn === 'function') {
+            await this.renderer.playMonsterFadeIn(this);
+        }
     }
 
     resizeCanvas() {
@@ -726,7 +731,7 @@ export class Game {
         this.drawTiles();
     }
 
-    processDungeonCombat(tileValue = 1) {
+    async processDungeonCombat(tileValue = 1) {
         const party = this.getPartyMonsters();
         const totalAtk = this.battleManager.getTotalAtk(party);
 
@@ -734,13 +739,70 @@ export class Game {
         if (party.length > 0) {
             this.renderer.startAttackAnimation(tileValue, totalAtk);
         }
-        
+
         const { isFloorCleared, isGameOver } = this.battleManager.processCombat(party, tileValue);
 
         if (isFloorCleared) {
+            // 敵を倒したとき、パーティメンバーのHPを全回復
+            party.forEach(m => {
+                if (m.hp !== undefined) {
+                    m.currentHp = m.hp;
+                }
+            });
+
+            // タイマーを停止してゼロにリセット
+            this.isCounting = false;
+            this.startTime = null;
+            this.ui.updateTimer('00:00.00');
+
             this.dataManager.saveCloudData(this);
+
+            // 次の階に進むときの画面フェードアウト／フェードイン ＆ リセット演出
+            await this.playFloorClearTransition();
         } else if (isGameOver) {
             this.triggerDungeonGameOver();
         }
     }
+
+    // 次の階へ進む際のフェードイン・フェードアウト演出
+    playFloorClearTransition() {
+        return new Promise((resolve) => {
+            const duration = 1000; // 全体の演出時間 (ms)
+            const startTime = Date.now();
+
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(1, elapsed / duration);
+
+                let alpha = 0;
+                if (progress < 0.5) {
+                    // 前半：画面が暗くなる（フェードアウト）
+                    alpha = (progress / 0.5) * 1.0;
+                } else {
+                    // 中盤の切り替わりタイミングで盤面と次の階をリセット
+                    if (!this.hasClearedTilesInAnim) {
+                        this.createTiles();
+                        this.hasClearedTilesInAnim = true;
+                    }
+                    // 後半：画面が明るくなる（フェードイン）
+                    alpha = ((1 - progress) / 0.5) * 1.0;
+                }
+
+                this.drawTiles();
+                this.renderer.drawScreenOverlay(alpha, `B${this.battleManager.dungeonFloor}F CLEAR!`);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    this.hasClearedTilesInAnim = false;
+                    resolve();
+                }
+            };
+
+            this.hasClearedTilesInAnim = false;
+            requestAnimationFrame(animate);
+        });
+    }
+
+
 }
