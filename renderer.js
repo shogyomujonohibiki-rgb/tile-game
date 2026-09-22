@@ -10,6 +10,9 @@ export class GameRenderer {
         this.attackEffects = [];
         this.monsterJumpProgress = 0;
         this.isJumping = false;
+
+        // 演出用のパラメータ追加
+        this.enemyFadeAlpha = 1.0;
     }
 
     startAttackAnimation(hitCount, damage) {
@@ -142,6 +145,51 @@ export class GameRenderer {
         });
     }
 
+    // 敵がふわっとフェードインするアニメーション用
+    playMonsterFadeIn(game) {
+        return new Promise((resolve) => {
+            const duration = 600; // 0.6秒
+            const startTime = Date.now();
+
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(1, elapsed / duration);
+                
+                this.enemyFadeAlpha = progress; // 0 → 1 へ
+                this.drawTopCanvas(game);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    this.enemyFadeAlpha = 1.0;
+                    resolve();
+                }
+            };
+            this.enemyFadeAlpha = 0;
+            requestAnimationFrame(animate);
+        });
+    }
+
+    // 画面全体を暗転／明転させるオーバーレイ描画
+    drawScreenOverlay(alpha, message = '') {
+        if (!this.topCtx || !this.topCanvas) return;
+        const w = this.topCanvas.width;
+        const h = this.topCanvas.height;
+
+        this.topCtx.save();
+        this.topCtx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+        this.topCtx.fillRect(0, 0, w, h);
+
+        if (message && alpha > 0.3) {
+            this.topCtx.fillStyle = `rgba(255, 215, 0, ${Math.min(1, alpha * 1.2)})`;
+            this.topCtx.font = 'bold 16px Arial';
+            this.topCtx.textAlign = 'center';
+            this.topCtx.textBaseline = 'middle';
+            this.topCtx.fillText(message, w / 2, h / 2);
+        }
+        this.topCtx.restore();
+    }
+
     drawTopCanvas(game) {
         if (!this.topCtx || !this.topCanvas) return;
 
@@ -205,6 +253,9 @@ export class GameRenderer {
             const enemyRadius = 28;
 
             this.topCtx.save();
+            // フェードインのアルファ値を適用
+            this.topCtx.globalAlpha = this.enemyFadeAlpha;
+            
             this.topCtx.fillStyle = '#8B0000';
             this.topCtx.beginPath();
             this.topCtx.arc(enemyIconX, enemyIconY, enemyRadius, 0, Math.PI * 2);
@@ -240,7 +291,7 @@ export class GameRenderer {
             this.topCtx.fillText('【スカウト】', 10, 18);
         }
 
-// --- 味方モンスター描画 ---
+        // --- 味方モンスター描画 ---
         const partyList = game.getPartyMonsters();
         const count = partyList.length;
 
@@ -257,7 +308,7 @@ export class GameRenderer {
             const startX = 40;
             const startY = 45;
             const colWidth = 45;
-            const rowHeight = 60; // 行の間隔をさらに広く確保（元の52から拡大）
+            const rowHeight = 60; 
 
             partyList.forEach((monster, index) => {
                 if (index >= positions.length) return;
