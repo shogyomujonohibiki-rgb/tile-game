@@ -7,22 +7,18 @@ export class GameRenderer {
         this.topCanvas = topCanvas;
         this.topCtx = topCtx;
 
-        // アニメーション・エフェクト管理用変数
-        this.attackEffects = []; // { x, y, damage, progress, maxLife, delay }
-        this.monsterJumpProgress = 0; // 味方のジャンプ進行度 (0 ~ 1)
+        this.attackEffects = [];
+        this.monsterJumpProgress = 0;
         this.isJumping = false;
     }
 
-    // 攻撃アニメーションの開始処理
     startAttackAnimation(hitCount, damage) {
         this.isJumping = true;
         this.monsterJumpProgress = 0;
 
-        // 敵の位置（中央上部）
-        const enemyX = this.topCanvas ? this.topCanvas.width / 2 : 170;
+        const enemyX = this.topCanvas ? this.topCanvas.width - 60 : 280;
         const enemyY = 60;
 
-        // マージ数 (hitCount) の分だけ連続ヒットエフェクトを生成（時間をずらして発生）
         for (let i = 0; i < hitCount; i++) {
             const offsetX = (Math.random() - 0.5) * 40;
             const offsetY = (Math.random() - 0.5) * 30;
@@ -32,13 +28,12 @@ export class GameRenderer {
                 y: enemyY + offsetY,
                 damage: damage,
                 progress: 0,
-                maxLife: 30, // アニメーションフレーム数
-                delay: i * 6 // ヒット間のディレイフレーム
+                maxLife: 30,
+                delay: i * 6
             });
         }
     }
 
-    // メインキャンバスの描画
     drawTiles(game) {
         if (!this.ctx) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -68,7 +63,6 @@ export class GameRenderer {
         game.ui.updateItemCount(game.itemCount);
     }
 
-    // 単一タイルの描画
     drawTile(game, row, col) {
         const tile = game.tileMx[row][col];
         if (!tile) return;
@@ -126,7 +120,6 @@ export class GameRenderer {
         }
     }
 
-    // リセット演出用オーバーレイ描画
     drawResetOverlay(text, alpha) {
         if (alpha <= 0) return;
         const width = this.canvas.width;
@@ -149,9 +142,12 @@ export class GameRenderer {
         });
     }
 
-    // 上部ダンジョンエリアの描画
     drawTopCanvas(game) {
-if (!this.topCtx || !this.topCanvas) return;
+        if (!this.topCtx || !this.topCanvas) return;
+
+        if (this.topCanvas.height !== 220) {
+            this.topCanvas.height = 220;
+        }
 
         const w = this.topCanvas.width;
         const h = this.topCanvas.height;
@@ -159,15 +155,16 @@ if (!this.topCtx || !this.topCanvas) return;
         this.topCtx.fillStyle = '#111122';
         this.topCtx.fillRect(0, 0, w, h);
 
-        // --- 味方モンスターの跳ね上がり（ジャンプ）アニメーション計算 ---
-        let baseJumpOffset = 0;
+        let baseJumpYOffset = 0;
+        let baseJumpXOffset = 0;
         if (this.isJumping) {
             this.monsterJumpProgress += 0.08;
             if (this.monsterJumpProgress >= 1) {
                 this.isJumping = false;
                 this.monsterJumpProgress = 0;
             } else {
-                baseJumpOffset = -Math.sin(this.monsterJumpProgress * Math.PI) * 18;
+                baseJumpYOffset = -Math.sin(this.monsterJumpProgress * Math.PI) * 20;
+                baseJumpXOffset = Math.sin(this.monsterJumpProgress * Math.PI) * 15;
             }
         }
 
@@ -177,38 +174,34 @@ if (!this.topCtx || !this.topCanvas) return;
             this.topCtx.textAlign = 'left';
             this.topCtx.fillText(`【ダンジョン】 B${game.battleManager.dungeonFloor}F`, 10, 18);
 
-            // --- 敵ステータス & HPバー表示 ---
             const enemyHp = game.battleManager.enemyHp;
             const enemyMaxHp = game.battleManager.enemyMaxHp;
             const enemyRatio = Math.max(0, Math.min(1, enemyHp / enemyMaxHp));
 
             this.topCtx.fillStyle = '#FF4444';
-            this.topCtx.fillText(`敵 HP: ${enemyHp} / ${enemyMaxHp}`, 10, 32);
+            this.topCtx.fillText(`敵 HP: ${enemyHp} / ${enemyMaxHp}`, w - 130, 18);
 
-            // 敵のHPバー背景
-            const enemyBarX = 10;
-            const enemyBarY = 36;
-            const enemyBarW = 90;
+            const enemyBarX = w - 130;
+            const enemyBarY = 24;
+            const enemyBarW = 110;
             const enemyBarH = 6;
             this.topCtx.fillStyle = '#555';
             this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW, enemyBarH);
 
-            // 敵のHPバー本体
             this.topCtx.fillStyle = enemyRatio > 0.3 ? '#FF4444' : '#FF0000';
             this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW * enemyRatio, enemyBarH);
 
-            // 敵ATK・味方ATKの表示
             this.topCtx.fillStyle = '#FF8888';
-            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, 10, 54);
+            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, w - 130, 44);
 
             const partyList = game.getPartyMonsters();
             const totalAtk = game.battleManager.getTotalAtk(partyList);
             this.topCtx.fillStyle = '#00FFFF';
-            this.topCtx.fillText(`合計 ATK: ${totalAtk}`, 10, 120);
+            this.topCtx.fillText(`合計 ATK: ${totalAtk}`, 10, h - 8);
 
-            // --- 敵キャラクター表示（左右中央・拡大） ---
-            const enemyIconX = w / 2;
-            const enemyIconY = 60;
+            // --- 敵キャラクター表示（右側・左向き・目を横に2個並べる） ---
+            const enemyIconX = w - 60;
+            const enemyIconY = 95;
             const enemyRadius = 28;
 
             this.topCtx.save();
@@ -221,23 +214,23 @@ if (!this.topCtx || !this.topCanvas) return;
             this.topCtx.lineWidth = 3;
             this.topCtx.stroke();
 
-            // 敵の顔・目
+            // 敵の目（左向きに横並び2個）
             this.topCtx.fillStyle = '#FFEB3B';
             this.topCtx.beginPath();
             this.topCtx.arc(enemyIconX - 8, enemyIconY - 5, 5, 0, Math.PI * 2);
-            this.topCtx.arc(enemyIconX + 8, enemyIconY - 5, 5, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX - 2, enemyIconY + 4, 5, 0, Math.PI * 2); // 左右（前後）に配置
             this.topCtx.fill();
 
             this.topCtx.fillStyle = '#000';
             this.topCtx.beginPath();
-            this.topCtx.arc(enemyIconX - 7, enemyIconY - 5, 2, 0, Math.PI * 2);
-            this.topCtx.arc(enemyIconX + 7, enemyIconY - 5, 2, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX - 10, enemyIconY - 5, 2, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX - 4, enemyIconY + 4, 2, 0, Math.PI * 2);
             this.topCtx.fill();
 
             this.topCtx.fillStyle = '#FFF';
             this.topCtx.font = 'bold 12px Arial';
             this.topCtx.textAlign = 'center';
-            this.topCtx.fillText('BOSS', enemyIconX, enemyIconY + 14);
+            this.topCtx.fillText('BOSS', enemyIconX, enemyIconY + 18);
             this.topCtx.restore();
 
         } else {
@@ -247,29 +240,44 @@ if (!this.topCtx || !this.topCanvas) return;
             this.topCtx.fillText('【スカウト】', 10, 18);
         }
 
-        // --- 味方モンスター描画 ---
+// --- 味方モンスター描画 ---
         const partyList = game.getPartyMonsters();
         const count = partyList.length;
 
         if (count > 0) {
-            const spacing = w / (count + 1);
+            const positions = [
+                { col: 1, row: 0 }, // 1番: 右上
+                { col: 1, row: 1 }, // 2番: 右真ん中
+                { col: 1, row: 2 }, // 3番: 右下
+                { col: 0, row: 0 }, // 4番: 左上
+                { col: 0, row: 1 }, // 5番: 左真ん中
+                { col: 0, row: 2 }  // 6番: 左下
+            ];
+
+            const startX = 40;
+            const startY = 45;
+            const colWidth = 45;
+            const rowHeight = 60; // 行の間隔をさらに広く確保（元の52から拡大）
+
             partyList.forEach((monster, index) => {
-                monster.x = spacing * (index + 1);
+                if (index >= positions.length) return;
+                const pos = positions[index];
 
-                // 死亡しているモンスターはジャンプさせない
                 const isDead = (game.currentMode === 'dungeon' && monster.currentHp !== undefined && monster.currentHp <= 0);
-                const jumpYOffset = isDead ? 0 : baseJumpOffset;
+                const jumpY = isDead ? 0 : baseJumpYOffset;
+                const jumpX = isDead ? 0 : baseJumpXOffset;
 
-                // 味方のY位置（ジャンプオフセット適用）
-                monster.y = h - 35 + jumpYOffset;
+                monster.x = startX + (pos.col * colWidth) + jumpX;
+                monster.y = startY + (pos.row * rowHeight) + jumpY;
                 monster.draw(this.topCtx);
 
                 if (game.currentMode === 'dungeon') {
                     if (monster.currentHp === undefined) monster.currentHp = monster.hp;
-                    const barW = 30;
+                    const barW = 34;
                     const barH = 4;
                     const bx = monster.x - barW / 2;
-                    const by = monster.y + 18;
+                    // ATK表示やモンスター本体からさらに離すように位置を下に調整
+                    const by = monster.y + 20;
 
                     this.topCtx.fillStyle = '#555';
                     this.topCtx.fillRect(bx, by, barW, barH);
@@ -279,9 +287,9 @@ if (!this.topCtx || !this.topCanvas) return;
                     this.topCtx.fillRect(bx, by, barW * ratio, barH);
 
                     this.topCtx.fillStyle = '#FFF';
-                    this.topCtx.font = '8px Arial';
+                    this.topCtx.font = '7.5px Arial';
                     this.topCtx.textAlign = 'center';
-                    this.topCtx.fillText(`${monster.currentHp}/${monster.hp}`, monster.x, by + 12);
+                    this.topCtx.fillText(`${monster.currentHp}/${monster.hp}`, monster.x, by + 13);
                 }
             });
         } else {
@@ -291,13 +299,11 @@ if (!this.topCtx || !this.topCanvas) return;
             this.topCtx.fillText('パーティーにモンスターがいません', w / 2, h / 2 + 30);
         }
 
-        // --- 打撃エフェクト & totalATK ポップアップ描画 ---
         if (this.attackEffects.length > 0) {
             this.renderAttackEffects(this.topCtx);
         }
     }
 
-    // 打撃効果ビジュアル ＆ ダメージ数値ポップアップ処理
     renderAttackEffects(ctx) {
         for (let i = this.attackEffects.length - 1; i >= 0; i--) {
             const fx = this.attackEffects[i];
@@ -317,7 +323,6 @@ if (!this.topCtx || !this.topCanvas) return;
 
             ctx.save();
 
-            // --- 1. 打撃効果（インパクト星型フラッシュ） ---
             const flashRadius = 16 * (1 - lifeRatio * 0.5);
             ctx.fillStyle = lifeRatio < 0.3 ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 200, 0, 0.7)';
             ctx.beginPath();
@@ -332,9 +337,8 @@ if (!this.topCtx || !this.topCanvas) return;
             ctx.closePath();
             ctx.fill();
 
-            // --- 2. totalATK (ダメージ数値) ポップアップ ---
             const alpha = 1 - lifeRatio;
-            const floatY = fx.y - (fx.progress * 1.2); // 上方へ浮き上がる
+            const floatY = fx.y - (fx.progress * 1.2);
 
             ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
@@ -351,7 +355,6 @@ if (!this.topCtx || !this.topCanvas) return;
         }
     }
 
-    // ゲームオーバーオーバーレイ描画
     drawGameOverOverlay(game) {
         const width = this.canvas.width;
         const height = this.canvas.height;
