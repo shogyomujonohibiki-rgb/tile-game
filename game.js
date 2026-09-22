@@ -743,17 +743,25 @@ export class Game {
         const { isFloorCleared, isGameOver } = this.battleManager.processCombat(party, tileValue);
 
         if (isFloorCleared) {
-            // 敵を倒したとき、パーティメンバーのHPを全回復
+            // パーティメンバーのHPを全回復
             party.forEach(m => {
                 if (m.hp !== undefined) {
                     m.currentHp = m.hp;
                 }
             });
 
-            // タイマーを停止してゼロにリセット
-            this.isCounting = false;
-            this.startTime = null;
+            // ダンジョンの階層は維持したまま、スコア・タイマー・アイテム等を初期化
+            this.history = [];
+            this.score = 0;
+            this.mergeCount = 0;
+            this.itemCount = 0;
+            this.itemActive = false;
             this.ui.updateTimer('00:00.00');
+            this.isCounting = false;
+            this.isGameover = false;
+            this.isResetting = false;
+            this.minValue = 1;
+            this.ui.setItemActive(false);
 
             this.dataManager.saveCloudData(this);
 
