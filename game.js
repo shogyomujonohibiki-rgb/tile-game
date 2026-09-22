@@ -68,6 +68,7 @@ export class Game {
         this.isMoving = false;
         this.tileChosen = false;
         this.isResetting = false;
+        this.isTransitioning = false;
 
         this.globalLeaderboard = [];
         this.myLeaderboard = [];
@@ -111,7 +112,7 @@ export class Game {
 
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isGameover || this.isResetting) return;
+            if (this.isGameover || this.isResetting || this.isTransitioning) return;
 
             if (!this.isCounting) {
                 this.isCounting = true;
@@ -775,6 +776,7 @@ export class Game {
     // 次の階へ進む際のフェードイン・フェードアウト演出
     playFloorClearTransition() {
         return new Promise((resolve) => {
+            this.isTransitioning = true; // 操作ロック用フラグをON
             const duration = 1000; // 全体の演出時間 (ms)
             const startTime = Date.now();
 
@@ -803,6 +805,7 @@ export class Game {
                     requestAnimationFrame(animate);
                 } else {
                     this.hasClearedTilesInAnim = false;
+                    this.isTransitioning = false; // 演出終了後に操作ロック解除
                     resolve();
                 }
             };
