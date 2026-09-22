@@ -19,8 +19,8 @@ export const MONSTER = {
 };
 
 export const DUNGEON = {
-    ENEMY_BASE_HP: 200,
-    ENEMY_HP_GROWTH: 1.2,
-    ENEMY_BASE_ATK: 1,
-    ENEMY_ATK_GROWTH: 1.1,
+    ENEMY_BASE_HP: 5000,
+    ENEMY_HP_GROWTH: 1.08,
+    ENEMY_BASE_ATK: 5,
+    ENEMY_ATK_GROWTH: 1.03,
 };
