@@ -154,7 +154,7 @@ export class GameRenderer {
             const animate = () => {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(1, elapsed / duration);
-                
+
                 this.enemyFadeAlpha = progress; // 0 → 1 へ
                 this.drawTopCanvas(game);
 
@@ -211,8 +211,25 @@ export class GameRenderer {
                 this.isJumping = false;
                 this.monsterJumpProgress = 0;
             } else {
-                baseJumpYOffset = -Math.sin(this.monsterJumpProgress * Math.PI) * 20;
-                baseJumpXOffset = Math.sin(this.monsterJumpProgress * Math.PI) * 15;
+                const p = this.monsterJumpProgress;
+                
+                // Y軸：前半の半分（0 〜 0.5）の時間で飛び上がって着地し、後半は静止
+                if (p <= 0.5) {
+                    const subP = p * 2; // 0 〜 1 にスケーリング
+                    baseJumpYOffset = -Math.abs(Math.sin(subP * Math.PI)) * 18;
+                } else {
+                    baseJumpYOffset = 0;
+                }
+
+                // X軸：前半（0 〜 0.5）で右へ移動、着地後の 0.5 〜 0.65 で一瞬止まり、残りで直線的に戻る
+                if (p <= 0.5) {
+                    baseJumpXOffset = (p / 0.5) * 12;
+                } else if (p <= 0.65) {
+                    baseJumpXOffset = 12; // 一瞬止まる
+                } else {
+                    const returnProgress = (p - 0.65) / (1.0 - 0.65);
+                    baseJumpXOffset = 12 * (1 - returnProgress); // 直線的に元の位置に戻る
+                }
             }
         }
 
@@ -255,7 +272,7 @@ export class GameRenderer {
             this.topCtx.save();
             // フェードインのアルファ値を適用
             this.topCtx.globalAlpha = this.enemyFadeAlpha;
-            
+
             this.topCtx.fillStyle = '#8B0000';
             this.topCtx.beginPath();
             this.topCtx.arc(enemyIconX, enemyIconY, enemyRadius, 0, Math.PI * 2);
@@ -308,7 +325,7 @@ export class GameRenderer {
             const startX = 40;
             const startY = 45;
             const colWidth = 45;
-            const rowHeight = 60; 
+            const rowHeight = 60;
 
             partyList.forEach((monster, index) => {
                 if (index >= positions.length) return;
