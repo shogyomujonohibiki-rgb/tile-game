@@ -1,11 +1,10 @@
 'use strict';
 
 import { TopMonster } from './monster.js';
-import { BOARD, STORAGE_KEYS, MONSTER } from './config.js';
+import { BOARD, STORAGE_KEYS, MONSTER, BattleManager } from './config.js';
 import { Board } from './board.js';
 import { UI } from './ui.js';
 import { GameRenderer } from './renderer.js';
-import { BattleManager } from './battle.js';
 import { DataManager } from './data.js';
 
 export class Game {
