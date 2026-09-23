@@ -1,6 +1,6 @@
 'use strict';
 
-import { Dungeon } from './dungeon.js';
+import { Dungeon } from './config.js';
 
 export class BattleManager {
     constructor() {
