@@ -8,23 +8,25 @@ export class GameRenderer {
         this.topCtx = topCtx;
 
         this.attackEffects = [];
-        this.monsterJumpProgress = 0;
-        this.isJumping = false;
+        // 全体用のジャンプフラグは個別に移行するため削除または不使用に
 
         // 演出用のパラメータ追加
         this.enemyFadeAlpha = 1.0;
     }
 
-    startAttackAnimation(hitCount, damage) {
-        this.isJumping = true;
-        this.monsterJumpProgress = 0;
-
+    startAttackAnimation(attackEvents) {
         const enemyX = this.topCanvas ? this.topCanvas.width - 60 : 280;
         const enemyY = 60;
 
-        for (let i = 0; i < hitCount; i++) {
+        // 渡された攻撃イベントに基づいて個別のアニメーションとダメージ表示を設定
+        attackEvents.forEach((event, i) => {
+            const { monster, damage } = event;
             const offsetX = (Math.random() - 0.5) * 40;
             const offsetY = (Math.random() - 0.5) * 30;
+
+            monster.isJumping = true;
+            monster.jumpProgress = 0;
+            monster.attackDelay = i * 8;
 
             this.attackEffects.push({
                 x: enemyX + offsetX,
@@ -32,9 +34,9 @@ export class GameRenderer {
                 damage: damage,
                 progress: 0,
                 maxLife: 30,
-                delay: i * 6
+                delay: i * 8
             });
-        }
+        });
     }
 
     drawTiles(game) {
@@ -203,36 +205,6 @@ export class GameRenderer {
         this.topCtx.fillStyle = '#111122';
         this.topCtx.fillRect(0, 0, w, h);
 
-        let baseJumpYOffset = 0;
-        let baseJumpXOffset = 0;
-        if (this.isJumping) {
-            this.monsterJumpProgress += 0.08;
-            if (this.monsterJumpProgress >= 1) {
-                this.isJumping = false;
-                this.monsterJumpProgress = 0;
-            } else {
-                const p = this.monsterJumpProgress;
-                
-                // Y軸：前半の半分（0 〜 0.5）の時間で飛び上がって着地し、後半は静止
-                if (p <= 0.5) {
-                    const subP = p * 2; // 0 〜 1 にスケーリング
-                    baseJumpYOffset = -Math.abs(Math.sin(subP * Math.PI)) * 18;
-                } else {
-                    baseJumpYOffset = 0;
-                }
-
-                // X軸：前半（0 〜 0.5）で右へ移動、着地後の 0.5 〜 0.65 で一瞬止まり、残りで直線的に戻る
-                if (p <= 0.5) {
-                    baseJumpXOffset = (p / 0.5) * 12;
-                } else if (p <= 0.65) {
-                    baseJumpXOffset = 12; // 一瞬止まる
-                } else {
-                    const returnProgress = (p - 0.65) / (1.0 - 0.65);
-                    baseJumpXOffset = 12 * (1 - returnProgress); // 直線的に元の位置に戻る
-                }
-            }
-        }
-
         if (game.currentMode === 'dungeon') {
             this.topCtx.fillStyle = '#FFD700';
             this.topCtx.font = 'bold 11px Arial';
@@ -244,9 +216,9 @@ export class GameRenderer {
             const enemyRatio = Math.max(0, Math.min(1, enemyHp / enemyMaxHp));
 
             this.topCtx.fillStyle = '#FF4444';
-            this.topCtx.fillText(`敵 HP: ${enemyHp} / ${enemyMaxHp}`, w - 130, 18);
+            this.topCtx.fillText(`敵 HP: ${enemyHp} / ${enemyMaxHp}`, w - 150, 18);
 
-            const enemyBarX = w - 130;
+            const enemyBarX = w - 150;
             const enemyBarY = 24;
             const enemyBarW = 110;
             const enemyBarH = 6;
@@ -257,7 +229,7 @@ export class GameRenderer {
             this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW * enemyRatio, enemyBarH);
 
             this.topCtx.fillStyle = '#FF8888';
-            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, w - 130, 44);
+            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, w - 150, 44);
 
             const partyList = game.getPartyMonsters();
             const totalAtk = game.battleManager.getTotalAtk(partyList);
@@ -286,7 +258,7 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#FFEB3B';
             this.topCtx.beginPath();
             this.topCtx.arc(enemyIconX - 8, enemyIconY - 5, 5, 0, Math.PI * 2);
-            this.topCtx.arc(enemyIconX - 2, enemyIconY + 4, 5, 0, Math.PI * 2); // 左右（前後）に配置
+            this.topCtx.arc(enemyIconX - 2, enemyIconY + 4, 5, 0, Math.PI * 2);
             this.topCtx.fill();
 
             this.topCtx.fillStyle = '#000';
@@ -331,6 +303,39 @@ export class GameRenderer {
                 if (index >= positions.length) return;
                 const pos = positions[index];
 
+                let baseJumpYOffset = 0;
+                let baseJumpXOffset = 0;
+
+                // モンスターごとの個別ジャンプ計算
+                if (monster.isJumping) {
+                    if (monster.attackDelay > 0) {
+                        monster.attackDelay--;
+                    } else {
+                        monster.jumpProgress += 0.08;
+                        if (monster.jumpProgress >= 1) {
+                            monster.isJumping = false;
+                            monster.jumpProgress = 0;
+                        } else {
+                            const p = monster.jumpProgress;
+                            if (p <= 0.5) {
+                                const subP = p * 2;
+                                baseJumpYOffset = -Math.abs(Math.sin(subP * Math.PI)) * 18;
+                            } else {
+                                baseJumpYOffset = 0;
+                            }
+
+                            if (p <= 0.5) {
+                                baseJumpXOffset = (p / 0.5) * 12;
+                            } else if (p <= 0.65) {
+                                baseJumpXOffset = 12;
+                            } else {
+                                const returnProgress = (p - 0.65) / (1.0 - 0.65);
+                                baseJumpXOffset = 12 * (1 - returnProgress);
+                            }
+                        }
+                    }
+                }
+
                 const isDead = (game.currentMode === 'dungeon' && monster.currentHp !== undefined && monster.currentHp <= 0);
                 const jumpY = isDead ? 0 : baseJumpYOffset;
                 const jumpX = isDead ? 0 : baseJumpXOffset;
@@ -344,7 +349,6 @@ export class GameRenderer {
                     const barW = 34;
                     const barH = 4;
                     const bx = monster.x - barW / 2;
-                    // ATK表示やモンスター本体からさらに離すように位置を下に調整
                     const by = monster.y + 20;
 
                     this.topCtx.fillStyle = '#555';
