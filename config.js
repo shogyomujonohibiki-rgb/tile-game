@@ -22,7 +22,7 @@ export const DUNGEON = {
     ENEMY_BASE_HP: 10000,
     ENEMY_HP_GROWTH: 1.1,
     ENEMY_BASE_ATK: 5,
-    ENEMY_ATK_GROWTH: 1.05,
+    ENEMY_ATK_GROWTH: 1.035,
 };
 
 export class Dungeon {
@@ -79,7 +79,7 @@ export class BattleManager {
         if (partyMonsters.length === 0) return { isFloorCleared: false, isGameOver: false };
 
         const totalAtk = this.getTotalAtk(partyMonsters);
-        const totalDamage = totalAtk * tileValue;
+        const totalDamage = totalAtk * tileValue * tileValue;
         this.enemyHp -= totalDamage;
 
         if (this.enemyHp <= 0) {
