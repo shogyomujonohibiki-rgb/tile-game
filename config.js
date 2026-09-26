@@ -73,19 +73,43 @@ export class BattleManager {
         }, 0);
     }
 
-    // 戦闘計算処理
-    // 戻り値: { isFloorCleared: boolean, isGameOver: boolean }
     processCombat(partyMonsters, tileValue) {
-        if (partyMonsters.length === 0) return { isFloorCleared: false, isGameOver: false };
+        if (!partyMonsters || partyMonsters.length === 0) {
+            return { isFloorCleared: false, isGameOver: false, attackEvents: [] };
+        }
 
-        const totalAtk = this.getTotalAtk(partyMonsters);
-        const totalDamage = totalAtk * tileValue * tileValue;
-        this.enemyHp -= totalDamage;
+        let isFloorCleared = false;
 
-        if (this.enemyHp <= 0) {
-            this.setFloor(this.dungeonFloor + 1);
-            return { isFloorCleared: true, isGameOver: false };
+        const livingMonsters = partyMonsters.filter(m => {
+            const currentHp = m.currentHp !== undefined ? m.currentHp : m.hp;
+            return currentHp > 0;
+        });
+
+        if (livingMonsters.length === 0) {
+            return { isFloorCleared: false, isGameOver: true, attackEvents: [] };
+        }
+
+        const attackEvents = [];
+
+        // 1匹ずつ順番にダメージを与える
+        for (const monster of livingMonsters) {
+            if (this.enemyHp <= 0) break;
+
+            const damage = Math.floor(monster.attack * tileValue * tileValue);
+            this.enemyHp -= damage;
+            attackEvents.push({ monster, damage });
+
+            if (this.enemyHp <= 0) {
+                this.setFloor(this.dungeonFloor + 1);
+                isFloorCleared = true;
+                break;
+            }
+        }
+
+        if (isFloorCleared) {
+            return { isFloorCleared: true, isGameOver: false, attackEvents };
         } else {
+            // 敵からの反撃（先頭の生存モンスターが被弾）
             const livingMonster = partyMonsters.find(m => (m.currentHp !== undefined ? m.currentHp : m.hp) > 0);
             if (livingMonster) {
                 if (livingMonster.currentHp === undefined) livingMonster.currentHp = livingMonster.hp;
@@ -97,7 +121,7 @@ export class BattleManager {
             }
 
             const allDead = partyMonsters.every(m => (m.currentHp !== undefined ? m.currentHp : m.hp) <= 0);
-            return { isFloorCleared: false, isGameOver: allDead };
+            return { isFloorCleared: false, isGameOver: allDead, attackEvents };
         }
     }
 }
