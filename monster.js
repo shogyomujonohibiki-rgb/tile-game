@@ -99,7 +99,7 @@ export class TopMonster {
         ctx.textAlign = 'center';
         // ぐったりして縦幅が縮んだ分、ATKテキストの位置も微調整
         const textY = this.y - (this.radius * scaleY) - 4;
-        ctx.fillText(`ATK:${this.attack}`, this.x, textY);
+        ctx.fillText(`ATK:${this.attack.toLocaleString()}`, this.x, textY);
         ctx.restore();
     }
 }
