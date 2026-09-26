@@ -737,7 +737,7 @@ export class Game {
 
         // 攻撃アニメーション開始 (HIT数: tileValue, ダメージ: totalAtk)
         if (party.length > 0) {
-            this.renderer.startAttackAnimation(tileValue, totalAtk);
+            this.renderer.startAttackAnimation(tileValue * tileValue, totalAtk);
         }
 
         const { isFloorCleared, isGameOver } = this.battleManager.processCombat(party, tileValue);
