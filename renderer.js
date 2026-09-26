@@ -215,8 +215,9 @@ export class GameRenderer {
             const enemyMaxHp = game.battleManager.enemyMaxHp;
             const enemyRatio = Math.max(0, Math.min(1, enemyHp / enemyMaxHp));
 
+            // ▼ 3桁カンマを適用
             this.topCtx.fillStyle = '#FF4444';
-            this.topCtx.fillText(`敵 HP: ${enemyHp} / ${enemyMaxHp}`, w - 150, 18);
+            this.topCtx.fillText(`敵 HP: ${enemyHp.toLocaleString()} / ${enemyMaxHp.toLocaleString()}`, w - 150, 18);
 
             const enemyBarX = w - 150;
             const enemyBarY = 24;
@@ -228,13 +229,15 @@ export class GameRenderer {
             this.topCtx.fillStyle = enemyRatio > 0.3 ? '#FF4444' : '#FF0000';
             this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW * enemyRatio, enemyBarH);
 
+            // ▼ 3桁カンマを適用
             this.topCtx.fillStyle = '#FF8888';
-            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk}`, w - 150, 44);
+            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk.toLocaleString()}`, w - 150, 44);
 
             const partyList = game.getPartyMonsters();
             const totalAtk = game.battleManager.getTotalAtk(partyList);
+            // ▼ 3桁カンマを適用
             this.topCtx.fillStyle = '#00FFFF';
-            this.topCtx.fillText(`合計 ATK: ${totalAtk}`, 10, h - 8);
+            this.topCtx.fillText(`合計 ATK: ${totalAtk.toLocaleString()}`, 10, h - 8);
 
             // --- 敵キャラクター表示（右側・左向き・目を横に2個並べる） ---
             const enemyIconX = w - 60;
@@ -358,10 +361,11 @@ export class GameRenderer {
                     this.topCtx.fillStyle = ratio > 0.3 ? '#00FF00' : '#FF0000';
                     this.topCtx.fillRect(bx, by, barW * ratio, barH);
 
+                    // ▼ 3桁カンマを適用
                     this.topCtx.fillStyle = '#FFF';
                     this.topCtx.font = '7.5px Arial';
                     this.topCtx.textAlign = 'center';
-                    this.topCtx.fillText(`${monster.currentHp}/${monster.hp}`, monster.x, by + 13);
+                    this.topCtx.fillText(`${monster.currentHp.toLocaleString()}/${monster.hp.toLocaleString()}`, monster.x, by + 13);
                 }
             });
         } else {
@@ -419,7 +423,8 @@ export class GameRenderer {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            const damageText = `-${fx.damage}`;
+            // ▼ 3桁カンマを適用
+            const damageText = `-${fx.damage.toLocaleString()}`;
             ctx.strokeText(damageText, fx.x, floatY);
             ctx.fillText(damageText, fx.x, floatY);
 
@@ -487,8 +492,9 @@ export class GameRenderer {
             const truncatedName = rankText.length > 10 ? rankText.substring(0, 9) + '…' : rankText;
             this.ctx.fillText(truncatedName, startX, currentY);
 
+            // ▼ 3桁カンマを適用
             this.ctx.textAlign = 'right';
-            this.ctx.fillText(`${item.score}`, startX + colWidth, currentY);
+            this.ctx.fillText(`${item.score.toLocaleString()}`, startX + colWidth, currentY);
         });
     }
 
@@ -511,8 +517,9 @@ export class GameRenderer {
             const dateText = item.dateStr || '';
             this.ctx.fillText(`${rankText}${dateText}`, startX, currentY);
 
+            // ▼ 3桁カンマを適用
             this.ctx.textAlign = 'right';
-            this.ctx.fillText(`${item.score}`, startX + colWidth, currentY);
+            this.ctx.fillText(`${item.score.toLocaleString()}`, startX + colWidth, currentY);
         });
     }
 }
