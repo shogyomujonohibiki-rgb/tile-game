@@ -733,14 +733,14 @@ export class Game {
 
     async processDungeonCombat(tileValue = 1) {
         const party = this.getPartyMonsters();
-        const totalAtk = this.battleManager.getTotalAtk(party);
 
-        // 攻撃アニメーション開始 (HIT数: tileValue, ダメージ: totalAtk)
-        if (party.length > 0) {
-            this.renderer.startAttackAnimation(tileValue * tileValue, totalAtk);
+        // 戦闘計算を実行し、攻撃イベントを受け取る
+        const { isFloorCleared, isGameOver, attackEvents } = this.battleManager.processCombat(party, tileValue);
+
+        // 攻撃アニメーションの開始
+        if (attackEvents.length > 0 && this.renderer && typeof this.renderer.startAttackAnimation === 'function') {
+            this.renderer.startAttackAnimation(attackEvents);
         }
-
-        const { isFloorCleared, isGameOver } = this.battleManager.processCombat(party, tileValue);
 
         if (isFloorCleared) {
             // パーティメンバーのHPを全回復
@@ -750,7 +750,6 @@ export class Game {
                 }
             });
 
-            // ダンジョンの階層は維持したまま、スコア・タイマー・アイテム等を初期化
             this.history = [];
             this.score = 0;
             this.mergeCount = 0;
@@ -765,7 +764,6 @@ export class Game {
 
             this.dataManager.saveCloudData(this);
 
-            // 次の階に進むときの画面フェードアウト／フェードイン ＆ リセット演出
             await this.playFloorClearTransition();
         } else if (isGameOver) {
             this.triggerDungeonGameOver();
