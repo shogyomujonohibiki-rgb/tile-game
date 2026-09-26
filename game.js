@@ -244,7 +244,7 @@ export class Game {
         if (this.topCanvas) {
             const topRect = this.topCanvas.getBoundingClientRect();
             this.topCanvas.width = topRect.width || 343;
-            this.topCanvas.height = 200;
+            this.topCanvas.height = 250;
         }
 
         this.TILE_WIDTH = this.canvas.width / this.NO_COL - this.TILE_MARGIN;
