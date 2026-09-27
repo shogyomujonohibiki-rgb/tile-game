@@ -28,39 +28,25 @@ import { TopMonster } from './monster.js';
             }
 
             if (userData.monsters && Array.isArray(userData.monsters) && window.game && window.game.topCanvas) {
-                // ▼ 既存の見た目パラメータをすべてリセットし、ステータスのみ保持して再生成する
+                // ▼ 保存されたデータをそのまま savedData として渡して復元する
                 window.game.topMonsters = userData.monsters.map(data => {
-                    const resetData = {
-                        x: data.x,
-                        y: data.y,
-                        type: data.type,
-                        radius: data.radius,
-                        attack: data.attack,
-                        hp: data.hp,
-                        currentHp: data.currentHp
-                    };
-
                     const monster = new TopMonster(
                         window.game.topCanvas.width,
                         window.game.topCanvas.height,
                         null,
                         data.attack + data.hp,
-                        resetData
+                        data // ← data（保存データ）をまるごと渡す
                     );
 
-                    monster.x = data.x;
-                    monster.y = data.y;
-                    monster.type = data.type;
-                    monster.radius = data.radius;
-                    monster.attack = data.attack;
-                    monster.hp = data.hp;
+                    // 位置やHPを明細に反映
+                    monster.x = data.x ?? 0;
+                    monster.y = data.y ?? 0;
                     if (data.currentHp !== undefined) {
                         monster.currentHp = data.currentHp;
                     }
                     return monster;
                 });
 
-                // ▼ この保存時にはすでに partyMonsterIds がセットされているため、並び順も保持されて保存される
                 if (window.game.dataManager) {
                     await window.game.dataManager.saveCloudData(window.game);
                 }
