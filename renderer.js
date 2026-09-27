@@ -6,11 +6,7 @@ export class GameRenderer {
         this.ctx = ctx;
         this.topCanvas = topCanvas;
         this.topCtx = topCtx;
-
         this.attackEffects = [];
-        // 全体用のジャンプフラグは個別に移行するため削除または不使用に
-
-        // 演出用のパラメータ追加
         this.enemyFadeAlpha = 1.0;
     }
 
@@ -235,9 +231,24 @@ export class GameRenderer {
 
             const partyList = game.getPartyMonsters();
             const totalAtk = game.battleManager.getTotalAtk(partyList);
-            // ▼ 3桁カンマを適用
+
+            // 総HPと最大HPの計算
+            let totalCurrentHp = 0;
+            let totalMaxHp = 0;
+            partyList.forEach(m => {
+                if (m.currentHp === undefined) m.currentHp = m.hp;
+                totalCurrentHp += m.currentHp;
+                totalMaxHp += m.hp;
+            });
+
+            // ▼ 3桁カンマを適用して合計 ATK と総 HP を表示
             this.topCtx.fillStyle = '#00FFFF';
+            this.topCtx.font = 'bold 10px Arial';
+            this.topCtx.textAlign = 'left';
             this.topCtx.fillText(`合計 ATK: ${totalAtk.toLocaleString()}`, 10, h - 8);
+
+            this.topCtx.fillStyle = '#00FF00';
+            this.topCtx.fillText(`総 HP: ${totalCurrentHp.toLocaleString()}/${totalMaxHp.toLocaleString()}`, 115, h - 8);
 
             // --- 敵キャラクター表示（右側・左向き・目を横に2個並べる） ---
             const enemyIconX = w - 60;
