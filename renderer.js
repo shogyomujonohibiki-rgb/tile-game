@@ -304,9 +304,9 @@ export class GameRenderer {
             ];
 
             // ▼ モンスターが大きくなったため、配置間隔を少し広げる
-            const startX = 48;
+            const startX = 36;
             const startY = 60;
-            const colWidth = 55;
+            const colWidth = 70;
             const rowHeight = 85;
 
             partyList.forEach((monster, index) => {
@@ -363,7 +363,7 @@ export class GameRenderer {
 
                 if (game.currentMode === 'dungeon') {
                     if (monster.currentHp === undefined) monster.currentHp = monster.hp;
-                    const barW = 46; 
+                    const barW = 50; 
                     const barH = 5;  
                     const bx = monster.x - barW / 2;
                     const by = monster.y + 22; 
@@ -376,9 +376,9 @@ export class GameRenderer {
                     this.topCtx.fillRect(bx, by, barW * ratio, barH);
 
                     this.topCtx.fillStyle = '#FFF';
-                    this.topCtx.font = '9.5px Arial';
+                    this.topCtx.font = '11px Arial';
                     this.topCtx.textAlign = 'center';
-                    this.topCtx.fillText(`${monster.currentHp.toLocaleString()}/${monster.hp.toLocaleString()}`, monster.x, by + 14);
+                    this.topCtx.fillText(`${monster.currentHp.toLocaleString()}`, monster.x, by + 14);
                 }
             });
         } else {
