@@ -295,12 +295,12 @@ export class GameRenderer {
 
         if (count > 0) {
             const positions = [
-                { col: 1, row: 0 }, 
-                { col: 1, row: 1 }, 
-                { col: 1, row: 2 }, 
-                { col: 0, row: 0 }, 
-                { col: 0, row: 1 }, 
-                { col: 0, row: 2 }  
+                { col: 1, row: 0 },
+                { col: 1, row: 1 },
+                { col: 1, row: 2 },
+                { col: 0, row: 0 },
+                { col: 0, row: 1 },
+                { col: 0, row: 2 }
             ];
 
             // ▼ モンスターが大きくなったため、配置間隔を少し広げる
@@ -313,12 +313,19 @@ export class GameRenderer {
                 if (index >= positions.length) return;
                 const pos = positions[index];
 
-                monster.update();
+                // 死亡判定をここで1回だけ行う
+                const isDead = (game.currentMode === 'dungeon' && monster.currentHp !== undefined && monster.currentHp <= 0);
+
+                // 死亡時は update() を呼ばない
+                if (!isDead) {
+                    monster.update();
+                }
 
                 let baseJumpYOffset = 0;
                 let baseJumpXOffset = 0;
 
-                if (monster.isJumping) {
+                // 死亡時はジャンプや攻撃の動きを行わない
+                if (!isDead && monster.isJumping) {
                     if (monster.attackDelay > 0) {
                         monster.attackDelay--;
                     } else {
@@ -347,7 +354,6 @@ export class GameRenderer {
                     }
                 }
 
-                const isDead = (game.currentMode === 'dungeon' && monster.currentHp !== undefined && monster.currentHp <= 0);
                 const jumpY = isDead ? 0 : baseJumpYOffset;
                 const jumpX = isDead ? 0 : baseJumpXOffset;
 
@@ -357,10 +363,10 @@ export class GameRenderer {
 
                 if (game.currentMode === 'dungeon') {
                     if (monster.currentHp === undefined) monster.currentHp = monster.hp;
-                    const barW = 46; // ▼ HPバーの幅を拡大
-                    const barH = 5;  // ▼ HPバーの太さを拡大
+                    const barW = 46; 
+                    const barH = 5;  
                     const bx = monster.x - barW / 2;
-                    const by = monster.y + 22; // ▼ モンスター下の位置調整
+                    const by = monster.y + 22; 
 
                     this.topCtx.fillStyle = '#555';
                     this.topCtx.fillRect(bx, by, barW, barH);
@@ -369,7 +375,6 @@ export class GameRenderer {
                     this.topCtx.fillStyle = ratio > 0.3 ? '#00FF00' : '#FF0000';
                     this.topCtx.fillRect(bx, by, barW * ratio, barH);
 
-                    // ▼ 味方のHPテキストのフォントを大きくして読みやすく変更
                     this.topCtx.fillStyle = '#FFF';
                     this.topCtx.font = '9.5px Arial';
                     this.topCtx.textAlign = 'center';
