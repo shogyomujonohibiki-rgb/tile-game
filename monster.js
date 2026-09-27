@@ -88,7 +88,7 @@ export class TopMonster {
             ctx.scale(1.0, 0.4);
         }
 
-        const time = (Date.now() - this.startTime) / 1000;
+        const time = isDead ? 0 : (Date.now() - this.startTime) / 1000;
 
         // --- 体の描画と回転アニメーション ---
         ctx.save();
