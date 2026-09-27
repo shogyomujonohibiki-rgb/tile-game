@@ -9,6 +9,7 @@ export class GameRenderer {
         this.attackEffects = [];
         this.enemyFadeAlpha = 1.0;
         this.draggedMonster = null;
+        this.selectedPartySlotIndex = null; // スカウト画面で選択中のパーティーポジション用
         this.isListenerInitialized = false;
     }
 
@@ -29,16 +30,83 @@ export class GameRenderer {
         };
 
         const onStart = (e) => {
-            if (!game || game.currentMode !== 'scout') return;
+            if (!game) return;
             const pos = getPos(e);
-            const partyList = game.topMonsters || [];
-            for (let m of partyList) {
-                const r = m.radius || 14;
-                const dist = Math.hypot(m.x - pos.x, m.y - pos.y);
-                if (dist <= r + 10) {
-                    this.draggedMonster = m;
+
+            if (game.currentMode === 'scout') {
+                // 1. パーティー用スペース（2列×3行）の四角形がタップされたか判定
+                const slotWidth = 40;
+                const slotHeight = 60;
+                const startX = 10;
+                const startY = 32;
+                const gapX = 6;
+                const gapY = 6;
+
+                let clickedSlot = -1;
+                for (let i = 0; i < 6; i++) {
+                    const col = (i < 3) ? 1 : 0;
+                    const row = i % 3;
+                    const sx = startX + col * (slotWidth + gapX);
+                    const sy = startY + row * (slotHeight + gapY);
+
+                    if (pos.x >= sx && pos.x <= sx + slotWidth && pos.y >= sy && pos.y <= sy + slotHeight) {
+                        clickedSlot = i;
+                        break;
+                    }
+                }
+
+                if (clickedSlot !== -1) {
+                    if (this.selectedPartySlotIndex === clickedSlot) {
+                        this.selectedPartySlotIndex = null; // すでに選択中なら解除
+                    } else {
+                        this.selectedPartySlotIndex = clickedSlot;
+                    }
                     if (e.type === 'touchstart') e.preventDefault();
-                    break;
+                    return;
+                }
+
+                // 2. スロットが既に選択されている状態でモンスターがタップされた場合（入れ替え処理）
+                if (this.selectedPartySlotIndex !== null) {
+                    const partyList = game.topMonsters || [];
+                    for (let mIndex = 0; mIndex < partyList.length; mIndex++) {
+                        const m = partyList[mIndex];
+                        const r = m.radius || 14;
+                        const dist = Math.hypot(m.x - pos.x, m.y - pos.y);
+                        if (dist <= r + 10) {
+                            // 既に別のスロットにこのモンスターが割り当てられている場合は重複を防ぐためクリアする
+                            const existingSlot = game.partyMonsterIds.indexOf(mIndex);
+                            if (existingSlot !== -1) {
+                                game.partyMonsterIds[existingSlot] = null;
+                            }
+
+                            // 選択中のポジションにこのモンスターを割り当て
+                            game.partyMonsterIds[this.selectedPartySlotIndex] = mIndex;
+                            this.selectedPartySlotIndex = null;
+
+                            // パーティー入れ替え時にクラウドセーブを実行
+                            if (game.dataManager && typeof game.dataManager.saveCloudData === 'function') {
+                                game.dataManager.saveCloudData(game);
+                            }
+
+                            if (e.type === 'touchstart') e.preventDefault();
+                            return;
+                        }
+                    }
+                }
+
+                // 3. 通常の箱庭モンスターのドラッグ移動判定
+                const partyList = game.topMonsters || [];
+                for (let m of partyList) {
+                    const mIndex = game.topMonsters.indexOf(m);
+                    if (game.partyMonsterIds.includes(mIndex)) continue;
+
+                    const r = m.radius || 14;
+                    const dist = Math.hypot(m.x - pos.x, m.y - pos.y);
+                    if (dist <= r + 10) {
+                        this.draggedMonster = m;
+                        if (e.type === 'touchstart') e.preventDefault();
+                        break;
+                    }
                 }
             }
         };
@@ -53,7 +121,6 @@ export class GameRenderer {
 
         const onEnd = () => {
             if (!this.draggedMonster || !game || game.currentMode !== 'scout') return;
-            // 離した位置を新しい基準座標にする
             this.draggedMonster.scoutBaseX = this.draggedMonster.x;
             this.draggedMonster.scoutBaseY = this.draggedMonster.y;
             this.draggedMonster = null;
@@ -72,7 +139,6 @@ export class GameRenderer {
         const enemyX = this.topCanvas ? this.topCanvas.width - 70 : 270;
         const enemyY = 75;
 
-        // 渡された攻撃イベントに基づいて個別のアニメーションとダメージ表示を設定
         attackEvents.forEach((event, i) => {
             const { monster, damage } = event;
             const offsetX = (Math.random() - 0.5) * 40;
@@ -259,6 +325,77 @@ export class GameRenderer {
         this.topCtx.fillStyle = '#111122';
         this.topCtx.fillRect(0, 0, w, h);
 
+        // --- パーティー用スペース（2列×3行の6つの四角）の描画（スカウトモード時のみ） ---
+        const slotWidth = 40;
+        const slotHeight = 60;
+        const startX = 10;
+        const startY = 32;
+        const gapX = 6;
+        const gapY = 6;
+
+        if (game.currentMode === 'scout') {
+            this.topCtx.fillStyle = '#888';
+            this.topCtx.font = 'bold 10px Arial';
+            this.topCtx.textAlign = 'left';
+            this.topCtx.fillText('【パーティー】', startX, 22);
+
+            for (let i = 0; i < 6; i++) {
+                const col = (i < 3) ? 1 : 0;
+                const row = i % 3;
+                const sx = startX + col * (slotWidth + gapX);
+                const sy = startY + row * (slotHeight + gapY);
+                
+                this.topCtx.fillStyle = '#222233';
+                this.topCtx.fillRect(sx, sy, slotWidth, slotHeight);
+
+                // スカウト画面でのみ選択状態の枠線ハイライトを有効にする
+                if (this.selectedPartySlotIndex === i) {
+                    this.topCtx.strokeStyle = '#00FFFF';
+                    this.topCtx.lineWidth = 2.5;
+                } else {
+                    this.topCtx.strokeStyle = '#555';
+                    this.topCtx.lineWidth = 1;
+                }
+                this.topCtx.strokeRect(sx, sy, slotWidth, slotHeight);
+
+                // スロットにモンスターが割り当てられている場合は番号を隠し、未割り当ての場合のみ番号を表示する
+                const mIndex = game.partyMonsterIds[i];
+                if (mIndex !== null && mIndex !== undefined && game.topMonsters[mIndex]) {
+                    // モンスターがいる場合は番号を表示しない
+                } else {
+                    this.topCtx.fillStyle = '#444';
+                    this.topCtx.font = '10px Arial';
+                    this.topCtx.textAlign = 'center';
+                    this.topCtx.textBaseline = 'middle';
+                    this.topCtx.fillText(`${i + 1}`, sx + slotWidth / 2, sy + slotHeight / 2);
+                }
+            }
+
+            // スカウトモード時の合計ATKと総HPの計算と縦並び表示（ボックスの下部に収まるように配置）
+            let scoutTotalAtk = 0;
+            let scoutTotalHp = 0;
+            game.partyMonsterIds.forEach(mIndex => {
+                if (mIndex !== null && mIndex !== undefined && game.topMonsters[mIndex]) {
+                    const m = game.topMonsters[mIndex];
+                    scoutTotalAtk += (m.attack || 0);
+                    scoutTotalHp += (m.hp || 0);
+                }
+            });
+
+            this.topCtx.save();
+            this.topCtx.font = 'bold 11px Arial';
+            this.topCtx.textAlign = 'left';
+
+            // 合計 ATK
+            this.topCtx.fillStyle = '#00FFFF';
+            this.topCtx.fillText(`総 ATK: ${scoutTotalAtk.toLocaleString()}`, 10, h - 21);
+
+            // 総 HP（その下に縦並び）
+            this.topCtx.fillStyle = '#00FF00';
+            this.topCtx.fillText(`総 HP: ${scoutTotalHp.toLocaleString()}`, 10, h - 8);
+            this.topCtx.restore();
+        }
+
         if (game.currentMode === 'dungeon') {
             this.topCtx.fillStyle = '#FFD700';
             this.topCtx.font = 'bold 13px Arial';
@@ -293,20 +430,21 @@ export class GameRenderer {
             let totalCurrentHp = 0;
             let totalMaxHp = 0;
             partyList.forEach(m => {
-                if (m.currentHp === undefined) m.currentHp = m.hp;
-                totalCurrentHp += m.currentHp;
-                totalMaxHp += m.hp;
+                if (m) {
+                    if (m.currentHp === undefined) m.currentHp = m.hp;
+                    totalCurrentHp += m.currentHp;
+                    totalMaxHp += m.hp;
+                }
             });
 
             this.topCtx.fillStyle = '#00FFFF';
             this.topCtx.font = 'bold 12px Arial';
             this.topCtx.textAlign = 'left';
-            this.topCtx.fillText(`合計 ATK: ${totalAtk.toLocaleString()}`, 10, h - 8);
+            this.topCtx.fillText(`総 ATK: ${totalAtk.toLocaleString()}`, 10, h - 8);
 
             this.topCtx.fillStyle = '#00FF00';
             this.topCtx.fillText(`総 HP: ${totalCurrentHp.toLocaleString()}/${totalMaxHp.toLocaleString()}`, 130, h - 8);
 
-            // --- 敵キャラクター表示 ---
             const enemyIconX = w - 70;
             const enemyIconY = 100;
             const enemyRadius = 35;
@@ -337,14 +475,13 @@ export class GameRenderer {
 
             this.topCtx.restore();
 
-        } else {
+        } else if (game.currentMode !== 'scout') {
             this.topCtx.fillStyle = '#666';
             this.topCtx.font = '12px Arial';
             this.topCtx.textAlign = 'left';
-            this.topCtx.fillText('【スカウト】 (横軸:ATK / 縦軸:HP)', 10, 20);
+            this.topCtx.fillText('【スカウト】 (横軸:ATK / 縦軸:HP)', 105, 20);
         }
 
-        // --- 味方モンスター描画 ---
         const partyList = (game.currentMode === 'scout') ? game.topMonsters : game.getPartyMonsters();
         const count = partyList.length;
 
@@ -361,68 +498,80 @@ export class GameRenderer {
             }
 
             partyList.forEach((monster, index) => {
+                if (!monster) return;
                 const isDead = (game.currentMode === 'dungeon' && monster.currentHp !== undefined && monster.currentHp <= 0);
 
                 if (!isDead) {
                     monster.update();
                 }
 
+                let assignedSlotIndex = -1;
                 if (isScout) {
-                    if (this.draggedMonster === monster) {
-                        monster.scoutBaseX = monster.x;
-                        monster.scoutBaseY = monster.y;
+                    assignedSlotIndex = game.partyMonsterIds.indexOf(index);
+
+                    if (assignedSlotIndex !== -1) {
+                        const col = (assignedSlotIndex < 3) ? 1 : 0;
+                        const row = assignedSlotIndex % 3;
+                        const sx = startX + col * (slotWidth + gapX);
+                        const sy = startY + row * (slotHeight + gapY);
+                        monster.x = sx + slotWidth / 2;
+                        monster.y = sy + slotHeight / 2;
                     } else {
-                        if (monster.scoutX === undefined || monster.scoutY === undefined) {
-                            const marginX = 45;
-                            const topLimit = 40;
-                            const bottomLimit = h - 40;
-                            
-                            const drawW = w - marginX * 2;
-                            const drawH = bottomLimit - topLimit;
+                        if (this.draggedMonster === monster) {
+                            monster.scoutBaseX = monster.x;
+                            monster.scoutBaseY = monster.y;
+                        } else {
+                            if (monster.scoutX === undefined || monster.scoutY === undefined) {
+                                const marginX = 105;
+                                const topLimit = 40;
+                                const bottomLimit = h - 40;
+                                
+                                const drawW = w - marginX - 25;
+                                const drawH = bottomLimit - topLimit;
 
-                            const atkRatio = maxAtk > 0 ? (monster.attack / maxAtk) : 0.5;
-                            const hpRatio = maxHp > 0 ? (monster.hp / maxHp) : 0.5;
+                                const atkRatio = maxAtk > 0 ? (monster.attack / maxAtk) : 0.5;
+                                const hpRatio = maxHp > 0 ? (monster.hp / maxHp) : 0.5;
 
-                            const baseScreenX = marginX + atkRatio * drawW;
-                            const baseScreenY = bottomLimit - hpRatio * drawH;
+                                const baseScreenX = marginX + atkRatio * drawW;
+                                const baseScreenY = bottomLimit - hpRatio * drawH;
 
-                            monster.scoutX = baseScreenX;
-                            monster.scoutY = baseScreenY;
-                            monster.scoutBaseX = baseScreenX;
-                            monster.scoutBaseY = baseScreenY;
-                            monster.walkSpeed = 0.2 + Math.random() * 0.2;
-                            monster.walkAngle = Math.random() * Math.PI * 2;
+                                monster.scoutX = baseScreenX;
+                                monster.scoutY = baseScreenY;
+                                monster.scoutBaseX = baseScreenX;
+                                monster.scoutBaseY = baseScreenY;
+                                monster.walkSpeed = 0.2 + Math.random() * 0.2;
+                                monster.walkAngle = Math.random() * Math.PI * 2;
+                            }
+
+                            const time = (Date.now() - (monster.startTime || Date.now())) / 1000;
+                            const t = time * monster.walkSpeed + monster.walkAngle;
+
+                            const rawSinX = Math.sin(t);
+                            const rawCosY = Math.cos(t * 0.7);
+
+                            const stopThreshold = 0.35;
+                            let factorX = rawSinX > stopThreshold ? (rawSinX - stopThreshold) / (1 - stopThreshold) :
+                                rawSinX < -stopThreshold ? (rawSinX + stopThreshold) / (1 - stopThreshold) : 0;
+                            let factorY = rawCosY > stopThreshold ? (rawCosY - stopThreshold) / (1 - stopThreshold) :
+                                rawCosY < -stopThreshold ? (rawCosY + stopThreshold) / (1 - stopThreshold) : 0;
+
+                            const walkOffsetX = factorX * 20;
+                            const walkOffsetY = factorY * 20;
+
+                            monster.x = monster.scoutBaseX + walkOffsetX;
+                            monster.y = monster.scoutBaseY + walkOffsetY;
                         }
 
-                        const time = (Date.now() - (monster.startTime || Date.now())) / 1000;
-                        const t = time * monster.walkSpeed + monster.walkAngle;
+                        const minX = 105;
+                        const maxX = w - 25;
+                        const minY = 32;
+                        const maxY = h - 25;
 
-                        const rawSinX = Math.sin(t);
-                        const rawCosY = Math.cos(t * 0.7);
-
-                        const stopThreshold = 0.35;
-                        let factorX = rawSinX > stopThreshold ? (rawSinX - stopThreshold) / (1 - stopThreshold) :
-                            rawSinX < -stopThreshold ? (rawSinX + stopThreshold) / (1 - stopThreshold) : 0;
-                        let factorY = rawCosY > stopThreshold ? (rawCosY - stopThreshold) / (1 - stopThreshold) :
-                            rawCosY < -stopThreshold ? (rawCosY + stopThreshold) / (1 - stopThreshold) : 0;
-
-                        const walkOffsetX = factorX * 20;
-                        const walkOffsetY = factorY * 20;
-
-                        monster.x = monster.scoutBaseX + walkOffsetX;
-                        monster.y = monster.scoutBaseY + walkOffsetY;
+                        monster.x = Math.max(minX, Math.min(maxX, monster.x));
+                        monster.y = Math.max(minY, Math.min(maxY, monster.y));
                     }
 
-                    const minX = 25;
-                    const maxX = w - 25;
-                    const minY = 35;
-                    const maxY = h - 25;
-
-                    monster.x = Math.max(minX, Math.min(maxX, monster.x));
-                    monster.y = Math.max(minY, Math.min(maxY, monster.y));
-
                 } else {
-                    // ダンジョンモードの固定配置
                     const positions = [
                         { col: 1, row: 0 },
                         { col: 1, row: 1 },
@@ -433,8 +582,8 @@ export class GameRenderer {
                     ];
                     if (index < positions.length) {
                         const pos = positions[index];
-                        const startX = 36;
-                        const startY = 60;
+                        const dStartX = 36;
+                        const dStartY = 60;
                         const colWidth = 70;
                         const rowHeight = 85;
 
@@ -470,15 +619,35 @@ export class GameRenderer {
                             }
                         }
 
-                        monster.x = startX + (pos.col * colWidth) + (isDead ? 0 : baseJumpXOffset);
-                        monster.y = startY + (pos.row * rowHeight) + (isDead ? 0 : baseJumpYOffset);
+                        monster.x = dStartX + (pos.col * colWidth) + (isDead ? 0 : baseJumpXOffset);
+                        monster.y = dStartY + (pos.row * rowHeight) + (isDead ? 0 : baseJumpYOffset);
                     }
                 }
 
-                // モンスターの描画実行
                 monster.draw(this.topCtx);
 
-                // スカウトモードでドラッグされているモンスターのHPと攻撃力を表示
+                // パーティーボックス（スロット）に配置されているモンスターの上下にATKとHPを表示
+                if (isScout && assignedSlotIndex !== -1) {
+                    const col = (assignedSlotIndex < 3) ? 1 : 0;
+                    const row = assignedSlotIndex % 3;
+                    const sx = startX + col * (slotWidth + gapX);
+                    const sy = startY + row * (slotHeight + gapY);
+
+                    this.topCtx.save();
+                    this.topCtx.font = '9px Arial';
+                    this.topCtx.textAlign = 'center';
+
+                    // 上にATKを表示
+                    this.topCtx.fillStyle = '#00FFFF';
+                    this.topCtx.fillText(`ATK:${monster.attack}`, sx + slotWidth / 2, sy + 11);
+
+                    // 下にHPを表示
+                    this.topCtx.fillStyle = '#00FF00';
+                    this.topCtx.fillText(`HP:${monster.hp}`, sx + slotWidth / 2, sy + slotHeight - 6);
+
+                    this.topCtx.restore();
+                }
+
                 if (isScout && this.draggedMonster === monster) {
                     this.topCtx.save();
                     this.topCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -498,17 +667,18 @@ export class GameRenderer {
                         this.topCtx.fillRect(bx, by, boxW, boxH);
                     }
 
-                    this.topCtx.fillStyle = '#00FF00';
+                    // 上にATKを表示
+                    this.topCtx.fillStyle = '#00FFFF';
                     this.topCtx.font = 'bold 11px Arial';
                     this.topCtx.textAlign = 'left';
-                    this.topCtx.fillText(`HP: ${monster.hp.toLocaleString()}`, bx + 6, by + 12);
+                    this.topCtx.fillText(`ATK: ${monster.attack.toLocaleString()}`, bx + 6, by + 12);
 
-                    this.topCtx.fillStyle = '#00FFFF';
-                    this.topCtx.fillText(`ATK: ${monster.attack.toLocaleString()}`, bx + 6, by + 25);
+                    // 下にHPを表示
+                    this.topCtx.fillStyle = '#00FF00';
+                    this.topCtx.fillText(`HP: ${monster.hp.toLocaleString()}`, bx + 6, by + 25);
                     this.topCtx.restore();
                 }
 
-                // ダンジョンモード時のHPバー描画 ＆ ATK表示を集約
                 if (game.currentMode === 'dungeon') {
                     if (monster.currentHp === undefined) monster.currentHp = monster.hp;
                     const barW = 50;
@@ -534,7 +704,7 @@ export class GameRenderer {
                     this.topCtx.fillText(`ATK:${monster.attack.toLocaleString()}`, monster.x, monster.y - monster.radius - 10);
                 }
             });
-        } else {
+        } else if (game.currentMode === 'dungeon') {
             this.topCtx.fillStyle = '#666';
             this.topCtx.font = '13px Arial';
             this.topCtx.textAlign = 'center';
