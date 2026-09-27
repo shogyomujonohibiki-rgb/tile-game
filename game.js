@@ -89,6 +89,9 @@ export class Game {
             });
         }
 
+        // ▼ 初期表示時にもモードに応じた表示状態を反映
+        this.ui.setUndoButtonVisible(this.currentMode === 'scout');
+
         if (this.ui.undoButton) {
             this.ui.undoButton.addEventListener('click', () => {
                 if (this.currentMode !== 'scout') return;
@@ -227,6 +230,7 @@ export class Game {
 
         this.ui.switchModeUI(mode);
         this.ui.setPartyButtonEnabled(true);
+        this.ui.setUndoButtonVisible(mode === 'scout'); // ▼ ダンジョンモードでは非表示、スカウトでは表示
         this.isGameover = false;
         this.drawTiles();
 
