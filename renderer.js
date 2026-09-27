@@ -11,8 +11,8 @@ export class GameRenderer {
     }
 
     startAttackAnimation(attackEvents) {
-        const enemyX = this.topCanvas ? this.topCanvas.width - 60 : 280;
-        const enemyY = 60;
+        const enemyX = this.topCanvas ? this.topCanvas.width - 70 : 270;
+        const enemyY = 75;
 
         // 渡された攻撃イベントに基づいて個別のアニメーションとダメージ表示を設定
         attackEvents.forEach((event, i) => {
@@ -143,17 +143,16 @@ export class GameRenderer {
         });
     }
 
-    // 敵がふわっとフェードインするアニメーション用
     playMonsterFadeIn(game) {
         return new Promise((resolve) => {
-            const duration = 600; // 0.6秒
+            const duration = 600;
             const startTime = Date.now();
 
             const animate = () => {
                 const elapsed = Date.now() - startTime;
                 const progress = Math.min(1, elapsed / duration);
 
-                this.enemyFadeAlpha = progress; // 0 → 1 へ
+                this.enemyFadeAlpha = progress;
                 this.drawTopCanvas(game);
 
                 if (progress < 1) {
@@ -168,7 +167,6 @@ export class GameRenderer {
         });
     }
 
-    // 画面全体を暗転／明転させるオーバーレイ描画
     drawScreenOverlay(alpha, message = '') {
         if (!this.topCtx || !this.topCanvas) return;
         const w = this.topCanvas.width;
@@ -202,37 +200,39 @@ export class GameRenderer {
         this.topCtx.fillRect(0, 0, w, h);
 
         if (game.currentMode === 'dungeon') {
+            // ▼ ダンジョン階層表示のフォントを拡大
             this.topCtx.fillStyle = '#FFD700';
-            this.topCtx.font = 'bold 11px Arial';
+            this.topCtx.font = 'bold 13px Arial';
             this.topCtx.textAlign = 'left';
-            this.topCtx.fillText(`【ダンジョン】 B${game.battleManager.dungeonFloor}F`, 10, 18);
+            this.topCtx.fillText(`【ダンジョン】 B${game.battleManager.dungeonFloor}F`, 10, 20);
 
             const enemyHp = game.battleManager.enemyHp;
             const enemyMaxHp = game.battleManager.enemyMaxHp;
             const enemyRatio = Math.max(0, Math.min(1, enemyHp / enemyMaxHp));
 
-            // ▼ 3桁カンマを適用
+            // ▼ 敵HPテキストのフォントを拡大
             this.topCtx.fillStyle = '#FF4444';
-            this.topCtx.fillText(`敵 HP: ${enemyHp.toLocaleString()} / ${enemyMaxHp.toLocaleString()}`, w - 150, 18);
+            this.topCtx.font = 'bold 12px Arial';
+            this.topCtx.fillText(`敵 HP: ${enemyHp.toLocaleString()} / ${enemyMaxHp.toLocaleString()}`, w - 165, 20);
 
-            const enemyBarX = w - 150;
-            const enemyBarY = 24;
-            const enemyBarW = 110;
-            const enemyBarH = 6;
+            const enemyBarX = w - 165;
+            const enemyBarY = 26;
+            const enemyBarW = 130;
+            const enemyBarH = 8; // バーも少し太く
             this.topCtx.fillStyle = '#555';
             this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW, enemyBarH);
 
             this.topCtx.fillStyle = enemyRatio > 0.3 ? '#FF4444' : '#FF0000';
             this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW * enemyRatio, enemyBarH);
 
-            // ▼ 3桁カンマを適用
+            // ▼ 敵ATKテキストのフォントを拡大
             this.topCtx.fillStyle = '#FF8888';
-            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk.toLocaleString()}`, w - 150, 44);
+            this.topCtx.font = 'bold 12px Arial';
+            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk.toLocaleString()}`, w - 165, 50);
 
             const partyList = game.getPartyMonsters();
             const totalAtk = game.battleManager.getTotalAtk(partyList);
 
-            // 総HPと最大HPの計算
             let totalCurrentHp = 0;
             let totalMaxHp = 0;
             partyList.forEach(m => {
@@ -241,22 +241,21 @@ export class GameRenderer {
                 totalMaxHp += m.hp;
             });
 
-            // ▼ 3桁カンマを適用して合計 ATK と総 HP を表示
+            // ▼ 合計ATK・総HPのフォントを拡大
             this.topCtx.fillStyle = '#00FFFF';
-            this.topCtx.font = 'bold 10px Arial';
+            this.topCtx.font = 'bold 12px Arial';
             this.topCtx.textAlign = 'left';
             this.topCtx.fillText(`合計 ATK: ${totalAtk.toLocaleString()}`, 10, h - 8);
 
             this.topCtx.fillStyle = '#00FF00';
-            this.topCtx.fillText(`総 HP: ${totalCurrentHp.toLocaleString()}/${totalMaxHp.toLocaleString()}`, 115, h - 8);
+            this.topCtx.fillText(`総 HP: ${totalCurrentHp.toLocaleString()}/${totalMaxHp.toLocaleString()}`, 130, h - 8);
 
-            // --- 敵キャラクター表示（右側・左向き・目を横に2個並べる） ---
-            const enemyIconX = w - 60;
-            const enemyIconY = 95;
-            const enemyRadius = 28;
+            // --- 敵キャラクター表示（サイズを拡大） ---
+            const enemyIconX = w - 70;
+            const enemyIconY = 100;
+            const enemyRadius = 35; // ▼ 大きく変更
 
             this.topCtx.save();
-            // フェードインのアルファ値を適用
             this.topCtx.globalAlpha = this.enemyFadeAlpha;
 
             this.topCtx.fillStyle = '#8B0000';
@@ -265,33 +264,29 @@ export class GameRenderer {
             this.topCtx.fill();
 
             this.topCtx.strokeStyle = '#FF4444';
-            this.topCtx.lineWidth = 3;
+            this.topCtx.lineWidth = 3.5;
             this.topCtx.stroke();
 
-            // 敵の目（左向きに横並び2個）
+            // 敵の目
             this.topCtx.fillStyle = '#FFEB3B';
             this.topCtx.beginPath();
-            this.topCtx.arc(enemyIconX - 8, enemyIconY - 5, 5, 0, Math.PI * 2);
-            this.topCtx.arc(enemyIconX - 2, enemyIconY + 4, 5, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX - 10, enemyIconY - 6, 6, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX - 3, enemyIconY + 5, 6, 0, Math.PI * 2);
             this.topCtx.fill();
 
             this.topCtx.fillStyle = '#000';
             this.topCtx.beginPath();
-            this.topCtx.arc(enemyIconX - 10, enemyIconY - 5, 2, 0, Math.PI * 2);
-            this.topCtx.arc(enemyIconX - 4, enemyIconY + 4, 2, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX - 12, enemyIconY - 6, 2.5, 0, Math.PI * 2);
+            this.topCtx.arc(enemyIconX - 5, enemyIconY + 5, 2.5, 0, Math.PI * 2);
             this.topCtx.fill();
 
-            this.topCtx.fillStyle = '#FFF';
-            this.topCtx.font = 'bold 12px Arial';
-            this.topCtx.textAlign = 'center';
-            this.topCtx.fillText('', enemyIconX, enemyIconY + 18);
             this.topCtx.restore();
 
         } else {
             this.topCtx.fillStyle = '#666';
-            this.topCtx.font = '11px Arial';
+            this.topCtx.font = '12px Arial';
             this.topCtx.textAlign = 'left';
-            this.topCtx.fillText('【スカウト】', 10, 18);
+            this.topCtx.fillText('【スカウト】', 10, 20);
         }
 
         // --- 味方モンスター描画 ---
@@ -300,20 +295,21 @@ export class GameRenderer {
 
         if (count > 0) {
             const positions = [
-                { col: 1, row: 0 }, // 1番: 右上
-                { col: 1, row: 1 }, // 2番: 右真ん中
-                { col: 1, row: 2 }, // 3番: 右下
-                { col: 0, row: 0 }, // 4番: 左上
-                { col: 0, row: 1 }, // 5番: 左真ん中
-                { col: 0, row: 2 }  // 6番: 左下
+                { col: 1, row: 0 }, 
+                { col: 1, row: 1 }, 
+                { col: 1, row: 2 }, 
+                { col: 0, row: 0 }, 
+                { col: 0, row: 1 }, 
+                { col: 0, row: 2 }  
             ];
 
-            const startX = 40;
-            const startY = 45;
-            const colWidth = 45;
-            const rowHeight = 60;
+            // ▼ モンスターが大きくなったため、配置間隔を少し広げる
+            const startX = 48;
+            const startY = 60;
+            const colWidth = 55;
+            const rowHeight = 85;
 
-partyList.forEach((monster, index) => {
+            partyList.forEach((monster, index) => {
                 if (index >= positions.length) return;
                 const pos = positions[index];
 
@@ -355,17 +351,16 @@ partyList.forEach((monster, index) => {
                 const jumpY = isDead ? 0 : baseJumpYOffset;
                 const jumpX = isDead ? 0 : baseJumpXOffset;
 
-                // 配置座標の調整
                 monster.x = startX + (pos.col * colWidth) + jumpX;
                 monster.y = startY + (pos.row * rowHeight) + jumpY;
                 monster.draw(this.topCtx);
 
                 if (game.currentMode === 'dungeon') {
                     if (monster.currentHp === undefined) monster.currentHp = monster.hp;
-                    const barW = 38;
-                    const barH = 3.5;
+                    const barW = 46; // ▼ HPバーの幅を拡大
+                    const barH = 5;  // ▼ HPバーの太さを拡大
                     const bx = monster.x - barW / 2;
-                    const by = monster.y + 16; // モンスターとの距離を調整
+                    const by = monster.y + 22; // ▼ モンスター下の位置調整
 
                     this.topCtx.fillStyle = '#555';
                     this.topCtx.fillRect(bx, by, barW, barH);
@@ -374,15 +369,16 @@ partyList.forEach((monster, index) => {
                     this.topCtx.fillStyle = ratio > 0.3 ? '#00FF00' : '#FF0000';
                     this.topCtx.fillRect(bx, by, barW * ratio, barH);
 
+                    // ▼ 味方のHPテキストのフォントを大きくして読みやすく変更
                     this.topCtx.fillStyle = '#FFF';
-                    this.topCtx.font = '7px Arial';
+                    this.topCtx.font = '9.5px Arial';
                     this.topCtx.textAlign = 'center';
-                    this.topCtx.fillText(`${monster.currentHp.toLocaleString()}/${monster.hp.toLocaleString()}`, monster.x, by + 11);
+                    this.topCtx.fillText(`${monster.currentHp.toLocaleString()}/${monster.hp.toLocaleString()}`, monster.x, by + 14);
                 }
             });
         } else {
             this.topCtx.fillStyle = '#666';
-            this.topCtx.font = '12px Arial';
+            this.topCtx.font = '13px Arial';
             this.topCtx.textAlign = 'center';
             this.topCtx.fillText('パーティーにモンスターがいません', w / 2, h / 2 + 30);
         }
@@ -411,7 +407,7 @@ partyList.forEach((monster, index) => {
 
             ctx.save();
 
-            const flashRadius = 16 * (1 - lifeRatio * 0.5);
+            const flashRadius = 18 * (1 - lifeRatio * 0.5);
             ctx.fillStyle = lifeRatio < 0.3 ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 200, 0, 0.7)';
             ctx.beginPath();
             for (let k = 0; k < 8; k++) {
@@ -431,11 +427,10 @@ partyList.forEach((monster, index) => {
             ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
             ctx.lineWidth = 3;
-            ctx.font = 'italic bold 16px Arial';
+            ctx.font = 'italic bold 18px Arial'; // ▼ ダメージ数値も大きく
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            // ▼ 3桁カンマを適用
             const damageText = `-${fx.damage.toLocaleString()}`;
             ctx.strokeText(damageText, fx.x, floatY);
             ctx.fillText(damageText, fx.x, floatY);
@@ -504,7 +499,6 @@ partyList.forEach((monster, index) => {
             const truncatedName = rankText.length > 10 ? rankText.substring(0, 9) + '…' : rankText;
             this.ctx.fillText(truncatedName, startX, currentY);
 
-            // ▼ 3桁カンマを適用
             this.ctx.textAlign = 'right';
             this.ctx.fillText(`${item.score.toLocaleString()}`, startX + colWidth, currentY);
         });
@@ -529,7 +523,6 @@ partyList.forEach((monster, index) => {
             const dateText = item.dateStr || '';
             this.ctx.fillText(`${rankText}${dateText}`, startX, currentY);
 
-            // ▼ 3桁カンマを適用
             this.ctx.textAlign = 'right';
             this.ctx.fillText(`${item.score.toLocaleString()}`, startX + colWidth, currentY);
         });
