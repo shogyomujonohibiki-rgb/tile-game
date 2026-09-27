@@ -290,83 +290,129 @@ export class GameRenderer {
         }
 
         // --- 味方モンスター描画 ---
-        const partyList = game.getPartyMonsters();
+        // スカウトモードのときはすべてのモンスター、ダンジョンモードのときはパーティーのモンスターを取得
+        const partyList = (game.currentMode === 'scout') ? game.topMonsters : game.getPartyMonsters();
         const count = partyList.length;
 
         if (count > 0) {
-            const positions = [
-                { col: 1, row: 0 },
-                { col: 1, row: 1 },
-                { col: 1, row: 2 },
-                { col: 0, row: 0 },
-                { col: 0, row: 1 },
-                { col: 0, row: 2 }
-            ];
-
-            // ▼ モンスターが大きくなったため、配置間隔を少し広げる
-            const startX = 36;
-            const startY = 60;
-            const colWidth = 70;
-            const rowHeight = 85;
+            // スカウトモードとダンジョンモードで表示を切り替え
+            const isScout = game.currentMode === 'scout';
 
             partyList.forEach((monster, index) => {
-                if (index >= positions.length) return;
-                const pos = positions[index];
-
-                // 死亡判定をここで1回だけ行う
+                // 死亡判定
                 const isDead = (game.currentMode === 'dungeon' && monster.currentHp !== undefined && monster.currentHp <= 0);
 
-                // 死亡時は update() を呼ばない
                 if (!isDead) {
                     monster.update();
                 }
 
-                let baseJumpYOffset = 0;
-                let baseJumpXOffset = 0;
+// スカウトモードの場合はすべてのモンスターをランダム位置・ランダムな動きに設定
+                if (isScout) {
+                    // 初回または位置が未設定の場合にランダム座標を割り振る（インスタンスに保持させる）
+                    if (monster.scoutX === undefined || monster.scoutY === undefined) {
+                        const margin = 40;
+                        monster.scoutX = margin + Math.random() * (w - margin * 2);
+                        monster.scoutY = 50 + Math.random() * (h - 100);
+                        monster.scoutBaseX = monster.scoutX;
+                        monster.scoutBaseY = monster.scoutY;
+                        monster.walkSpeed = 0.2 + Math.random() * 0.2;
+                        monster.walkAngle = Math.random() * Math.PI * 2;
+                    }
 
-                // 死亡時はジャンプや攻撃の動きを行わない
-                if (!isDead && monster.isJumping) {
-                    if (monster.attackDelay > 0) {
-                        monster.attackDelay--;
-                    } else {
-                        monster.jumpProgress += 0.08;
-                        if (monster.jumpProgress >= 1) {
-                            monster.isJumping = false;
-                            monster.jumpProgress = 0;
-                        } else {
-                            const p = monster.jumpProgress;
-                            if (p <= 0.5) {
-                                const subP = p * 2;
-                                baseJumpYOffset = -Math.abs(Math.sin(subP * Math.PI)) * 14;
-                            } else {
-                                baseJumpYOffset = 0;
-                            }
+                    // 範囲を広げ、時々立ち止まる動き（飛び跳ねなし）
+                    const time = (Date.now() - (monster.startTime || Date.now())) / 1000;
+                    const t = time * monster.walkSpeed + monster.walkAngle;
 
-                            if (p <= 0.5) {
-                                baseJumpXOffset = (p / 0.5) * 10;
-                            } else if (p <= 0.65) {
-                                baseJumpXOffset = 10;
+                    const rawSinX = Math.sin(t);
+                    const rawCosY = Math.cos(t * 0.7);
+
+                    // 一定の範囲（閾値内）のときは移動量を0にしてピタッと立ち止まるようにする
+                    const stopThreshold = 0.35;
+                    let factorX = rawSinX > stopThreshold ? (rawSinX - stopThreshold) / (1 - stopThreshold) :
+                        rawSinX < -stopThreshold ? (rawSinX + stopThreshold) / (1 - stopThreshold) : 0;
+                    let factorY = rawCosY > stopThreshold ? (rawCosY - stopThreshold) / (1 - stopThreshold) :
+                        rawCosY < -stopThreshold ? (rawCosY + stopThreshold) / (1 - stopThreshold) : 0;
+
+                    // 動く範囲を広くする（横 ±65、縦 ±45）
+                    const walkOffsetX = factorX * 65;
+                    const walkOffsetY = factorY * 45;
+
+                    monster.x = monster.scoutBaseX + walkOffsetX;
+                    monster.y = monster.scoutBaseY + walkOffsetY;
+
+                    // ▼ キャンバスの外に出ないように位置を制限（上下左右に余白を確保）
+                    const minX = 25;
+                    const maxX = w - 25;
+                    const minY = 35; // 上部の「【スカウト】」文字と被らないように調整
+                    const maxY = h - 25;
+
+                    monster.x = Math.max(minX, Math.min(maxX, monster.x));
+                    monster.y = Math.max(minY, Math.min(maxY, monster.y));
+                
+                } else {
+                    // ダンジョンモードの固定配置
+                    const positions = [
+                        { col: 1, row: 0 },
+                        { col: 1, row: 1 },
+                        { col: 1, row: 2 },
+                        { col: 0, row: 0 },
+                        { col: 0, row: 1 },
+                        { col: 0, row: 2 }
+                    ];
+                    if (index < positions.length) {
+                        const pos = positions[index];
+                        const startX = 36;
+                        const startY = 60;
+                        const colWidth = 70;
+                        const rowHeight = 85;
+
+                        let baseJumpYOffset = 0;
+                        let baseJumpXOffset = 0;
+
+                        if (!isDead && monster.isJumping) {
+                            if (monster.attackDelay > 0) {
+                                monster.attackDelay--;
                             } else {
-                                const returnProgress = (p - 0.65) / (1.0 - 0.65);
-                                baseJumpXOffset = 10 * (1 - returnProgress);
+                                monster.jumpProgress += 0.08;
+                                if (monster.jumpProgress >= 1) {
+                                    monster.isJumping = false;
+                                    monster.jumpProgress = 0;
+                                } else {
+                                    const p = monster.jumpProgress;
+                                    if (p <= 0.5) {
+                                        const subP = p * 2;
+                                        baseJumpYOffset = -Math.abs(Math.sin(subP * Math.PI)) * 14;
+                                    } else {
+                                        baseJumpYOffset = 0;
+                                    }
+
+                                    if (p <= 0.5) {
+                                        baseJumpXOffset = (p / 0.5) * 10;
+                                    } else if (p <= 0.65) {
+                                        baseJumpXOffset = 10;
+                                    } else {
+                                        const returnProgress = (p - 0.65) / (1.0 - 0.65);
+                                        baseJumpXOffset = 10 * (1 - returnProgress);
+                                    }
+                                }
                             }
                         }
+
+                        monster.x = startX + (pos.col * colWidth) + (isDead ? 0 : baseJumpXOffset);
+                        monster.y = startY + (pos.row * rowHeight) + (isDead ? 0 : baseJumpYOffset);
                     }
                 }
 
-                const jumpY = isDead ? 0 : baseJumpYOffset;
-                const jumpX = isDead ? 0 : baseJumpXOffset;
-
-                monster.x = startX + (pos.col * colWidth) + jumpX;
-                monster.y = startY + (pos.row * rowHeight) + jumpY;
+                // モンスターの描画実行
                 monster.draw(this.topCtx);
 
+                // ダンジョンモード時のHPバー描画
                 if (game.currentMode === 'dungeon') {
                     if (monster.currentHp === undefined) monster.currentHp = monster.hp;
-                    const barW = 50; 
-                    const barH = 5;  
+                    const barW = 50;
+                    const barH = 5;
                     const bx = monster.x - barW / 2;
-                    const by = monster.y + 22; 
+                    const by = monster.y + 22;
 
                     this.topCtx.fillStyle = '#555';
                     this.topCtx.fillRect(bx, by, barW, barH);
