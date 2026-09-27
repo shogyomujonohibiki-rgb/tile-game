@@ -200,7 +200,6 @@ export class GameRenderer {
         this.topCtx.fillRect(0, 0, w, h);
 
         if (game.currentMode === 'dungeon') {
-            // ▼ ダンジョン階層表示のフォントを拡大
             this.topCtx.fillStyle = '#FFD700';
             this.topCtx.font = 'bold 13px Arial';
             this.topCtx.textAlign = 'left';
@@ -210,7 +209,6 @@ export class GameRenderer {
             const enemyMaxHp = game.battleManager.enemyMaxHp;
             const enemyRatio = Math.max(0, Math.min(1, enemyHp / enemyMaxHp));
 
-            // ▼ 敵HPテキストのフォントを拡大
             this.topCtx.fillStyle = '#FF4444';
             this.topCtx.font = 'bold 12px Arial';
             this.topCtx.fillText(`敵 HP: ${enemyHp.toLocaleString()} / ${enemyMaxHp.toLocaleString()}`, w - 165, 20);
@@ -218,14 +216,13 @@ export class GameRenderer {
             const enemyBarX = w - 165;
             const enemyBarY = 26;
             const enemyBarW = 130;
-            const enemyBarH = 8; // バーも少し太く
+            const enemyBarH = 8;
             this.topCtx.fillStyle = '#555';
             this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW, enemyBarH);
 
             this.topCtx.fillStyle = enemyRatio > 0.3 ? '#FF4444' : '#FF0000';
             this.topCtx.fillRect(enemyBarX, enemyBarY, enemyBarW * enemyRatio, enemyBarH);
 
-            // ▼ 敵ATKテキストのフォントを拡大
             this.topCtx.fillStyle = '#FF8888';
             this.topCtx.font = 'bold 12px Arial';
             this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk.toLocaleString()}`, w - 165, 50);
@@ -241,7 +238,6 @@ export class GameRenderer {
                 totalMaxHp += m.hp;
             });
 
-            // ▼ 合計ATK・総HPのフォントを拡大
             this.topCtx.fillStyle = '#00FFFF';
             this.topCtx.font = 'bold 12px Arial';
             this.topCtx.textAlign = 'left';
@@ -250,10 +246,10 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#00FF00';
             this.topCtx.fillText(`総 HP: ${totalCurrentHp.toLocaleString()}/${totalMaxHp.toLocaleString()}`, 130, h - 8);
 
-            // --- 敵キャラクター表示（サイズを拡大） ---
+            // --- 敵キャラクター表示 ---
             const enemyIconX = w - 70;
             const enemyIconY = 100;
-            const enemyRadius = 35; // ▼ 大きく変更
+            const enemyRadius = 35;
 
             this.topCtx.save();
             this.topCtx.globalAlpha = this.enemyFadeAlpha;
@@ -267,7 +263,6 @@ export class GameRenderer {
             this.topCtx.lineWidth = 3.5;
             this.topCtx.stroke();
 
-            // 敵の目
             this.topCtx.fillStyle = '#FFEB3B';
             this.topCtx.beginPath();
             this.topCtx.arc(enemyIconX - 10, enemyIconY - 6, 6, 0, Math.PI * 2);
@@ -286,64 +281,81 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#666';
             this.topCtx.font = '12px Arial';
             this.topCtx.textAlign = 'left';
-            this.topCtx.fillText('【スカウト】', 10, 20);
+            this.topCtx.fillText('【スカウト】 (横軸:ATK / 縦軸:HP)', 10, 20);
         }
 
         // --- 味方モンスター描画 ---
-        // スカウトモードのときはすべてのモンスター、ダンジョンモードのときはパーティーのモンスターを取得
         const partyList = (game.currentMode === 'scout') ? game.topMonsters : game.getPartyMonsters();
         const count = partyList.length;
 
         if (count > 0) {
-            // スカウトモードとダンジョンモードで表示を切り替え
             const isScout = game.currentMode === 'scout';
 
+            // ▼ スカウトモード時の最大ATKと最大HPを計算してスケールの基準にする
+            let maxAtk = 1;
+            let maxHp = 1;
+            if (isScout) {
+                partyList.forEach(m => {
+                    if (m.attack > maxAtk) maxAtk = m.attack;
+                    if (m.hp > maxHp) maxHp = m.hp;
+                });
+            }
+
             partyList.forEach((monster, index) => {
-                // 死亡判定
                 const isDead = (game.currentMode === 'dungeon' && monster.currentHp !== undefined && monster.currentHp <= 0);
 
                 if (!isDead) {
                     monster.update();
                 }
 
-                // スカウトモードの場合はすべてのモンスターをランダム位置・ランダムな動きに設定
                 if (isScout) {
-                    // 初回または位置が未設定の場合にランダム座標を割り振る（インスタンスに保持させる）
+                    // 初回または位置が未設定の場合、ATKとHPの比率に基づいて基本座標を決定
                     if (monster.scoutX === undefined || monster.scoutY === undefined) {
-                        const margin = 40;
-                        monster.scoutX = margin + Math.random() * (w - margin * 2);
-                        monster.scoutY = 50 + Math.random() * (h - 100);
-                        monster.scoutBaseX = monster.scoutX;
-                        monster.scoutBaseY = monster.scoutY;
+                        const marginX = 45;
+                        const topLimit = 40;
+                        const bottomLimit = h - 40;
+                        
+                        const drawW = w - marginX * 2;
+                        const drawH = bottomLimit - topLimit;
+
+                        const atkRatio = maxAtk > 0 ? (monster.attack / maxAtk) : 0.5;
+                        const hpRatio = maxHp > 0 ? (monster.hp / maxHp) : 0.5;
+
+                        // 横軸：攻撃力（左が低、右が高）
+                        const baseScreenX = marginX + atkRatio * drawW;
+                        // 縦軸：HP（上が高、下が低）
+                        const baseScreenY = bottomLimit - hpRatio * drawH;
+
+                        monster.scoutX = baseScreenX;
+                        monster.scoutY = baseScreenY;
+                        monster.scoutBaseX = baseScreenX;
+                        monster.scoutBaseY = baseScreenY;
                         monster.walkSpeed = 0.2 + Math.random() * 0.2;
                         monster.walkAngle = Math.random() * Math.PI * 2;
                     }
 
-                    // 範囲を広げ、時々立ち止まる動き（飛び跳ねなし）
+                    // 動く範囲を狭くする（横 ±10、縦 ±10）
                     const time = (Date.now() - (monster.startTime || Date.now())) / 1000;
                     const t = time * monster.walkSpeed + monster.walkAngle;
 
                     const rawSinX = Math.sin(t);
                     const rawCosY = Math.cos(t * 0.7);
 
-                    // 一定の範囲（閾値内）のときは移動量を0にしてピタッと立ち止まるようにする
                     const stopThreshold = 0.35;
                     let factorX = rawSinX > stopThreshold ? (rawSinX - stopThreshold) / (1 - stopThreshold) :
                         rawSinX < -stopThreshold ? (rawSinX + stopThreshold) / (1 - stopThreshold) : 0;
                     let factorY = rawCosY > stopThreshold ? (rawCosY - stopThreshold) / (1 - stopThreshold) :
                         rawCosY < -stopThreshold ? (rawCosY + stopThreshold) / (1 - stopThreshold) : 0;
 
-                    // 動く範囲を広くする（横 ±65、縦 ±45）
-                    const walkOffsetX = factorX * 65;
-                    const walkOffsetY = factorY * 45;
+                    const walkOffsetX = factorX * 10;
+                    const walkOffsetY = factorY * 10;
 
                     monster.x = monster.scoutBaseX + walkOffsetX;
                     monster.y = monster.scoutBaseY + walkOffsetY;
 
-                    // ▼ キャンバスの外に出ないように位置を制限（上下左右に余白を確保）
                     const minX = 25;
                     const maxX = w - 25;
-                    const minY = 35; // 上部の「【スカウト】」文字と被らないように調整
+                    const minY = 35;
                     const maxY = h - 25;
 
                     monster.x = Math.max(minX, Math.min(maxX, monster.x));
@@ -426,7 +438,6 @@ export class GameRenderer {
                     this.topCtx.textAlign = 'center';
                     this.topCtx.fillText(`${monster.currentHp.toLocaleString()}`, monster.x, by + 14);
 
-                    // ▼ ATK表示をrenderer側に集約（ダンジョンモードのみ表示）
                     this.topCtx.fillStyle = '#FFF';
                     this.topCtx.font = '11px Arial';
                     this.topCtx.textAlign = 'center';
@@ -484,9 +495,9 @@ export class GameRenderer {
             ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
             ctx.lineWidth = 3;
-            ctx.font = 'italic bold 18px Arial'; // ▼ ダメージ数値も大きく
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+            ctx.font = 'italic bold 18px Arial';
+            this.topCtx.textAlign = 'center';
+            this.topCtx.textBaseline = 'middle';
 
             const damageText = `-${fx.damage.toLocaleString()}`;
             ctx.strokeText(damageText, fx.x, floatY);
