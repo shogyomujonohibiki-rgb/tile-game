@@ -305,13 +305,5 @@ export class TopMonster {
 
         ctx.restore();
 
-        // --- ATKテキストの描画（フォントサイズを拡大） ---
-        ctx.save();
-        ctx.font = '11px Arial'; // ▼ 7.5px から 11px に拡大
-        ctx.fillStyle = '#FFF';
-        ctx.textAlign = 'center';
-        const textY = this.y - this.radius - 10;
-        ctx.fillText(`ATK:${this.attack.toLocaleString()}`, this.x, textY);
-        ctx.restore();
     }
 }
