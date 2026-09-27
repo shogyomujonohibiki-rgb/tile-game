@@ -313,7 +313,7 @@ export class GameRenderer {
             const colWidth = 45;
             const rowHeight = 60;
 
-            partyList.forEach((monster, index) => {
+partyList.forEach((monster, index) => {
                 if (index >= positions.length) return;
                 const pos = positions[index];
 
@@ -322,7 +322,6 @@ export class GameRenderer {
                 let baseJumpYOffset = 0;
                 let baseJumpXOffset = 0;
 
-                // モンスターごとの個別ジャンプ計算
                 if (monster.isJumping) {
                     if (monster.attackDelay > 0) {
                         monster.attackDelay--;
@@ -335,18 +334,18 @@ export class GameRenderer {
                             const p = monster.jumpProgress;
                             if (p <= 0.5) {
                                 const subP = p * 2;
-                                baseJumpYOffset = -Math.abs(Math.sin(subP * Math.PI)) * 18;
+                                baseJumpYOffset = -Math.abs(Math.sin(subP * Math.PI)) * 14;
                             } else {
                                 baseJumpYOffset = 0;
                             }
 
                             if (p <= 0.5) {
-                                baseJumpXOffset = (p / 0.5) * 12;
+                                baseJumpXOffset = (p / 0.5) * 10;
                             } else if (p <= 0.65) {
-                                baseJumpXOffset = 12;
+                                baseJumpXOffset = 10;
                             } else {
                                 const returnProgress = (p - 0.65) / (1.0 - 0.65);
-                                baseJumpXOffset = 12 * (1 - returnProgress);
+                                baseJumpXOffset = 10 * (1 - returnProgress);
                             }
                         }
                     }
@@ -356,16 +355,17 @@ export class GameRenderer {
                 const jumpY = isDead ? 0 : baseJumpYOffset;
                 const jumpX = isDead ? 0 : baseJumpXOffset;
 
+                // 配置座標の調整
                 monster.x = startX + (pos.col * colWidth) + jumpX;
                 monster.y = startY + (pos.row * rowHeight) + jumpY;
                 monster.draw(this.topCtx);
 
                 if (game.currentMode === 'dungeon') {
                     if (monster.currentHp === undefined) monster.currentHp = monster.hp;
-                    const barW = 34;
-                    const barH = 4;
+                    const barW = 38;
+                    const barH = 3.5;
                     const bx = monster.x - barW / 2;
-                    const by = monster.y + 20;
+                    const by = monster.y + 16; // モンスターとの距離を調整
 
                     this.topCtx.fillStyle = '#555';
                     this.topCtx.fillRect(bx, by, barW, barH);
@@ -374,11 +374,10 @@ export class GameRenderer {
                     this.topCtx.fillStyle = ratio > 0.3 ? '#00FF00' : '#FF0000';
                     this.topCtx.fillRect(bx, by, barW * ratio, barH);
 
-                    // ▼ 3桁カンマを適用
                     this.topCtx.fillStyle = '#FFF';
-                    this.topCtx.font = '7.5px Arial';
+                    this.topCtx.font = '7px Arial';
                     this.topCtx.textAlign = 'center';
-                    this.topCtx.fillText(`${monster.currentHp.toLocaleString()}/${monster.hp.toLocaleString()}`, monster.x, by + 13);
+                    this.topCtx.fillText(`${monster.currentHp.toLocaleString()}/${monster.hp.toLocaleString()}`, monster.x, by + 11);
                 }
             });
         } else {
