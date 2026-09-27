@@ -11,7 +11,6 @@ export class UI {
         this.game4x4 = document.getElementById('game4x4');
         this.undoButton = document.getElementById('undoButton');
         this.itemButton = document.getElementById('itemButton');
-        this.partyButton = document.getElementById('partyButton');
         this.modeScoutBtn = document.getElementById('modeMonsterGet');
         this.modeDungeonBtn = document.getElementById('modeDungeon');
 
@@ -60,13 +59,6 @@ export class UI {
     setUndoButtonVisible(isVisible) {
         if (!this.undoButton) return;
         this.undoButton.style.display = isVisible ? 'flex' : 'none';
-    }
-
-    setPartyButtonEnabled(enabled) {
-        if (!this.partyButton) return;
-        this.partyButton.disabled = !enabled;
-        this.partyButton.style.opacity = enabled ? '1' : '0.5';
-        this.partyButton.style.cursor = enabled ? 'pointer' : 'not-allowed';
     }
 
     switchModeUI(mode) {
