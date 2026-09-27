@@ -9,7 +9,7 @@ export class TopMonster {
         this.radius = 14; // ▼ 14から大きく変更
         this.attack = 1;
         this.hp = 1;
-        
+
         // ▼ 追加：アニメーション用の開始時間を初期化
         this.startTime = Date.now();
 
@@ -72,7 +72,11 @@ export class TopMonster {
     }
 
     update() {
-        // 更新処理
+        // ▼ 死亡時は時間を進めず、モンスターが動かないようにする
+        const isDead = this.currentHp !== undefined && this.currentHp <= 0;
+        if (isDead) {
+            return;
+        }
     }
 
     draw(ctx) {
@@ -112,14 +116,14 @@ export class TopMonster {
 
         switch (type) {
             case 0: ctx.arc(0, 0, r, 0, Math.PI * 2); break;
-            case 1:  
+            case 1:
                 for (let i = 0; i < 6; i++) {
                     let a = i * Math.PI / 3;
                     i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
                 }
                 ctx.closePath(); break;
-            case 2:  
-            case 3:  
+            case 2:
+            case 3:
                 {
                     let spikes = 6 + (type === 2 ? 10 : 8);
                     let innerRatio = 0.4 + (type % 3) * 0.1;
@@ -130,8 +134,8 @@ export class TopMonster {
                     }
                     ctx.closePath(); break;
                 }
-            case 4:  
-            case 5:  
+            case 4:
+            case 5:
                 {
                     let offsetY = r * (0.2 + (type % 5) * 0.1);
                     let radiusScale = 0.8 + (type % 3) * 0.15;
@@ -139,8 +143,8 @@ export class TopMonster {
                     ctx.lineTo(0, -r * (1.0 + (type % 2) * 0.3));
                     ctx.closePath(); break;
                 }
-            case 6:  
-            case 7:  
+            case 6:
+            case 7:
                 {
                     let thick = r * (0.3 + (type % 3) * 0.1);
                     let len = r * (1.1 + (type % 2) * 0.3);
@@ -148,7 +152,7 @@ export class TopMonster {
                     ctx.rect(-len, -thick, len * 2, thick * 2);
                     break;
                 }
-            case 8:  
+            case 8:
                 {
                     let skew = 1.2;
                     ctx.moveTo(-r * 0.6, -r * 1.2);
@@ -157,8 +161,8 @@ export class TopMonster {
                     ctx.quadraticCurveTo(-r * 1.2 * skew, -r * 0.3, -r * 0.6, -r * 1.2);
                     break;
                 }
-            case 9:  
-            case 10: 
+            case 9:
+            case 10:
                 {
                     let coreSize = r * 0.8;
                     ctx.arc(0, 0, coreSize, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -172,7 +176,7 @@ export class TopMonster {
                     }
                     break;
                 }
-            case 11: 
+            case 11:
                 {
                     let coreSize = r * 0.55;
                     ctx.arc(0, 0, coreSize, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -186,14 +190,14 @@ export class TopMonster {
                     }
                     break;
                 }
-            case 12: 
+            case 12:
                 {
                     ctx.arc(0, -r * 0.2, r * 1.0, Math.PI, 0);
                     ctx.lineTo(r * 0.9, r * 0.6);
                     ctx.quadraticCurveTo(0, r * 1.0, -r * 0.9, r * 0.6);
                     ctx.closePath(); break;
                 }
-            case 13: 
+            case 13:
                 {
                     let vertices = 5 + (type % 4);
                     for (let i = 0; i < vertices; i++) {
@@ -202,7 +206,7 @@ export class TopMonster {
                     }
                     ctx.closePath(); break;
                 }
-            case 14: 
+            case 14:
                 {
                     let wFactor = 1.0 + (type % 3) * 0.2;
                     ctx.moveTo(-r, 0);
