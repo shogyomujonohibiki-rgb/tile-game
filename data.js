@@ -16,31 +16,31 @@ export class DataManager {
         if (typeof window.saveUserDataToFirestore !== 'function') return;
 
         const monstersData = game.topMonsters.map(m => ({
-            x: m.x,
-            y: m.y,
-            type: m.type,
-            radius: m.radius,
-            attack: m.attack,
-            hp: m.hp,
-            bodyType: m.bodyType,
-            paletteIndex: m.paletteIndex,
-            hasHorn: m.hasHorn,
-            hornType: m.hornType,
-            hornCount: m.hornCount,
-            hasWing: m.hasWing,
-            wingType: m.wingType,
-            hasTail: m.hasTail,
-            tailType: m.tailType,
-            eyeType: m.eyeType
+            x: m.x ?? 0,
+            y: m.y ?? 0,
+            type: m.type ?? 0,
+            radius: m.radius ?? 16,
+            attack: m.attack ?? 1,
+            hp: m.hp ?? 1,
+            bodyType: m.bodyType ?? 0,
+            paletteIndex: m.paletteIndex ?? 0,
+            hasHorn: m.hasHorn ?? false,
+            hornType: m.hornType ?? null,      // ▼ undefined対策として null を代入
+            hornCount: m.hornCount ?? 0,      // ▼ undefined対策として 0 を代入
+            hasWing: m.hasWing ?? false,
+            wingType: m.wingType ?? null,      // ▼ undefined対策
+            hasTail: m.hasTail ?? false,
+            tailType: m.tailType ?? null,      // ▼ undefined対策
+            eyeType: m.eyeType ?? 0
         }));
 
         await window.saveUserDataToFirestore({
-            uid: game.uid,
-            userName: game.userName,
-            highScore: game.highScore,
+            uid: game.uid ?? null,
+            userName: game.userName ?? 'Guest',
+            highScore: game.highScore ?? 0,
             monsters: monstersData,
-            partyMonsterIds: game.partyMonsterIds,
-            dungeonFloor: game.battleManager.dungeonFloor
+            partyMonsterIds: game.partyMonsterIds ?? [],
+            dungeonFloor: game.battleManager?.dungeonFloor ?? 1
         });
     }
 
