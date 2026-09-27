@@ -42,7 +42,6 @@ export class Game {
 
         this.initTopGarden();
         this.startTopAnimation();
-        this.ui.initializeColorSample(this.COLORS);
         this.initPartyModalEvents();
         this.initModeSwitchEvents();
 
