@@ -317,6 +317,8 @@ export class GameRenderer {
                 if (index >= positions.length) return;
                 const pos = positions[index];
 
+                monster.update();
+
                 let baseJumpYOffset = 0;
                 let baseJumpXOffset = 0;
 
