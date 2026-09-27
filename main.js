@@ -18,60 +18,52 @@ import { TopMonster } from './monster.js';
                 localStorage.setItem('gameUserName', userData.userName);
             }
 
-            if (userData.monsters && Array.isArray(userData.monsters) && window.game && window.game.topCanvas) {
-                let needsSave = false;
-
-                // ▼ 読み込みデータ自体にパラメータがない場合、あらかじめここでランダム値を確定させて持たせる
-                const processedMonstersData = userData.monsters.map(data => {
-                    let updated = false;
-                    const filledData = { ...data };
-
-                    if (filledData.bodyType === undefined) { filledData.bodyType = Math.floor(Math.random() * 4); updated = true; }
-                    if (filledData.paletteIndex === undefined) { filledData.paletteIndex = Math.floor(Math.random() * 8); updated = true; }
-                    if (filledData.hasHorn === undefined) { filledData.hasHorn = Math.random() > 0.3; updated = true; }
-                    if (filledData.hornType === undefined) { filledData.hornType = Math.floor(Math.random() * 3); updated = true; }
-                    if (filledData.hornCount === undefined) { filledData.hornCount = Math.random() > 0.7 ? 2 : 1; updated = true; }
-                    if (filledData.hasWing === undefined) { filledData.hasWing = Math.random() > 0.4; updated = true; }
-                    if (filledData.wingType === undefined) { filledData.wingType = Math.floor(Math.random() * 3); updated = true; }
-                    if (filledData.hasTail === undefined) { filledData.hasTail = Math.random() > 0.3; updated = true; }
-                    if (filledData.tailType === undefined) { filledData.tailType = Math.floor(Math.random() * 3); updated = true; }
-                    if (filledData.eyeType === undefined) { filledData.eyeType = Math.floor(Math.random() * 4); updated = true; }
-
-                    if (updated) {
-                        needsSave = true;
-                    }
-                    return filledData;
-                });
-
-                window.game.topMonsters = processedMonstersData.map(data => {
-                    const monster = new TopMonster(
-                        window.game.topCanvas.width,
-                        window.game.topCanvas.height,
-                        null,
-                        data.attack + data.hp,
-                        data // 確定済みのデータを渡す
-                    );
-                    monster.x = data.x;
-                    monster.y = data.y;
-                    monster.type = data.type;
-                    monster.radius = data.radius;
-                    monster.attack = data.attack;
-                    monster.hp = data.hp;
-                    return monster;
-                });
-
-                // 不足しているパラメータがあった場合は即座にクラウドへ保存
-                if (needsSave && window.game.dataManager) {
-                    await window.game.dataManager.saveCloudData(window.game);
-                }
-            }
-
+            // ▼ 先に partyMonsterIds と dungeonFloor を game インスタンスに反映させる
             if (userData.partyMonsterIds && Array.isArray(userData.partyMonsterIds) && window.game) {
                 window.game.partyMonsterIds = userData.partyMonsterIds;
             }
 
             if (userData.dungeonFloor !== undefined && window.game) {
                 window.game.setFloor(userData.dungeonFloor);
+            }
+
+            if (userData.monsters && Array.isArray(userData.monsters) && window.game && window.game.topCanvas) {
+                // ▼ 既存の見た目パラメータをすべてリセットし、ステータスのみ保持して再生成する
+                window.game.topMonsters = userData.monsters.map(data => {
+                    const resetData = {
+                        x: data.x,
+                        y: data.y,
+                        type: data.type,
+                        radius: data.radius,
+                        attack: data.attack,
+                        hp: data.hp,
+                        currentHp: data.currentHp
+                    };
+
+                    const monster = new TopMonster(
+                        window.game.topCanvas.width,
+                        window.game.topCanvas.height,
+                        null,
+                        data.attack + data.hp,
+                        resetData
+                    );
+
+                    monster.x = data.x;
+                    monster.y = data.y;
+                    monster.type = data.type;
+                    monster.radius = data.radius;
+                    monster.attack = data.attack;
+                    monster.hp = data.hp;
+                    if (data.currentHp !== undefined) {
+                        monster.currentHp = data.currentHp;
+                    }
+                    return monster;
+                });
+
+                // ▼ この保存時にはすでに partyMonsterIds がセットされているため、並び順も保持されて保存される
+                if (window.game.dataManager) {
+                    await window.game.dataManager.saveCloudData(window.game);
+                }
             }
         } else {
             const localName = localStorage.getItem('gameUserName');
