@@ -8,6 +8,64 @@ export class GameRenderer {
         this.topCtx = topCtx;
         this.attackEffects = [];
         this.enemyFadeAlpha = 1.0;
+        this.draggedMonster = null;
+        this.isListenerInitialized = false;
+    }
+
+    initDragListeners(game) {
+        if (this.isListenerInitialized || !this.topCanvas) return;
+        this.isListenerInitialized = true;
+
+        const getPos = (e) => {
+            const rect = this.topCanvas.getBoundingClientRect();
+            const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+            const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+            const scaleX = this.topCanvas.width / rect.width;
+            const scaleY = this.topCanvas.height / rect.height;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        };
+
+        const onStart = (e) => {
+            if (!game || game.currentMode !== 'scout') return;
+            const pos = getPos(e);
+            const partyList = game.topMonsters || [];
+            for (let m of partyList) {
+                const r = m.radius || 14;
+                const dist = Math.hypot(m.x - pos.x, m.y - pos.y);
+                if (dist <= r + 10) {
+                    this.draggedMonster = m;
+                    if (e.type === 'touchstart') e.preventDefault();
+                    break;
+                }
+            }
+        };
+
+        const onMove = (e) => {
+            if (!this.draggedMonster || !game || game.currentMode !== 'scout') return;
+            const pos = getPos(e);
+            this.draggedMonster.x = pos.x;
+            this.draggedMonster.y = pos.y;
+            if (e.type === 'touchmove') e.preventDefault();
+        };
+
+        const onEnd = () => {
+            if (!this.draggedMonster || !game || game.currentMode !== 'scout') return;
+            // 離した位置を新しい基準座標にする
+            this.draggedMonster.scoutBaseX = this.draggedMonster.x;
+            this.draggedMonster.scoutBaseY = this.draggedMonster.y;
+            this.draggedMonster = null;
+        };
+
+        this.topCanvas.addEventListener('mousedown', onStart);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onEnd);
+
+        this.topCanvas.addEventListener('touchstart', onStart, { passive: false });
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onEnd);
     }
 
     startAttackAnimation(attackEvents) {
@@ -189,6 +247,8 @@ export class GameRenderer {
     drawTopCanvas(game) {
         if (!this.topCtx || !this.topCanvas) return;
 
+        this.initDragListeners(game);
+
         if (this.topCanvas.height !== 290) {
             this.topCanvas.height = 290;
         }
@@ -291,7 +351,6 @@ export class GameRenderer {
         if (count > 0) {
             const isScout = game.currentMode === 'scout';
 
-            // ▼ スカウトモード時の最大ATKと最大HPを計算してスケールの基準にする
             let maxAtk = 1;
             let maxHp = 1;
             if (isScout) {
@@ -309,49 +368,50 @@ export class GameRenderer {
                 }
 
                 if (isScout) {
-                    // 初回または位置が未設定の場合、ATKとHPの比率に基づいて基本座標を決定
-                    if (monster.scoutX === undefined || monster.scoutY === undefined) {
-                        const marginX = 45;
-                        const topLimit = 40;
-                        const bottomLimit = h - 40;
-                        
-                        const drawW = w - marginX * 2;
-                        const drawH = bottomLimit - topLimit;
+                    if (this.draggedMonster === monster) {
+                        monster.scoutBaseX = monster.x;
+                        monster.scoutBaseY = monster.y;
+                    } else {
+                        if (monster.scoutX === undefined || monster.scoutY === undefined) {
+                            const marginX = 45;
+                            const topLimit = 40;
+                            const bottomLimit = h - 40;
+                            
+                            const drawW = w - marginX * 2;
+                            const drawH = bottomLimit - topLimit;
 
-                        const atkRatio = maxAtk > 0 ? (monster.attack / maxAtk) : 0.5;
-                        const hpRatio = maxHp > 0 ? (monster.hp / maxHp) : 0.5;
+                            const atkRatio = maxAtk > 0 ? (monster.attack / maxAtk) : 0.5;
+                            const hpRatio = maxHp > 0 ? (monster.hp / maxHp) : 0.5;
 
-                        // 横軸：攻撃力（左が低、右が高）
-                        const baseScreenX = marginX + atkRatio * drawW;
-                        // 縦軸：HP（上が高、下が低）
-                        const baseScreenY = bottomLimit - hpRatio * drawH;
+                            const baseScreenX = marginX + atkRatio * drawW;
+                            const baseScreenY = bottomLimit - hpRatio * drawH;
 
-                        monster.scoutX = baseScreenX;
-                        monster.scoutY = baseScreenY;
-                        monster.scoutBaseX = baseScreenX;
-                        monster.scoutBaseY = baseScreenY;
-                        monster.walkSpeed = 0.2 + Math.random() * 0.2;
-                        monster.walkAngle = Math.random() * Math.PI * 2;
+                            monster.scoutX = baseScreenX;
+                            monster.scoutY = baseScreenY;
+                            monster.scoutBaseX = baseScreenX;
+                            monster.scoutBaseY = baseScreenY;
+                            monster.walkSpeed = 0.2 + Math.random() * 0.2;
+                            monster.walkAngle = Math.random() * Math.PI * 2;
+                        }
+
+                        const time = (Date.now() - (monster.startTime || Date.now())) / 1000;
+                        const t = time * monster.walkSpeed + monster.walkAngle;
+
+                        const rawSinX = Math.sin(t);
+                        const rawCosY = Math.cos(t * 0.7);
+
+                        const stopThreshold = 0.35;
+                        let factorX = rawSinX > stopThreshold ? (rawSinX - stopThreshold) / (1 - stopThreshold) :
+                            rawSinX < -stopThreshold ? (rawSinX + stopThreshold) / (1 - stopThreshold) : 0;
+                        let factorY = rawCosY > stopThreshold ? (rawCosY - stopThreshold) / (1 - stopThreshold) :
+                            rawCosY < -stopThreshold ? (rawCosY + stopThreshold) / (1 - stopThreshold) : 0;
+
+                        const walkOffsetX = factorX * 20;
+                        const walkOffsetY = factorY * 20;
+
+                        monster.x = monster.scoutBaseX + walkOffsetX;
+                        monster.y = monster.scoutBaseY + walkOffsetY;
                     }
-
-                    // 動く範囲を狭くする（横 ±10、縦 ±10）
-                    const time = (Date.now() - (monster.startTime || Date.now())) / 1000;
-                    const t = time * monster.walkSpeed + monster.walkAngle;
-
-                    const rawSinX = Math.sin(t);
-                    const rawCosY = Math.cos(t * 0.7);
-
-                    const stopThreshold = 0.35;
-                    let factorX = rawSinX > stopThreshold ? (rawSinX - stopThreshold) / (1 - stopThreshold) :
-                        rawSinX < -stopThreshold ? (rawSinX + stopThreshold) / (1 - stopThreshold) : 0;
-                    let factorY = rawCosY > stopThreshold ? (rawCosY - stopThreshold) / (1 - stopThreshold) :
-                        rawCosY < -stopThreshold ? (rawCosY + stopThreshold) / (1 - stopThreshold) : 0;
-
-                    const walkOffsetX = factorX * 10;
-                    const walkOffsetY = factorY * 10;
-
-                    monster.x = monster.scoutBaseX + walkOffsetX;
-                    monster.y = monster.scoutBaseY + walkOffsetY;
 
                     const minX = 25;
                     const maxX = w - 25;
