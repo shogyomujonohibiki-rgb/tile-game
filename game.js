@@ -219,9 +219,15 @@ export class Game {
         this.gameStart(BOARD.ROWS, BOARD.COLS, BOARD.TYPE_COUNTS, STORAGE_KEYS.HIGH_SCORE_4X4);
     }
 
-    async switchMode(mode) {
+async switchMode(mode) {
         if (this.currentMode === mode) return;
         this.currentMode = mode;
+
+        // 入力ロック関連のフラグを確実に初期化
+        this.isResetting = false;
+        this.isTransitioning = false;
+        this.isMoving = false;
+        this.tileChosen = false;
 
         this.reset();
         this.startBoard();
@@ -234,6 +240,11 @@ export class Game {
 
         if (mode === 'dungeon' && this.renderer && typeof this.renderer.playMonsterFadeIn === 'function') {
             await this.renderer.playMonsterFadeIn(this);
+            // フェードイン完了後にもう一度明示的に描画と入力を許可
+            this.isTransitioning = false;
+            this.tileChosen = false; // 追加：選択状態も確実に解除
+            this.isMoving = false;   // 追加：移動状態も確実に解除
+            this.drawTiles();
         }
     }
 
@@ -431,7 +442,7 @@ export class Game {
         }
     }
 
-    reset() {
+reset() {
         this.tileMx = [];
         this.history = [];
         this.score = 0;
@@ -442,6 +453,9 @@ export class Game {
         this.isCounting = false;
         this.isGameover = false;
         this.isResetting = false;
+        this.isTransitioning = false; // 追加
+        this.isMoving = false;        // 追加
+        this.tileChosen = false;      // 追加
         this.minValue = 1;
         this.ui.setItemActive(false);
 
@@ -534,7 +548,7 @@ export class Game {
         });
     }
 
-async triggerScoutGameOver() {
+    async triggerScoutGameOver() {
         if (this.isGameover) return;
         this.isGameover = true;
         this.isCounting = false;
@@ -732,11 +746,11 @@ async triggerScoutGameOver() {
         }
     }
 
-    playFloorClearTransition() {
+playFloorClearTransition() {
         return new Promise((resolve) => {
             this.isTransitioning = true;
             const duration = 1000;
-            const startTime = Date.on(); // ※ Date.now()
+            const startTime = Date.now();
 
             const animate = () => {
                 const elapsed = Date.now() - startTime;
@@ -760,7 +774,11 @@ async triggerScoutGameOver() {
                     requestAnimationFrame(animate);
                 } else {
                     this.hasClearedTilesInAnim = false;
-                    this.isTransitioning = false;
+                    this.isTransitioning = false; // 確実に解除
+                    this.tileChosen = false;       // 選択状態もリセット
+                    this.isMoving = false;         // 移動中フラグも解除
+                    this.isResetting = false;      // 追加：リセット中フラグも解除
+                    this.drawTiles();
                     resolve();
                 }
             };
