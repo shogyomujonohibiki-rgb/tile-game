@@ -92,27 +92,7 @@ export class UI {
         }
     }
 
-    // カラーサンプルの初期化生成
-    initializeColorSample(colors) {
-        if (!this.colorSample) return;
 
-        this.colorSample.innerHTML = '';
-        const colorSequence = [...colors, colors[0]];
-
-        colorSequence.forEach((color, index) => {
-            const box = document.createElement('div');
-            box.className = 'sample-box';
-            box.style.backgroundColor = `rgb${color}`;
-            this.colorSample.appendChild(box);
-
-            if (index < colorSequence.length - 1) {
-                const arrow = document.createElement('span');
-                arrow.className = 'sample-arrow';
-                arrow.textContent = '→';
-                this.colorSample.appendChild(arrow);
-            }
-        });
-    }
 
     // パーティー編成モーダルの表示（順番変更・並び替え対応）
     openPartyModal(topMonsters, partyMonsterIds) {
