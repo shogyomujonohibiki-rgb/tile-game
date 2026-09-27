@@ -306,7 +306,7 @@ export class GameRenderer {
                     monster.update();
                 }
 
-// スカウトモードの場合はすべてのモンスターをランダム位置・ランダムな動きに設定
+                // スカウトモードの場合はすべてのモンスターをランダム位置・ランダムな動きに設定
                 if (isScout) {
                     // 初回または位置が未設定の場合にランダム座標を割り振る（インスタンスに保持させる）
                     if (monster.scoutX === undefined || monster.scoutY === undefined) {
@@ -348,7 +348,7 @@ export class GameRenderer {
 
                     monster.x = Math.max(minX, Math.min(maxX, monster.x));
                     monster.y = Math.max(minY, Math.min(maxY, monster.y));
-                
+
                 } else {
                     // ダンジョンモードの固定配置
                     const positions = [
@@ -406,7 +406,7 @@ export class GameRenderer {
                 // モンスターの描画実行
                 monster.draw(this.topCtx);
 
-                // ダンジョンモード時のHPバー描画
+                // ダンジョンモード時のHPバー描画 ＆ ATK表示を集約
                 if (game.currentMode === 'dungeon') {
                     if (monster.currentHp === undefined) monster.currentHp = monster.hp;
                     const barW = 50;
@@ -425,6 +425,12 @@ export class GameRenderer {
                     this.topCtx.font = '11px Arial';
                     this.topCtx.textAlign = 'center';
                     this.topCtx.fillText(`${monster.currentHp.toLocaleString()}`, monster.x, by + 14);
+
+                    // ▼ ATK表示をrenderer側に集約（ダンジョンモードのみ表示）
+                    this.topCtx.fillStyle = '#FFF';
+                    this.topCtx.font = '11px Arial';
+                    this.topCtx.textAlign = 'center';
+                    this.topCtx.fillText(`ATK:${monster.attack.toLocaleString()}`, monster.x, monster.y - monster.radius - 10);
                 }
             });
         } else {
