@@ -447,8 +447,8 @@ export class GameRenderer {
                             } else {
                                 monster.jumpProgress += 0.08;
                                 if (monster.jumpProgress >= 1) {
-                                    monster.isJumping = false;
-                                    monster.jumpProgress = 0;
+                                  monster.isJumping = false;
+                                  monster.jumpProgress = 0;
                                 } else {
                                     const p = monster.jumpProgress;
                                     if (p <= 0.5) {
@@ -477,6 +477,36 @@ export class GameRenderer {
 
                 // モンスターの描画実行
                 monster.draw(this.topCtx);
+
+                // スカウトモードでドラッグされているモンスターのHPと攻撃力を表示
+                if (isScout && this.draggedMonster === monster) {
+                    this.topCtx.save();
+                    this.topCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    const boxW = 86;
+                    const boxH = 32;
+                    const bx = monster.x - boxW / 2;
+                    const by = monster.y - monster.radius - 38;
+                    
+                    if (typeof this.topCtx.roundRect === 'function') {
+                        this.topCtx.beginPath();
+                        this.topCtx.roundRect(bx, by, boxW, boxH, 4);
+                        this.topCtx.fill();
+                        this.topCtx.strokeStyle = '#FFD700';
+                        this.topCtx.lineWidth = 1;
+                        this.topCtx.stroke();
+                    } else {
+                        this.topCtx.fillRect(bx, by, boxW, boxH);
+                    }
+
+                    this.topCtx.fillStyle = '#00FF00';
+                    this.topCtx.font = 'bold 11px Arial';
+                    this.topCtx.textAlign = 'left';
+                    this.topCtx.fillText(`HP: ${monster.hp.toLocaleString()}`, bx + 6, by + 12);
+
+                    this.topCtx.fillStyle = '#00FFFF';
+                    this.topCtx.fillText(`ATK: ${monster.attack.toLocaleString()}`, bx + 6, by + 25);
+                    this.topCtx.restore();
+                }
 
                 // ダンジョンモード時のHPバー描画 ＆ ATK表示を集約
                 if (game.currentMode === 'dungeon') {
