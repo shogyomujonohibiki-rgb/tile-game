@@ -10,12 +10,20 @@ export class TopMonster {
         this.attack = 1;
         this.hp = 1;
 
-        // アニメーション用の位相やランダム係数
-        this.animPhase = Math.random() * Math.PI * 2;
-        this.animSpeed = 0.03 + Math.random() * 0.04;
-        this.floatAmplitude = 4 + Math.random() * 6;
+        // 体のインデックスを 0 から順番に通し番号で定義 (全15種類)
+        const bodyIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+        
+        // 振りなおしたインデックスに合わせて振り子運動するパーツを指定 (例: 旧 9,38,13,59 → 新 4,5,8,12)
+        const pendulumIndices = [4, 5, 8, 12];
+        this.pendulumIndices = pendulumIndices;
+        
+        this.config = {
+            baseSpeed: 0.8 + Math.random() * 1.2,
+            phase: Math.random() * Math.PI * 2,
+            modSpeed: 0.5 + Math.random() * 1.0,
+            pendulumFreq: 2.0 + Math.random() * 1.0
+        };
 
-        // 多様性を生むパーツパラメータ（数万通りの組み合わせ）
         const palettes = [
             { main: '#FF5722', sub: '#FF8A65', accent: '#D84315' },
             { main: '#9C27B0', sub: '#BA68C8', accent: '#7B1FA2' },
@@ -27,18 +35,21 @@ export class TopMonster {
             { main: '#FF9800', sub: '#FFB74D', accent: '#F57C00' }
         ];
 
+        // 目のインデックスを 0 から順番に通し番号で定義 (全10種類)
+        const eyeIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
         const s = savedData || {};
-        this.bodyType = s.bodyType !== undefined ? s.bodyType : Math.floor(Math.random() * 4);
+        this.bodyType = s.bodyType !== undefined ? s.bodyType : bodyIndices[Math.floor(Math.random() * bodyIndices.length)];
         this.paletteIndex = s.paletteIndex !== undefined ? s.paletteIndex : Math.floor(Math.random() * palettes.length);
         this.palette = palettes[this.paletteIndex];
-        this.hasHorn = s.hasHorn !== undefined ? s.hasHorn : Math.random() > 0.3;
-        this.hornType = s.hornType !== undefined ? s.hornType : Math.floor(Math.random() * 3);
-        this.hornCount = s.hornCount !== undefined ? s.hornCount : (Math.random() > 0.7 ? 2 : 1);
-        this.hasWing = s.hasWing !== undefined ? s.hasWing : Math.random() > 0.4;
-        this.wingType = s.wingType !== undefined ? s.wingType : Math.floor(Math.random() * 3);
-        this.hasTail = s.hasTail !== undefined ? s.hasTail : Math.random() > 0.3;
-        this.tailType = s.tailType !== undefined ? s.tailType : Math.floor(Math.random() * 3);
-        this.eyeType = s.eyeType !== undefined ? s.eyeType : Math.floor(Math.random() * 4);
+        
+        // 付属パーツ（すべての装飾パーツを非表示に設定）[cite: 10]
+        this.hasHorn = false;
+        this.hasWing = false;
+        this.hasTail = false;
+        
+        // 目タイプを全パターンから選択
+        this.eyeType = s.eyeType !== undefined ? s.eyeType : eyeIndices[Math.floor(Math.random() * eyeIndices.length)];
 
         if (tileValue !== null) {
             this.radius = Math.min(10 + tileValue * 1.5, 20);
@@ -48,150 +59,161 @@ export class TopMonster {
         const atkBase = Math.floor(initialScore * ratio);
         this.attack = Math.max(1, atkBase);
         this.hp = Math.max(1, initialScore - this.attack);
+        
+        this.startTime = Date.now();
     }
 
     update() {
-        const isDead = this.currentHp !== undefined && this.currentHp <= 0;
-        if (isDead) return;
-
-        this.animPhase += this.animSpeed;
+        // 更新処理
     }
 
     draw(ctx) {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // sin とランダムを組み合わせた常時動く浮遊・揺れ表現
-        const sinY = Math.sin(this.animPhase) * this.floatAmplitude;
-        const sinRotate = Math.sin(this.animPhase * 0.5) * 0.05;
-
-        ctx.translate(0, sinY);
-        ctx.rotate(sinRotate);
+        // 体の上下浮遊表現は停止済み[cite: 10]
 
         const isDead = this.currentHp !== undefined && this.currentHp <= 0;
-        const scaleY = isDead ? 0.4 : 1.0;
-        ctx.scale(1.0, scaleY);
-
-        // --- 尻尾の描画 ---
-        if (this.hasTail && !isDead) {
-            ctx.save();
-            ctx.strokeStyle = this.palette.accent;
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            const tailWave = Math.sin(this.animPhase * 2) * 5;
-
-            ctx.beginPath();
-            if (this.tailType === 0) {
-                ctx.moveTo(-this.radius * 0.8, 0);
-                ctx.quadraticCurveTo(-this.radius * 1.5, -10 + tailWave, -this.radius * 2, tailWave);
-            } else if (this.tailType === 1) {
-                ctx.moveTo(-this.radius * 0.8, 0);
-                ctx.quadraticCurveTo(-this.radius * 1.6, 10 + tailWave, -this.radius * 2, 5 + tailWave);
-            } else {
-                ctx.moveTo(-this.radius * 0.8, 0);
-                ctx.lineTo(-this.radius * 1.8, -5 + tailWave);
-                ctx.lineTo(-this.radius * 1.5, 5 + tailWave);
-            }
-            ctx.stroke();
-            ctx.restore();
+        if (isDead) {
+            ctx.scale(1.0, 0.4);
         }
 
-        // --- 羽の描画 ---
-        if (this.hasWing && !isDead) {
-            ctx.save();
-            ctx.fillStyle = this.palette.sub;
-            ctx.strokeStyle = this.palette.accent;
-            ctx.lineWidth = 1.5;
+        const time = (Date.now() - this.startTime) / 1000;
 
-            const wingFlap = Math.sin(this.animPhase * 4) * 0.2;
-            ctx.translate(-this.radius * 0.2, -this.radius * 0.3);
-            ctx.rotate(wingFlap);
+        // --- 体の描画と回転アニメーション ---
+        ctx.save();
+        let scaleX = 1 + Math.sin(time * 3 + this.bodyType) * 0.08;
+        let scaleYAnim = 1 + Math.cos(time * 3 + this.bodyType) * 0.08;
+        ctx.scale(scaleX, scaleYAnim);
 
-            ctx.beginPath();
-            if (this.wingType === 0) {
-                ctx.ellipse(-10, -5, 12, 6, -Math.PI / 4, 0, Math.PI * 2);
-            } else if (this.wingType === 1) {
-                ctx.moveTo(0, 0);
-                ctx.lineTo(-15, -12);
-                ctx.lineTo(-10, -2);
-                ctx.lineTo(-18, 5);
-                ctx.closePath();
-            } else {
-                ctx.arc(-10, -8, 8, 0, Math.PI * 2);
-            }
-            ctx.fill();
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        // --- 本体の描画 ---
-        ctx.fillStyle = this.palette.main;
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
-
-        ctx.beginPath();
-        if (this.bodyType === 0) {
-            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-        } else if (this.bodyType === 1) {
-            ctx.ellipse(0, 0, this.radius * 1.2, this.radius * 0.9, 0, 0, Math.PI * 2);
-        } else if (this.bodyType === 2) {
-            for (let i = 0; i < 6; i++) {
-                const angle = (Math.PI / 3) * i;
-                const px = Math.cos(angle) * this.radius;
-                const py = Math.sin(angle) * this.radius;
-                if (i === 0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
+        let cfg = this.config;
+        if (this.pendulumIndices.includes(this.bodyType)) {
+            let swingAngle = Math.sin(time * cfg.pendulumFreq + cfg.phase) * 0.35;
+            ctx.rotate(swingAngle);
         } else {
-            for (let i = 0; i < 8; i++) {
-                const angle = (Math.PI / 4) * i;
-                const r = i % 2 === 0 ? this.radius : this.radius * 0.75;
-                const px = Math.cos(angle) * r;
-                const py = Math.sin(angle) * r;
-                if (i === 0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
+            let t = time * cfg.modSpeed + cfg.phase;
+            let rotation = time * cfg.baseSpeed + 0.5 * Math.sin(t); 
+            ctx.rotate(rotation);
         }
-        ctx.fill();
-        ctx.stroke();
 
-        // --- 角の描画 ---
-        if (this.hasHorn && !isDead) {
-            ctx.fillStyle = this.palette.accent;
-            ctx.strokeStyle = '#FFF';
-            ctx.lineWidth = 1;
+        ctx.fillStyle = this.palette.main; 
+        ctx.strokeStyle = '#FFFFFF'; 
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        
+        const type = this.bodyType;
+        const r = this.radius;
 
-            const drawHorn = (hx, hy, hSign) => {
-                ctx.save();
-                ctx.translate(hx, hy);
-                ctx.rotate(hSign * 0.3);
-                ctx.beginPath();
-                if (this.hornType === 0) {
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(hSign * 4, -this.radius * 0.8);
-                    ctx.lineTo(-2, -this.radius * 0.4);
-                } else if (this.hornType === 1) {
-                    ctx.arc(0, -this.radius * 0.4, 5, 0, Math.PI * 1.5);
-                } else {
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(hSign * 6, -this.radius * 0.5);
-                    ctx.lineTo(hSign * 2, 0);
+        // 新しい通し番号（0〜14）に基づくボディ形状の分岐
+        switch(type) {
+            case 0: ctx.arc(0, 0, r, 0, Math.PI * 2); break; // 旧0
+            case 1:  // 旧5
+                for(let i = 0; i < 6; i++) {
+                    let a = i * Math.PI / 3;
+                    i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
                 }
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
-            };
-
-            if (this.hornCount === 2) {
-                drawHorn(-this.radius * 0.4, -this.radius * 0.7, -1);
-                drawHorn(this.radius * 0.4, -this.radius * 0.7, 1);
-            } else {
-                drawHorn(0, -this.radius * 0.8, 1);
+                ctx.closePath(); break;
+            case 2:  // 旧8
+            case 3:  // 旧34
+            {
+                let spikes = 6 + (type === 2 ? 10 : 8);
+                let innerRatio = 0.4 + (type % 3) * 0.1;
+                for(let i = 0; i < spikes; i++) {
+                    let a = i * Math.PI / (spikes / 2);
+                    let rad = i % 2 === 0 ? r * 1.1 : r * innerRatio;
+                    i === 0 ? ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad) : ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+                }
+                ctx.closePath(); break;
             }
+            case 4:  // 旧9
+            case 5:  // 旧38
+            {
+                let offsetY = r * (0.2 + (type % 5) * 0.1);
+                let radiusScale = 0.8 + (type % 3) * 0.15;
+                ctx.arc(0, offsetY, r * radiusScale, 0, Math.PI); 
+                ctx.lineTo(0, -r * (1.0 + (type % 2) * 0.3)); 
+                ctx.closePath(); break;
+            }
+            case 6:  // 旧12
+            case 7:  // 旧44
+            { 
+                let thick = r * (0.3 + (type % 3) * 0.1);
+                let len = r * (1.1 + (type % 2) * 0.3);
+                ctx.rect(-thick, -len, thick * 2, len * 2); 
+                ctx.rect(-len, -thick, len * 2, thick * 2); 
+                break;
+            }
+            case 8:  // 旧13
+            { 
+                let skew = 1.2;
+                ctx.moveTo(-r * 0.6, -r * 1.2); 
+                ctx.quadraticCurveTo(r * 1.2 * skew, -r * 0.3, r * 0.8, r * 1.2); 
+                ctx.lineTo(-r * 0.8, r * 1.2); 
+                ctx.quadraticCurveTo(-r * 1.2 * skew, -r * 0.3, -r * 0.6, -r * 1.2); 
+                break;
+            }
+            case 9:  // 旧17
+            case 10: // 旧55
+            { 
+                let coreSize = r * 0.8; 
+                ctx.arc(0, 0, coreSize, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                let count = 8 + (type % 4) * 2;
+                for(let i = 0; i < count; i++) {
+                    let a = i * Math.PI / (count / 2);
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(a) * coreSize, Math.sin(a) * coreSize);
+                    ctx.lineTo(Math.cos(a) * r * 1.05, Math.sin(a) * r * 1.05);
+                    ctx.stroke();
+                }
+                break;
+            }
+            case 11: // 旧117
+            { 
+                let coreSize = r * 0.55; 
+                ctx.arc(0, 0, coreSize, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                let count = 8 + (type % 4) * 2;
+                for(let i = 0; i < count; i++) {
+                    let a = i * Math.PI / (count / 2);
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(a) * coreSize, Math.sin(a) * coreSize);
+                    ctx.lineTo(Math.cos(a) * r * 1.2, Math.sin(a) * r * 1.2); 
+                    ctx.stroke();
+                }
+                break;
+            }
+            case 12: // 旧59
+            {
+                ctx.arc(0, -r * 0.2, r * 1.0, Math.PI, 0); 
+                ctx.lineTo(r * 0.9, r * 0.6); 
+                ctx.quadraticCurveTo(0, r * 1.0, -r * 0.9, r * 0.6); 
+                ctx.closePath(); break;
+            }
+            case 13: // 旧23
+            { 
+                let vertices = 5 + (type % 4);
+                for(let i = 0; i < vertices; i++) {
+                    let a = i * 2 * Math.PI / vertices - Math.PI / 2;
+                    i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+                }
+                ctx.closePath(); break;
+            }
+            case 14: // 旧70
+            { 
+                let wFactor = 1.0 + (type % 3) * 0.2;
+                ctx.moveTo(-r, 0); 
+                ctx.bezierCurveTo(-r, -r * 1.5 * wFactor, r * 0.5, -r * 1.5 * wFactor, r, -r * 0.3); 
+                ctx.bezierCurveTo(r * 1.5, r, -r * 1.5, r * 1.2 * wFactor, -r, 0); 
+                break;
+            }
+            default:
+                ctx.arc(0, 0, r, 0, Math.PI * 2); break;
         }
+        
+        if (type !== 9 && type !== 10) {
+            ctx.fill(); 
+            ctx.stroke();
+        }
+        ctx.restore();
 
         // --- 目の描画 ---
         if (isDead) {
@@ -207,42 +229,69 @@ export class TopMonster {
                 ctx.stroke();
             });
         } else {
-            ctx.fillStyle = '#FFF';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-
-            const eyeOffsetX = 6;
-            const eyeOffsetY = -2;
-
-            [-eyeOffsetX, eyeOffsetX].forEach((ex) => {
-                ctx.save();
-                ctx.translate(ex, eyeOffsetY);
+            const eyeMove = Math.sin(time * 4 + this.eyeType) * 1.5;
+            [-6, 6].forEach(ex => {
+                ctx.save(); 
+                ctx.translate(ex, -2 + eyeMove);
+                ctx.fillStyle = '#FFF'; 
+                ctx.strokeStyle = '#000'; 
+                ctx.lineWidth = 1;
                 ctx.beginPath();
-                if (this.eyeType === 0) {
-                    ctx.arc(0, 0, 5, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
-                    ctx.fillStyle = '#000';
-                    ctx.beginPath();
-                    ctx.arc(1, 0, 2.5, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (this.eyeType === 1) {
-                    ctx.moveTo(-5, 3);
-                    ctx.lineTo(5, -3);
-                    ctx.lineTo(5, 3);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.stroke();
-                } else if (this.eyeType === 2) {
-                    ctx.ellipse(0, 0, 3, 5, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
-                    ctx.fillStyle = '#000';
-                    ctx.fillRect(-1, -2, 2, 4);
-                } else {
-                    ctx.arc(0, 0, 5, Math.PI, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
+                
+                // 新しい通し番号（0〜9）に基づく目の形状の分岐
+                switch(this.eyeType) {
+                    case 0: // 旧0
+                        ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); 
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1.5, 0, 2.5, 0, Math.PI * 2); ctx.fill(); 
+                        break;
+                    case 1: // 旧11
+                        ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); 
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1.5, 0, 1.5, 0, Math.PI * 2); ctx.fill(); 
+                        break;
+                    case 2: // 旧310
+                        ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); 
+                        ctx.beginPath(); ctx.arc(1.2, 0, 1.5, 0, Math.PI * 2); ctx.fillStyle = '#000'; ctx.fill(); 
+                        break;
+                    case 3: // 旧409
+                        ctx.rect(-5, -5, 10, 10); ctx.fillStyle = '#FFF'; ctx.fill(); ctx.stroke();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1.5, 0, 2, 0, Math.PI * 2); ctx.fill(); 
+                        break;
+                    case 4: // 旧508
+                        ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fillStyle = '#FFF'; ctx.fill(); ctx.stroke();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1.5, 0, 2, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(0, -7); ctx.moveTo(0, 5); ctx.lineTo(0, 7); ctx.stroke(); 
+                        break;
+                    case 5: // 旧511
+                        ctx.beginPath(); 
+                        ctx.arc(1.5, 0, 2.2, 0, Math.PI * 2); 
+                        ctx.fillStyle = '#000000'; 
+                        ctx.fill(); 
+                        ctx.strokeStyle = '#FFFFFF'; 
+                        ctx.lineWidth = 1.2; 
+                        ctx.stroke();
+                        break;
+                    case 6: // 旧602
+                        ctx.arc(0, -2, 5, 0, Math.PI); ctx.fillStyle = '#FFF'; ctx.fill(); ctx.stroke();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1.5, -1, 1.8, 0, Math.PI * 2); ctx.fill(); 
+                        break;
+                    case 7: // 旧603
+                        ctx.moveTo(0, -6); ctx.lineTo(5.5, 0); ctx.lineTo(0, 6); ctx.lineTo(-5.5, 0); ctx.closePath();
+                        ctx.fillStyle = '#FFFDE7'; ctx.fill(); ctx.stroke();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1.5, 0, 2, 0, Math.PI * 2); ctx.fill(); 
+                        break;
+                    case 8: // 旧700
+                        ctx.ellipse(0, 0, 5, 4, 0, 0, Math.PI * 2); ctx.fillStyle = '#FFF'; ctx.fill(); ctx.stroke();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1.5, 0, 2, 0, Math.PI * 2); ctx.fill(); 
+                        break;
+                    case 9: // 旧710
+                        ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fillStyle = '#FFF'; ctx.fill(); ctx.stroke();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1.5, 0.5, 1.8, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-4, -4); ctx.lineTo(4, -1); ctx.stroke(); 
+                        break;
+                    default:
+                        ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); 
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1.5, 0, 2.5, 0, Math.PI * 2); ctx.fill();
+                        break;
                 }
                 ctx.restore();
             });
@@ -250,12 +299,12 @@ export class TopMonster {
 
         ctx.restore();
 
-        // ATKテキスト
+        // --- ATKテキストの描画 ---
         ctx.save();
         ctx.font = '8px Arial';
         ctx.fillStyle = '#FFF';
         ctx.textAlign = 'center';
-        const textY = this.y + sinY - (this.radius * scaleY) - 6;
+        const textY = this.y - this.radius - 6;
         ctx.fillText(`ATK:${this.attack.toLocaleString()}`, this.x, textY);
         ctx.restore();
     }
