@@ -191,8 +191,8 @@ export class GameRenderer {
     drawTopCanvas(game) {
         if (!this.topCtx || !this.topCanvas) return;
 
-        if (this.topCanvas.height !== 220) {
-            this.topCanvas.height = 220;
+        if (this.topCanvas.height !== 290) {
+            this.topCanvas.height = 290;
         }
 
         const w = this.topCanvas.width;
