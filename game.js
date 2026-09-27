@@ -32,7 +32,7 @@ export class Game {
 
         this.maxMonsterCount = MONSTER.MAX_OWNED;
         this.topMonsters = [];
-        this.partyMonsterIds = [];
+        this.partyMonsterIds = [null, null, null, null, null, null]; // 6ポジション分を初期化
 
         this.resizeCanvas();
         window.addEventListener('resize', () => {
@@ -42,7 +42,6 @@ export class Game {
 
         this.initTopGarden();
         this.startTopAnimation();
-        this.initPartyModalEvents();
         this.initModeSwitchEvents();
 
         const savedName = localStorage.getItem('gameUserName');
@@ -89,7 +88,6 @@ export class Game {
             });
         }
 
-        // ▼ 初期表示時にもモードに応じた表示状態を反映
         this.ui.setUndoButtonVisible(this.currentMode === 'scout');
 
         if (this.ui.undoButton) {
@@ -230,11 +228,10 @@ export class Game {
 
         this.ui.switchModeUI(mode);
         this.ui.setPartyButtonEnabled(true);
-        this.ui.setUndoButtonVisible(mode === 'scout'); // ▼ ダンジョンモードでは非表示、スカウトでは表示
+        this.ui.setUndoButtonVisible(mode === 'scout');
         this.isGameover = false;
         this.drawTiles();
 
-        // ダンジョンモードに切り替えたときに敵をフェードインさせる
         if (mode === 'dungeon' && this.renderer && typeof this.renderer.playMonsterFadeIn === 'function') {
             await this.renderer.playMonsterFadeIn(this);
         }
@@ -247,7 +244,7 @@ export class Game {
         if (this.topCanvas) {
             const topRect = this.topCanvas.getBoundingClientRect();
             this.topCanvas.width = topRect.width || 343;
-            this.topCanvas.height = 250;
+            this.topCanvas.height = 290;
         }
 
         this.TILE_WIDTH = this.canvas.width / this.NO_COL - this.TILE_MARGIN;
@@ -285,48 +282,9 @@ export class Game {
     getPartyMonsters() {
         if (!this.topMonsters || this.topMonsters.length === 0) return [];
 
-        let party = [];
-        if (this.partyMonsterIds && this.partyMonsterIds.length > 0) {
-            party = this.partyMonsterIds
-                .map(id => this.topMonsters[id])
-                .filter(m => m !== undefined);
-        }
-
-        if (party.length === 0) {
-            party = this.topMonsters.slice(0, 6);
-        }
-        return party;
-    }
-
-    initPartyModalEvents() {
-        if (this.ui.partyButton && this.ui.partyModal) {
-            this.ui.partyButton.addEventListener('click', () => {
-                if (this.ui.partyButton.disabled) return;
-                this.openPartyModal();
-            });
-        }
-        if (this.ui.closePartyModalBtn && this.ui.partyModal) {
-            this.ui.closePartyModalBtn.addEventListener('click', async () => {
-                await this.closePartyModalScreen();
-            });
-        }
-    }
-
-    openPartyModal() {
-        if (!this.partyMonsterIds || this.partyMonsterIds.length === 0) {
-            this.partyMonsterIds = this.topMonsters.slice(0, 6).map((_, i) => i);
-        }
-
-        this.ui.openPartyModal(this.topMonsters, this.partyMonsterIds);
-    }
-
-    async closePartyModalScreen() {
-        this.partyMonsterIds = this.ui.getSelectedPartyIds();
-        this.ui.closePartyModal();
-        this.renderer.drawTopCanvas(this);
-
-        // ▼ await を追加してクラウド保存が完了するのを確実に待つ
-        await this.dataManager.saveCloudData(this);
+        return this.partyMonsterIds
+            .map(id => (id !== null && id !== undefined ? this.topMonsters[id] : null))
+            .filter(m => m !== undefined);
     }
 
     saveState() {
@@ -526,7 +484,6 @@ export class Game {
         }
     }
 
-    // ダンジョンモード用：手詰まり時の画面効果付き盤面初期化
     async resetPuzzleBoard() {
         if (this.isGameover || this.isResetting) return;
         this.isResetting = true;
@@ -539,10 +496,9 @@ export class Game {
         this.drawTiles();
     }
 
-    // 盤面リセット時の演出処理
     playResetAnimation() {
         return new Promise((resolve) => {
-            const duration = 1200; // 演出時間 (ms)
+            const duration = 1200;
             const startTime = Date.now();
 
             const animate = () => {
@@ -551,17 +507,14 @@ export class Game {
 
                 let alpha = 0;
                 if (progress < 0.3) {
-                    // フェードイン
                     alpha = (progress / 0.3) * 0.85;
                 } else if (progress < 0.7) {
-                    // 保持・裏で盤面初期化
                     alpha = 0.85;
                     if (!this.hasResetTilesInAnim) {
                         this.createTiles();
                         this.hasResetTilesInAnim = true;
                     }
                 } else {
-                    // フェードアウト
                     alpha = ((1 - progress) / 0.3) * 0.85;
                 }
 
@@ -581,7 +534,7 @@ export class Game {
         });
     }
 
-    async triggerScoutGameOver() {
+async triggerScoutGameOver() {
         if (this.isGameover) return;
         this.isGameover = true;
         this.isCounting = false;
@@ -599,6 +552,12 @@ export class Game {
             const monsterScore = Math.max(10, Math.floor(this.score / 5));
             const newMonster = new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore);
             this.topMonsters.push(newMonster);
+
+            // パーティーの空き枠があれば重複させずに自動割り当て
+            const emptyIndex = this.partyMonsterIds.indexOf(null);
+            if (emptyIndex !== -1 && !this.partyMonsterIds.includes(this.topMonsters.length - 1)) {
+                this.partyMonsterIds[emptyIndex] = this.topMonsters.length - 1;
+            }
 
             if (this.topMonsters.length > this.maxMonsterCount) {
                 await this.promptMonsterLimitSelection();
@@ -671,9 +630,11 @@ export class Game {
 
         this.topMonsters = newTopMonsters;
 
-        this.partyMonsterIds = this.partyMonsterIds
-            .map(oldId => oldToNewIndexMap.get(oldId))
-            .filter(newId => newId !== undefined);
+        this.partyMonsterIds = this.partyMonsterIds.map(oldId => {
+            if (oldId === null || oldId === undefined) return null;
+            if (oldId === selectedIndex) return null;
+            return oldToNewIndexMap.get(oldId) !== undefined ? oldToNewIndexMap.get(oldId) : null;
+        });
     }
 
     release() {
@@ -738,18 +699,15 @@ export class Game {
     async processDungeonCombat(tileValue = 1) {
         const party = this.getPartyMonsters();
 
-        // 戦闘計算を実行し、攻撃イベントを受け取る
         const { isFloorCleared, isGameOver, attackEvents } = this.battleManager.processCombat(party, tileValue);
 
-        // 攻撃アニメーションの開始
         if (attackEvents.length > 0 && this.renderer && typeof this.renderer.startAttackAnimation === 'function') {
             this.renderer.startAttackAnimation(attackEvents);
         }
 
         if (isFloorCleared) {
-            // パーティメンバーのHPを全回復
             party.forEach(m => {
-                if (m.hp !== undefined) {
+                if (m && m.hp !== undefined) {
                     m.currentHp = m.hp;
                 }
             });
@@ -774,12 +732,11 @@ export class Game {
         }
     }
 
-    // 次の階へ進む際のフェードイン・フェードアウト演出
     playFloorClearTransition() {
         return new Promise((resolve) => {
-            this.isTransitioning = true; // 操作ロック用フラグをON
-            const duration = 1000; // 全体の演出時間 (ms)
-            const startTime = Date.now();
+            this.isTransitioning = true;
+            const duration = 1000;
+            const startTime = Date.on(); // ※ Date.now()
 
             const animate = () => {
                 const elapsed = Date.now() - startTime;
@@ -787,15 +744,12 @@ export class Game {
 
                 let alpha = 0;
                 if (progress < 0.5) {
-                    // 前半：画面が暗くなる（フェードアウト）
                     alpha = (progress / 0.5) * 1.0;
                 } else {
-                    // 中盤の切り替わりタイミングで盤面と次の階をリセット
                     if (!this.hasClearedTilesInAnim) {
                         this.createTiles();
                         this.hasClearedTilesInAnim = true;
                     }
-                    // 後半：画面が明るくなる（フェードイン）
                     alpha = ((1 - progress) / 0.5) * 1.0;
                 }
 
@@ -806,7 +760,7 @@ export class Game {
                     requestAnimationFrame(animate);
                 } else {
                     this.hasClearedTilesInAnim = false;
-                    this.isTransitioning = false; // 演出終了後に操作ロック解除
+                    this.isTransitioning = false;
                     resolve();
                 }
             };
@@ -815,6 +769,4 @@ export class Game {
             requestAnimationFrame(animate);
         });
     }
-
-
 }
