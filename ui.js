@@ -72,6 +72,12 @@ export class UI {
         }
     }
 
+    // ▼ 追加: 1手戻るボタンの表示・非表示切り替え
+    setUndoButtonVisible(isVisible) {
+        if (!this.undoButton) return;
+        this.undoButton.style.display = isVisible ? 'flex' : 'none';
+    }
+
     // パーティーボタンの有効/無効化
     setPartyButtonEnabled(enabled) {
         if (!this.partyButton) return;
