@@ -1,7 +1,7 @@
 'use strict';
 
 export class DataManager {
-    constructor() {}
+    constructor() { }
 
     // ユーザーデータの読み込み
     async loadUserData() {
@@ -21,7 +21,17 @@ export class DataManager {
             type: m.type,
             radius: m.radius,
             attack: m.attack,
-            hp: m.hp
+            hp: m.hp,
+            bodyType: m.bodyType,
+            paletteIndex: m.paletteIndex,
+            hasHorn: m.hasHorn,
+            hornType: m.hornType,
+            hornCount: m.hornCount,
+            hasWing: m.hasWing,
+            wingType: m.wingType,
+            hasTail: m.hasTail,
+            tailType: m.tailType,
+            eyeType: m.eyeType
         }));
 
         await window.saveUserDataToFirestore({
