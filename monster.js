@@ -6,7 +6,7 @@ export class TopMonster {
         this.canvasHeight = canvasHeight;
         this.x = 0;
         this.y = 0;
-        this.radius = 14; // ▼ 14から大きく変更
+        this.radius = 12; // サイズを一律で固定
         this.attack = 1;
         this.hp = 1;
 
@@ -56,9 +56,7 @@ export class TopMonster {
 
         this.eyeType = s.eyeType !== undefined ? s.eyeType : eyeIndices[Math.floor(Math.random() * eyeIndices.length)];
 
-        if (tileValue !== null) {
-            this.radius = Math.min(12 + tileValue * 1.5, 24); // ▼ タイル値に応じたサイズも拡大
-        }
+        // ※ tileValue による radius の上書き処理を削除しました
 
         if (s.attack !== undefined && s.hp !== undefined) {
             this.attack = s.attack;
@@ -72,7 +70,6 @@ export class TopMonster {
     }
 
     update() {
-        // ▼ 死亡時は時間を進めず、モンスターが動かないようにする
         const isDead = this.currentHp !== undefined && this.currentHp <= 0;
         if (isDead) {
             return;
@@ -108,7 +105,7 @@ export class TopMonster {
 
         ctx.fillStyle = this.palette.main;
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2; // 線幅も少し太く
+        ctx.lineWidth = 2;
         ctx.beginPath();
 
         const type = this.bodyType;
@@ -224,7 +221,7 @@ export class TopMonster {
         }
         ctx.restore();
 
-        // --- 目の描画（サイズに合わせて位置と大きさを調整） ---
+        // --- 目の描画 ---
         if (isDead) {
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 2;
@@ -304,6 +301,5 @@ export class TopMonster {
         }
 
         ctx.restore();
-
     }
 }
