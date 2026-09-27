@@ -46,11 +46,12 @@ div {
 }
 
 .p3 {
-  font-size: 18px;
+  font-size: 16px;
   color: rgb(132, 132, 132);
-  height: 24px;
-  line-height: 24px;
-  margin-bottom: 0; /* ハイスコア下部のスペースを詰める */
+  height: 20px;
+  line-height: 20px;
+  margin: 0 auto; /* ハイスコアの上下マージンを完全になくす */
+  padding: 0;
 }
 
 #gameArea {
@@ -58,8 +59,8 @@ div {
   max-width: 100%;
   box-sizing: border-box;
   margin: 0 auto;
-  padding-top: max(4px, env(safe-area-inset-top));
-  padding-bottom: 0; /* 下部の余白を削る */
+  padding-top: 0; /* セーフエリアなどの上部パディングをゼロにする */
+  padding-bottom: 0;
 }
 
 /* 上部キャンバス（箱庭：黒背景） */
