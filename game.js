@@ -302,8 +302,8 @@ export class Game {
             });
         }
         if (this.ui.closePartyModalBtn && this.ui.partyModal) {
-            this.ui.closePartyModalBtn.addEventListener('click', () => {
-                this.closePartyModalScreen();
+            this.ui.closePartyModalBtn.addEventListener('click', async () => {
+                await this.closePartyModalScreen();
             });
         }
     }
@@ -316,12 +316,13 @@ export class Game {
         this.ui.openPartyModal(this.topMonsters, this.partyMonsterIds);
     }
 
-    closePartyModalScreen() {
+    async closePartyModalScreen() {
         this.partyMonsterIds = this.ui.getSelectedPartyIds();
         this.ui.closePartyModal();
         this.renderer.drawTopCanvas(this);
 
-        this.dataManager.saveCloudData(this);
+        // ▼ await を追加してクラウド保存が完了するのを確実に待つ
+        await this.dataManager.saveCloudData(this);
     }
 
     saveState() {
