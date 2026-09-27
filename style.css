@@ -67,7 +67,7 @@ div {
   background: black;
   display: block;
   width: 100%;
-  height: 250px;
+  height: 290px;
   margin: 0 0 2px 0; /* 上部キャンバス下のスペースをほぼなしに */
   touch-action: none;
   border-radius: 6px;
