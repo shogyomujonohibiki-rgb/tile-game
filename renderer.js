@@ -344,7 +344,7 @@ export class GameRenderer {
                 const row = i % 3;
                 const sx = startX + col * (slotWidth + gapX);
                 const sy = startY + row * (slotHeight + gapY);
-                
+
                 this.topCtx.fillStyle = '#222233';
                 this.topCtx.fillRect(sx, sy, slotWidth, slotHeight);
 
@@ -523,17 +523,13 @@ export class GameRenderer {
                         } else {
                             if (monster.scoutX === undefined || monster.scoutY === undefined) {
                                 const marginX = 105;
-                                const topLimit = 40;
-                                const bottomLimit = h - 40;
-                                
-                                const drawW = w - marginX - 25;
-                                const drawH = bottomLimit - topLimit;
+                                const maxX = w - 25;
+                                const minY = 40;
+                                const maxY = h - 40;
 
-                                const atkRatio = maxAtk > 0 ? (monster.attack / maxAtk) : 0.5;
-                                const hpRatio = maxHp > 0 ? (monster.hp / maxHp) : 0.5;
-
-                                const baseScreenX = marginX + atkRatio * drawW;
-                                const baseScreenY = bottomLimit - hpRatio * drawH;
+                                // ステータスに関わらずエリア内でランダムに初期位置を決定
+                                const baseScreenX = marginX + Math.random() * (maxX - marginX);
+                                const baseScreenY = minY + Math.random() * (maxY - minY);
 
                                 monster.scoutX = baseScreenX;
                                 monster.scoutY = baseScreenY;
@@ -596,8 +592,8 @@ export class GameRenderer {
                             } else {
                                 monster.jumpProgress += 0.08;
                                 if (monster.jumpProgress >= 1) {
-                                  monster.isJumping = false;
-                                  monster.jumpProgress = 0;
+                                    monster.isJumping = false;
+                                    monster.jumpProgress = 0;
                                 } else {
                                     const p = monster.jumpProgress;
                                     if (p <= 0.5) {
@@ -648,6 +644,23 @@ export class GameRenderer {
                     this.topCtx.restore();
                 }
 
+                // 箱庭（スカウト画面の散策エリア）にいるモンスターにも、常時HPとATKを表示する
+                if (isScout && assignedSlotIndex === -1) {
+                    this.topCtx.save();
+                    this.topCtx.font = '8px Arial';
+                    this.topCtx.textAlign = 'center';
+
+                    // モンスターの頭上にATK
+                    this.topCtx.fillStyle = '#00FFFF';
+                    this.topCtx.fillText(`ATK:${monster.attack}`, monster.x, monster.y - monster.radius - 9);
+
+                    // モンスターの足元にHP
+                    this.topCtx.fillStyle = '#00FF00';
+                    this.topCtx.fillText(`HP:${monster.hp}`, monster.x, monster.y + monster.radius + 11);
+
+                    this.topCtx.restore();
+                }
+
                 if (isScout && this.draggedMonster === monster) {
                     this.topCtx.save();
                     this.topCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -655,7 +668,7 @@ export class GameRenderer {
                     const boxH = 32;
                     const bx = monster.x - boxW / 2;
                     const by = monster.y - monster.radius - 38;
-                    
+
                     if (typeof this.topCtx.roundRect === 'function') {
                         this.topCtx.beginPath();
                         this.topCtx.roundRect(bx, by, boxW, boxH, 4);
