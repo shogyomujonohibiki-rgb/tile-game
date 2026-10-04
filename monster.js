@@ -62,10 +62,10 @@ export class TopMonster {
             this.attack = s.attack;
             this.hp = s.hp;
         } else {
-            const ratio = Math.random();
-            const atkBase = Math.floor(initialScore * ratio);
-            this.attack = Math.max(1, atkBase);
-            this.hp = Math.max(1, initialScore - this.attack);
+            // HPと攻撃力を連動させず、それぞれ完全にランダムな値に設定するよう変更
+            const maxVal = Math.max(1, initialScore);
+            this.attack = Math.max(1, Math.floor(Math.random() * maxVal) + 1);
+            this.hp = Math.max(1, Math.floor(Math.random() * maxVal) + 1);
         }
     }
 
