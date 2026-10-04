@@ -61,6 +61,17 @@ export class UI {
         this.undoButton.style.display = isVisible ? 'flex' : 'none';
     }
 
+    // 追加：パーティーボタン等の有効・無効切り替え用メソッド
+    setPartyButtonEnabled(enabled) {
+        // 必要に応じて特定のボタン要素の制御を行います（エラー回避用のプレースホルダーとしても機能します）
+        if (this.modeScoutBtn) {
+            this.modeScoutBtn.disabled = !enabled;
+        }
+        if (this.modeDungeonBtn) {
+            this.modeDungeonBtn.disabled = !enabled;
+        }
+    }
+
     switchModeUI(mode) {
         if (!this.modeScoutBtn || !this.modeDungeonBtn) return;
         if (mode === 'scout') {
