@@ -254,8 +254,8 @@ export class TopMonster {
                         ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1, 0, 1.8, 0, Math.PI * 2); ctx.fill();
                         break;
                     case 2:
-                        ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-                        ctx.beginPath(); ctx.arc(1, 0, 1.8, 0, Math.PI * 2); ctx.fillStyle = '#000'; ctx.fill();
+                        ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+                        ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.stroke();
                         break;
                     case 3:
                         ctx.rect(-5, -5, 10, 10); ctx.fillStyle = '#FFF'; ctx.fill(); ctx.stroke();
@@ -263,7 +263,7 @@ export class TopMonster {
                         break;
                     case 4:
                         ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fillStyle = '#FFF'; ctx.fill(); ctx.stroke();
-                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1, 0, 2, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.fill();
                         break;
                     case 5:
                         ctx.beginPath();
@@ -289,7 +289,9 @@ export class TopMonster {
                         break;
                     case 9:
                         ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fillStyle = '#FFF'; ctx.fill(); ctx.stroke();
-                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(1, 0.5, 1.8, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 1, 2, 0, Math.PI * 2); ctx.fill();
+                        ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+                        ctx.beginPath(); ctx.moveTo(-5, -5); ctx.lineTo(5, 0); ctx.stroke();
                         break;
                     default:
                         ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
