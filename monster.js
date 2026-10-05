@@ -64,7 +64,7 @@ export class TopMonster {
             const basePower = Math.max(10, Math.floor(initialScore * scoutMultiplier));
 
             this.originalAttack = Math.max(1, Math.floor(Math.random() * basePower) + 1);
-            this.originalHp = initialScore - this.originalAttack;
+            this.originalHp = basePower - this.originalAttack;
         }
 
         this.addedAttack = s.addedAttack !== undefined ? s.addedAttack : 0;
