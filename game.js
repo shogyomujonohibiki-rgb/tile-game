@@ -625,7 +625,9 @@ export class Game {
 
         if (this.topCanvas) {
             const monsterScore = Math.max(10, Math.floor(this.score / 5));
-            const newMonster = new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore);
+            // ▼ 現在のダンジョン階層を取得して渡す
+            const currentFloor = this.battleManager ? this.battleManager.dungeonFloor : 1;
+            const newMonster = new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore, null, currentFloor);
             this.topMonsters.push(newMonster);
 
             const emptyIndex = this.partyMonsterIds.indexOf(null);
