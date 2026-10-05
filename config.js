@@ -20,18 +20,43 @@ export const MONSTER = {
 
 export const DUNGEON = {
     ENEMY_BASE_HP: 10000,
-    ENEMY_HP_GROWTH: 1.1,
     ENEMY_BASE_ATK: 5,
-    ENEMY_ATK_GROWTH: 1.035,
+    
+    // HPのインフレ設定パラメータ
+    HP_GROWTH_RATE: 0.1,       // 10%
+    HP_GROWTH_DECAY: 0.995,    // 99.5%
+    HP_MIN_RATE: 1.001,        // 最小 100.1%
+    
+    // ATKのインフレ設定パラメータ
+    ATK_GROWTH_RATE: 0.055,    // 5.5%
+    ATK_GROWTH_DECAY: 0.996,   // 99.6%
+    ATK_MIN_RATE: 1.001,       // 最小 100.1%
 };
 
 export class Dungeon {
-    // 階層 → 敵ステータス。敵の強さの式はここだけに置く
+    // 階層ごとの敵ステータスを計算（1階を初期値としてN階まで累積計算）
     static enemyFor(floor) {
-        const n = Math.max(1, floor) - 1;
+        const targetFloor = Math.max(1, floor);
+        
+        let hp = DUNGEON.ENEMY_BASE_HP; // 1階のHP = 10,000
+        let atk = DUNGEON.ENEMY_BASE_ATK; // 1階のATK = 5
+
+        // 2階から指定階層(targetFloor)までインフレ率を順番に乗算
+        for (let n = 2; n <= targetFloor; n++) {
+            // HPインフレ率
+            let hpRate = 1 + DUNGEON.HP_GROWTH_RATE * Math.pow(DUNGEON.HP_GROWTH_DECAY, n);
+            hpRate = Math.max(hpRate, DUNGEON.HP_MIN_RATE);
+            hp *= hpRate;
+
+            // ATKインフレ率
+            let atkRate = 1 + DUNGEON.ATK_GROWTH_RATE * Math.pow(DUNGEON.ATK_GROWTH_DECAY, n);
+            atkRate = Math.max(atkRate, DUNGEON.ATK_MIN_RATE);
+            atk *= atkRate;
+        }
+
         return {
-            maxHp: Math.floor(DUNGEON.ENEMY_BASE_HP * Math.pow(DUNGEON.ENEMY_HP_GROWTH, n)),
-            atk: Math.floor(DUNGEON.ENEMY_BASE_ATK * Math.pow(DUNGEON.ENEMY_ATK_GROWTH, n)),
+            maxHp: Math.floor(hp),
+            atk: Math.floor(atk),
         };
     }
 }
