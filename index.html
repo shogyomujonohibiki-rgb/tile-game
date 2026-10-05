@@ -19,7 +19,35 @@
     <p id="highScoreBoard" class="p3">0</p>
     <div id="gameArea">
         <!-- 上部：箱庭エリア -->
-        <canvas id="topCanvas" width="240" height="290"></canvas>
+        <div style="position: relative;">
+            <canvas id="topCanvas" width="240" height="290"></canvas>
+            
+            <!-- 合体モード用オーバーレイUI -->
+            <div id="mergeUIContainer" class="hidden">
+                <div class="merge-header">
+                    <h2>モンスター合体</h2>
+                    <p>ベースにするモンスターと素材を選択</p>
+                </div>
+                <div class="merge-selection-area">
+                    <div class="merge-slot" id="baseMonsterSlot">
+                        <h3>ベース (残る)</h3>
+                        <div class="slot-content">未選択</div>
+                    </div>
+                    <div class="merge-plus">+</div>
+                    <div class="merge-slot" id="materialMonsterSlot">
+                        <h3>素材 (消滅)</h3>
+                        <div class="slot-content">未選択</div>
+                    </div>
+                </div>
+                <div class="merge-actions">
+                    <button id="executeMergeBtn" disabled>合体実行</button>
+                </div>
+                <div class="merge-list-container">
+                    <h3>所持モンスター一覧</h3>
+                    <div id="mergeMonsterList"></div>
+                </div>
+            </div>
+        </div>
 
         <div id="mainSection">
             <!-- メインの4x4ゲームスペース -->
@@ -44,10 +72,11 @@
         </div>
     </div>
 
-    <!-- モード切替ボタンエリア -->
+    <!-- モード切替ボタンエリア（合体ボタンを追加） -->
     <div id="modeSelectArea">
         <button id="modeMonsterGet" class="active">スカウト</button>
         <button id="modeDungeon">ダンジョン</button>
+        <button id="modeMerge">合体</button>
     </div>
 
     <!-- Firebase初期化モジュール -->
