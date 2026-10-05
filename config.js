@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
 export const MONSTER = {
     MAX_OWNED: 20,
     MAX_PARTY: 6,
+    MERGE_RATE: 0.5, // 合体時に引き継ぐステータスの割合 (50%)
 };
 
 export const DUNGEON = {
