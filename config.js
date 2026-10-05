@@ -21,23 +21,40 @@ export const MONSTER = {
 export const DUNGEON = {
     ENEMY_BASE_HP: 10000,
     ENEMY_BASE_ATK: 5,
-    
+
     // HPのインフレ設定パラメータ
     HP_GROWTH_RATE: 0.1,       // 10%
     HP_GROWTH_DECAY: 0.995,    // 99.5%
     HP_MIN_RATE: 1.001,        // 最小 100.1%
-    
+
     // ATKのインフレ設定パラメータ
     ATK_GROWTH_RATE: 0.055,    // 5.5%
     ATK_GROWTH_DECAY: 0.996,   // 99.6%
     ATK_MIN_RATE: 1.001,       // 最小 100.1%
+
+    // 【追加】スカウト倍率の計算用パラメータ
+    SCOUT_GROWTH_RATE: 0.055,
+    SCOUT_GROWTH_DECAY: 0.0996,
+    SCOUT_MIN_RATE: 1.001,
 };
 
 export class Dungeon {
+    // 既存の enemyFor などに加え、スカウト倍率を計算するメソッド
+    static scoutMultiplierFor(floor) {
+        const targetFloor = Math.max(1, floor);
+        let multiplier = 1.0;
+
+        // 2階から指定階層(targetFloor)まで倍率を累積計算
+        for (let n = 2; n <= targetFloor; n++) {
+            let rate = 1 + DUNGEON.SCOUT_GROWTH_RATE * Math.pow(DUNGEON.SCOUT_GROWTH_DECAY, n);
+            multiplier *= Math.max(DUNGEON.SCOUT_MIN_RATE, rate);
+        }
+        return Math.max(1.0, multiplier);
+    }
     // 階層ごとの敵ステータスを計算（1階を初期値としてN階まで累積計算）
     static enemyFor(floor) {
         const targetFloor = Math.max(1, floor);
-        
+
         let hp = DUNGEON.ENEMY_BASE_HP; // 1階のHP = 10,000
         let atk = DUNGEON.ENEMY_BASE_ATK; // 1階のATK = 5
 
