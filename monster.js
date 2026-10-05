@@ -6,17 +6,11 @@ export class TopMonster {
         this.canvasHeight = canvasHeight;
         this.x = 0;
         this.y = 0;
-        this.radius = 12; // サイズを一律で固定
-        this.attack = 1;
-        this.hp = 1;
+        this.radius = 12;
 
-        // ▼ 追加：アニメーション用の開始時間を初期化
         this.startTime = Date.now();
 
-        // 体のインデックスを 0 から順番に通し番号で定義 (全15種類)
         const bodyIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-
-        // 振りなおしたインデックスに合わせて振り子運動するパーツを指定
         const pendulumIndices = [4, 5, 8, 12];
         this.pendulumIndices = pendulumIndices;
 
@@ -38,7 +32,6 @@ export class TopMonster {
             { main: '#FF9800', sub: '#FFB74D', accent: '#F57C00' }
         ];
 
-        // 目のインデックスを 0 から順番に通し番号で定義 (全10種類)
         const eyeIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         const s = savedData || {};
@@ -56,17 +49,50 @@ export class TopMonster {
 
         this.eyeType = s.eyeType !== undefined ? s.eyeType : eyeIndices[Math.floor(Math.random() * eyeIndices.length)];
 
-        // ※ tileValue による radius の上書き処理を削除しました
-
-        if (s.attack !== undefined && s.hp !== undefined) {
-            this.attack = s.attack;
-            this.hp = s.hp;
+        // --- ステータスおよび合体関連の初期化 ---
+        if (s.originalAttack !== undefined && s.originalHp !== undefined) {
+            this.originalAttack = s.originalAttack;
+            this.originalHp = s.originalHp;
+        } else if (s.attack !== undefined && s.hp !== undefined) {
+            this.originalAttack = s.attack;
+            this.originalHp = s.hp;
         } else {
-            // HPと攻撃力を連動させず、それぞれ完全にランダムな値に設定するよう変更
             const maxVal = Math.max(1, initialScore);
-            this.attack = Math.max(1, Math.floor(Math.random() * maxVal) + 1);
-            this.hp = Math.max(1, Math.floor(Math.random() * maxVal) + 1);
+            this.originalAttack = Math.max(1, Math.floor(Math.random() * maxVal) + 1);
+            this.originalHp = Math.max(1, Math.floor(Math.random() * maxVal) + 1);
         }
+
+        this.addedAttack = s.addedAttack !== undefined ? s.addedAttack : 0;
+        this.addedHp = s.addedHp !== undefined ? s.addedHp : 0;
+        this.mergeCount = s.mergeCount !== undefined ? s.mergeCount : 0;
+    }
+
+    get attack() {
+        return this.originalAttack + this.addedAttack;
+    }
+
+    get hp() {
+        return this.originalHp + this.addedHp;
+    }
+
+    toSaveObject() {
+        return {
+            bodyType: this.bodyType,
+            paletteIndex: this.paletteIndex,
+            hasHorn: this.hasHorn,
+            hornType: this.hornType,
+            hornCount: this.hornCount,
+            hasWing: this.hasWing,
+            wingType: this.wingType,
+            hasTail: this.hasTail,
+            tailType: this.tailType,
+            eyeType: this.eyeType,
+            originalAttack: this.originalAttack,
+            originalHp: this.originalHp,
+            addedAttack: this.addedAttack,
+            addedHp: this.addedHp,
+            mergeCount: this.mergeCount
+        };
     }
 
     update() {
@@ -87,7 +113,6 @@ export class TopMonster {
 
         const time = isDead ? 0 : (Date.now() - this.startTime) / 1000;
 
-        // --- 体の描画と回転アニメーション ---
         ctx.save();
         let scaleX = 1 + Math.sin(time * 3 + this.bodyType) * 0.08;
         let scaleYAnim = 1 + Math.cos(time * 3 + this.bodyType) * 0.08;
@@ -221,7 +246,6 @@ export class TopMonster {
         }
         ctx.restore();
 
-        // --- 目の描画 ---
         if (isDead) {
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 2;
