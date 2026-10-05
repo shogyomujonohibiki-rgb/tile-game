@@ -35,8 +35,9 @@ export const DUNGEON = {
 
     // 【追加】スカウト倍率の計算用パラメータ
     SCOUT_GROWTH_RATE: 0.055,
-    SCOUT_GROWTH_DECAY: 0.0996,
+    SCOUT_GROWTH_DECAY: 0.996,
     SCOUT_MIN_RATE: 1.001,
+    SCOUT_GROWTH_ADJUST: 0.2, // スカウト倍率の調整値（1.0に近いほど倍率が低くなる）
 };
 
 export class Dungeon {
@@ -50,7 +51,7 @@ export class Dungeon {
             let rate = 1 + DUNGEON.SCOUT_GROWTH_RATE * Math.pow(DUNGEON.SCOUT_GROWTH_DECAY, n);
             multiplier *= Math.max(DUNGEON.SCOUT_MIN_RATE, rate);
         }
-        return Math.max(1.0, multiplier);
+        return Math.max(1.0, multiplier * DUNGEON.SCOUT_GROWTH_ADJUST);
     }
     // 階層ごとの敵ステータスを計算（1階を初期値としてN階まで累積計算）
     static enemyFor(floor) {
