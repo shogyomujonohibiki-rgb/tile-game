@@ -1,5 +1,7 @@
 'use strict';
 
+import { Dungeon } from './config.js';
+
 export class GameRenderer {
     constructor(canvas, ctx, topCanvas, topCtx) {
         this.canvas = canvas;
@@ -276,7 +278,7 @@ export class GameRenderer {
                 if (game && typeof game.drawTiles === 'function') {
                     game.drawTiles();
                 }
-                
+
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 } else {
@@ -365,6 +367,13 @@ export class GameRenderer {
                     this.topCtx.fillText(`${i + 1}`, sx + slotWidth / 2, sy + slotHeight / 2);
                 }
             }
+
+            const currentFloor = game.battleManager ? game.battleManager.dungeonFloor : 1;
+            const multiplier = Dungeon.scoutMultiplierFor(currentFloor).toFixed(2);
+
+            this.topCtx.fillStyle = '#f9f9f9';
+            this.topCtx.font = 'bold 11px Arial';
+            this.topCtx.fillText(`到達階 B${currentFloor}F、スカウト倍率 ${multiplier}倍`, 10, h - 40);
 
             let scoutTotalAtk = 0;
             let scoutTotalHp = 0;
