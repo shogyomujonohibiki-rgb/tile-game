@@ -274,9 +274,11 @@ export class Game {
         const material = this.topMonsters[materialIndex];
         if (!base || !material) return;
 
-        // ▼ 合体ロジック: 「足されるのは元のオリジナルのステータスのみ。合体して増えた分は、足されない。」
-        const addAtk = Math.floor(material.originalAttack * 0.5);
-        const addHp = Math.floor(material.originalHp * 0.5);
+        // ▼ 変更: オリジナルステータスと合体で得た追加ステータスの合計値の50%を計算
+        const materialTotalAtk = material.originalAttack + (material.addedAttack || 0);
+        const materialTotalHp = material.originalHp + (material.addedHp || 0);
+        const addAtk = Math.floor(materialTotalAtk * MONSTER.MERGE_RATE);
+        const addHp = Math.floor(materialTotalHp * MONSTER.MERGE_RATE);
 
         base.addedAttack += addAtk;
         base.addedHp += addHp;
