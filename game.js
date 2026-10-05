@@ -32,7 +32,7 @@ export class Game {
 
         this.maxMonsterCount = MONSTER.MAX_OWNED;
         this.topMonsters = [];
-        this.partyMonsterIds = [null, null, null, null, null, null]; // 6ポジション分を初期化
+        this.partyMonsterIds = [null, null, null, null, null, null];
 
         this.resizeCanvas();
         window.addEventListener('resize', () => {
@@ -111,7 +111,7 @@ export class Game {
 
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isGameover || this.isResetting || this.isTransitioning) return;
+            if (this.isGameover || this.isResetting || this.isTransitioning || this.currentMode === 'merge') return;
 
             if (!this.isCounting) {
                 this.isCounting = true;
@@ -161,7 +161,7 @@ export class Game {
 
         this.canvas.addEventListener('pointermove', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isMoving || this.isGameover || this.isResetting) return;
+            if (this.isMoving || this.isGameover || this.isResetting || this.currentMode === 'merge') return;
 
             if (this.tileChosen) {
                 const scaleX = this.canvas.width / this.rect.width;
@@ -209,6 +209,11 @@ export class Game {
                 this.switchMode('dungeon');
             });
         }
+        if (this.ui.modeMergeBtn) {
+            this.ui.modeMergeBtn.addEventListener('click', () => {
+                this.switchMode('merge');
+            });
+        }
     }
 
     setFloor(floor) {
@@ -219,11 +224,15 @@ export class Game {
         this.gameStart(BOARD.ROWS, BOARD.COLS, BOARD.TYPE_COUNTS, STORAGE_KEYS.HIGH_SCORE_4X4);
     }
 
-async switchMode(mode) {
-        if (this.currentMode === mode) return;
+    async switchMode(mode) {
+        if (this.currentMode === mode && mode !== 'merge') return;
         this.currentMode = mode;
 
-        // 入力ロック関連のフラグを確実に初期化
+        if (mode === 'merge') {
+            await this.openMergeScreen();
+            return;
+        }
+
         this.isResetting = false;
         this.isTransitioning = false;
         this.isMoving = false;
@@ -240,12 +249,61 @@ async switchMode(mode) {
 
         if (mode === 'dungeon' && this.renderer && typeof this.renderer.playMonsterFadeIn === 'function') {
             await this.renderer.playMonsterFadeIn(this);
-            // フェードイン完了後にもう一度明示的に描画と入力を許可
             this.isTransitioning = false;
-            this.tileChosen = false; // 追加：選択状態も確実に解除
-            this.isMoving = false;   // 追加：移動状態も確実に解除
-            this.drawTiles();
+            this.tileChosen = false;
+            this.isMoving = false;
+
+            requestAnimationFrame(() => {
+                this.drawTiles();
+            });
         }
+    }
+
+    async openMergeScreen() {
+        const executed = await this.ui.showMergeScreen(this.topMonsters, (baseIdx, matIdx) => {
+            this.executeMerge(baseIdx, matIdx);
+        });
+        // 合体画面を閉じたらスカウトモードに戻す
+        this.currentMode = 'scout';
+        this.ui.switchModeUI('scout');
+        this.drawTiles();
+    }
+
+    executeMerge(baseIndex, materialIndex) {
+        const base = this.topMonsters[baseIndex];
+        const material = this.topMonsters[materialIndex];
+        if (!base || !material) return;
+
+        // ▼ 合体ロジック: 「足されるのは元のオリジナルのステータスのみ。合体して増えた分は、足されない。」
+        const addAtk = Math.floor(material.originalAttack * 0.5);
+        const addHp = Math.floor(material.originalHp * 0.5);
+
+        base.addedAttack += addAtk;
+        base.addedHp += addHp;
+        base.mergeCount = (base.mergeCount || 0) + 1;
+
+        // 素材モンスターを削除し、partyMonsterIds のインデックスを整理
+        const newTopMonsters = [];
+        const oldToNewIndexMap = new Map();
+
+        let newIdx = 0;
+        this.topMonsters.forEach((m, oldIdx) => {
+            if (oldIdx !== materialIndex) {
+                newTopMonsters.push(m);
+                oldToNewIndexMap.set(oldIdx, newIdx);
+                newIdx++;
+            }
+        });
+
+        this.topMonsters = newTopMonsters;
+        this.partyMonsterIds = this.partyMonsterIds.map(oldId => {
+            if (oldId === null || oldId === undefined) return null;
+            if (oldId === materialIndex) return null;
+            return oldToNewIndexMap.get(oldId) !== undefined ? oldToNewIndexMap.get(oldId) : null;
+        });
+
+        this.dataManager.saveCloudData(this);
+        this.drawTiles();
     }
 
     resizeCanvas() {
@@ -442,7 +500,7 @@ async switchMode(mode) {
         }
     }
 
-reset() {
+    reset() {
         this.tileMx = [];
         this.history = [];
         this.score = 0;
@@ -453,9 +511,9 @@ reset() {
         this.isCounting = false;
         this.isGameover = false;
         this.isResetting = false;
-        this.isTransitioning = false; // 追加
-        this.isMoving = false;        // 追加
-        this.tileChosen = false;      // 追加
+        this.isTransitioning = false;
+        this.isMoving = false;
+        this.tileChosen = false;
         this.minValue = 1;
         this.ui.setItemActive(false);
 
@@ -507,7 +565,10 @@ reset() {
         await this.playResetAnimation();
 
         this.isResetting = false;
-        this.drawTiles();
+
+        requestAnimationFrame(() => {
+            this.drawTiles();
+        });
     }
 
     playResetAnimation() {
@@ -567,14 +628,15 @@ reset() {
             const newMonster = new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore);
             this.topMonsters.push(newMonster);
 
-            // パーティーの空き枠があれば重複させずに自動割り当て
             const emptyIndex = this.partyMonsterIds.indexOf(null);
             if (emptyIndex !== -1 && !this.partyMonsterIds.includes(this.topMonsters.length - 1)) {
                 this.partyMonsterIds[emptyIndex] = this.topMonsters.length - 1;
             }
 
+            // ▼ 「20体を超えて生成した場合は、合体画面に遷移するようにして」
             if (this.topMonsters.length > this.maxMonsterCount) {
-                await this.promptMonsterLimitSelection();
+                await this.ui.promptMonsterLimitSelection(this.topMonsters);
+                await this.openMergeScreen();
             }
         }
 
@@ -625,30 +687,6 @@ reset() {
         await new Promise(resolve => setTimeout(resolve, 500));
 
         this.drawTiles();
-    }
-
-    async promptMonsterLimitSelection() {
-        const selectedIndex = await this.ui.promptMonsterLimitSelection(this.topMonsters);
-
-        const newTopMonsters = [];
-        const oldToNewIndexMap = new Map();
-
-        let newIdx = 0;
-        this.topMonsters.forEach((m, oldIdx) => {
-            if (oldIdx !== selectedIndex) {
-                newTopMonsters.push(m);
-                oldToNewIndexMap.set(oldIdx, newIdx);
-                newIdx++;
-            }
-        });
-
-        this.topMonsters = newTopMonsters;
-
-        this.partyMonsterIds = this.partyMonsterIds.map(oldId => {
-            if (oldId === null || oldId === undefined) return null;
-            if (oldId === selectedIndex) return null;
-            return oldToNewIndexMap.get(oldId) !== undefined ? oldToNewIndexMap.get(oldId) : null;
-        });
     }
 
     release() {
@@ -746,7 +784,7 @@ reset() {
         }
     }
 
-playFloorClearTransition() {
+    playFloorClearTransition() {
         return new Promise((resolve) => {
             this.isTransitioning = true;
             const duration = 1000;
@@ -774,11 +812,14 @@ playFloorClearTransition() {
                     requestAnimationFrame(animate);
                 } else {
                     this.hasClearedTilesInAnim = false;
-                    this.isTransitioning = false; // 確実に解除
-                    this.tileChosen = false;       // 選択状態もリセット
-                    this.isMoving = false;         // 移動中フラグも解除
-                    this.isResetting = false;      // 追加：リセット中フラグも解除
-                    this.drawTiles();
+                    this.isTransitioning = false;
+                    this.tileChosen = false;
+                    this.isMoving = false;
+                    this.isResetting = false;
+
+                    requestAnimationFrame(() => {
+                        this.drawTiles();
+                    });
                     resolve();
                 }
             };
