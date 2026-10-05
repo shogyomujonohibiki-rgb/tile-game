@@ -9,7 +9,7 @@ export class GameRenderer {
         this.attackEffects = [];
         this.enemyFadeAlpha = 1.0;
         this.draggedMonster = null;
-        this.selectedPartySlotIndex = null; // スカウト画面で選択中のパーティーポジション用
+        this.selectedPartySlotIndex = null;
         this.isListenerInitialized = false;
     }
 
@@ -30,11 +30,10 @@ export class GameRenderer {
         };
 
         const onStart = (e) => {
-            if (!game) return;
+            if (!game || game.currentMode === 'merge') return;
             const pos = getPos(e);
 
             if (game.currentMode === 'scout') {
-                // 1. パーティー用スペース（2列×3行）の四角形がタップされたか判定
                 const slotWidth = 40;
                 const slotHeight = 60;
                 const startX = 10;
@@ -57,7 +56,7 @@ export class GameRenderer {
 
                 if (clickedSlot !== -1) {
                     if (this.selectedPartySlotIndex === clickedSlot) {
-                        this.selectedPartySlotIndex = null; // すでに選択中なら解除
+                        this.selectedPartySlotIndex = null;
                     } else {
                         this.selectedPartySlotIndex = clickedSlot;
                     }
@@ -65,7 +64,6 @@ export class GameRenderer {
                     return;
                 }
 
-                // 2. スロットが既に選択されている状態でモンスターがタップされた場合（入れ替え処理）
                 if (this.selectedPartySlotIndex !== null) {
                     const partyList = game.topMonsters || [];
                     for (let mIndex = 0; mIndex < partyList.length; mIndex++) {
@@ -73,17 +71,14 @@ export class GameRenderer {
                         const r = m.radius || 14;
                         const dist = Math.hypot(m.x - pos.x, m.y - pos.y);
                         if (dist <= r + 10) {
-                            // 既に別のスロットにこのモンスターが割り当てられている場合は重複を防ぐためクリアする
                             const existingSlot = game.partyMonsterIds.indexOf(mIndex);
                             if (existingSlot !== -1) {
                                 game.partyMonsterIds[existingSlot] = null;
                             }
 
-                            // 選択中のポジションにこのモンスターを割り当て
                             game.partyMonsterIds[this.selectedPartySlotIndex] = mIndex;
                             this.selectedPartySlotIndex = null;
 
-                            // パーティー入れ替え時にクラウドセーブを実行
                             if (game.dataManager && typeof game.dataManager.saveCloudData === 'function') {
                                 game.dataManager.saveCloudData(game);
                             }
@@ -94,7 +89,6 @@ export class GameRenderer {
                     }
                 }
 
-                // 3. 通常の箱庭モンスターのドラッグ移動判定
                 const partyList = game.topMonsters || [];
                 for (let m of partyList) {
                     const mIndex = game.topMonsters.indexOf(m);
@@ -279,6 +273,10 @@ export class GameRenderer {
                 this.enemyFadeAlpha = progress;
                 this.drawTopCanvas(game);
 
+                if (game && typeof game.drawTiles === 'function') {
+                    game.drawTiles();
+                }
+                
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 } else {
@@ -325,7 +323,6 @@ export class GameRenderer {
         this.topCtx.fillStyle = '#111122';
         this.topCtx.fillRect(0, 0, w, h);
 
-        // --- パーティー用スペース（2列×3行の6つの四角）の描画（スカウトモード時のみ） ---
         const slotWidth = 40;
         const slotHeight = 60;
         const startX = 10;
@@ -348,7 +345,6 @@ export class GameRenderer {
                 this.topCtx.fillStyle = '#222233';
                 this.topCtx.fillRect(sx, sy, slotWidth, slotHeight);
 
-                // スカウト画面でのみ選択状態の枠線ハイライトを有効にする
                 if (this.selectedPartySlotIndex === i) {
                     this.topCtx.strokeStyle = '#00FFFF';
                     this.topCtx.lineWidth = 2.5;
@@ -358,10 +354,9 @@ export class GameRenderer {
                 }
                 this.topCtx.strokeRect(sx, sy, slotWidth, slotHeight);
 
-                // スロットにモンスターが割り当てられている場合は番号を隠し、未割り当ての場合のみ番号を表示する
                 const mIndex = game.partyMonsterIds[i];
                 if (mIndex !== null && mIndex !== undefined && game.topMonsters[mIndex]) {
-                    // モンスターがいる場合は番号を表示しない
+                    // モンスターがいる場合は番号非表示
                 } else {
                     this.topCtx.fillStyle = '#444';
                     this.topCtx.font = '10px Arial';
@@ -371,7 +366,6 @@ export class GameRenderer {
                 }
             }
 
-            // スカウトモード時の合計ATKと総HPの計算と縦並び表示（ボックスの下部に収まるように配置）
             let scoutTotalAtk = 0;
             let scoutTotalHp = 0;
             game.partyMonsterIds.forEach(mIndex => {
@@ -386,11 +380,9 @@ export class GameRenderer {
             this.topCtx.font = 'bold 11px Arial';
             this.topCtx.textAlign = 'left';
 
-            // 合計 ATK
             this.topCtx.fillStyle = '#00FFFF';
             this.topCtx.fillText(`総 ATK: ${scoutTotalAtk.toLocaleString()}`, 10, h - 21);
 
-            // 総 HP（その下に縦並び）
             this.topCtx.fillStyle = '#00FF00';
             this.topCtx.fillText(`総 HP: ${scoutTotalHp.toLocaleString()}`, 10, h - 8);
             this.topCtx.restore();
@@ -488,15 +480,6 @@ export class GameRenderer {
         if (count > 0) {
             const isScout = game.currentMode === 'scout';
 
-            let maxAtk = 1;
-            let maxHp = 1;
-            if (isScout) {
-                partyList.forEach(m => {
-                    if (m.attack > maxAtk) maxAtk = m.attack;
-                    if (m.hp > maxHp) maxHp = m.hp;
-                });
-            }
-
             partyList.forEach((monster, index) => {
                 if (!monster) return;
                 const isDead = (game.currentMode === 'dungeon' && monster.currentHp !== undefined && monster.currentHp <= 0);
@@ -527,7 +510,6 @@ export class GameRenderer {
                                 const minY = 40;
                                 const maxY = h - 40;
 
-                                // ステータスに関わらずエリア内でランダムに初期位置を決定
                                 const baseScreenX = marginX + Math.random() * (maxX - marginX);
                                 const baseScreenY = minY + Math.random() * (maxY - minY);
 
@@ -622,7 +604,6 @@ export class GameRenderer {
 
                 monster.draw(this.topCtx);
 
-                // パーティーボックス（スロット）に配置されているモンスターの上下にATKとHPを表示
                 if (isScout && assignedSlotIndex !== -1) {
                     const col = (assignedSlotIndex < 3) ? 1 : 0;
                     const row = assignedSlotIndex % 3;
@@ -633,28 +614,23 @@ export class GameRenderer {
                     this.topCtx.font = '9px Arial';
                     this.topCtx.textAlign = 'center';
 
-                    // 上にATKを表示
                     this.topCtx.fillStyle = '#00FFFF';
                     this.topCtx.fillText(`ATK:${monster.attack}`, sx + slotWidth / 2, sy + 11);
 
-                    // 下にHPを表示
                     this.topCtx.fillStyle = '#00FF00';
                     this.topCtx.fillText(`HP:${monster.hp}`, sx + slotWidth / 2, sy + slotHeight - 6);
 
                     this.topCtx.restore();
                 }
 
-                // 箱庭（スカウト画面の散策エリア）にいるモンスターにも、常時HPとATKを表示する
                 if (isScout && assignedSlotIndex === -1) {
                     this.topCtx.save();
                     this.topCtx.font = '8px Arial';
                     this.topCtx.textAlign = 'center';
 
-                    // モンスターの頭上にATK
                     this.topCtx.fillStyle = '#00FFFF';
                     this.topCtx.fillText(`ATK:${monster.attack}`, monster.x, monster.y - monster.radius - 9);
 
-                    // モンスターの足元にHP
                     this.topCtx.fillStyle = '#00FF00';
                     this.topCtx.fillText(`HP:${monster.hp}`, monster.x, monster.y + monster.radius + 11);
 
@@ -680,13 +656,11 @@ export class GameRenderer {
                         this.topCtx.fillRect(bx, by, boxW, boxH);
                     }
 
-                    // 上にATKを表示
                     this.topCtx.fillStyle = '#00FFFF';
                     this.topCtx.font = 'bold 11px Arial';
                     this.topCtx.textAlign = 'left';
                     this.topCtx.fillText(`ATK: ${monster.attack.toLocaleString()}`, bx + 6, by + 12);
 
-                    // 下にHPを表示
                     this.topCtx.fillStyle = '#00FF00';
                     this.topCtx.fillText(`HP: ${monster.hp.toLocaleString()}`, bx + 6, by + 25);
                     this.topCtx.restore();
@@ -864,7 +838,7 @@ export class GameRenderer {
             const dateText = item.dateStr || '';
             this.ctx.fillText(`${rankText}${dateText}`, startX, currentY);
 
-            this.ctx.textAlign = 'right';
+            this.ctx.textAlign, 'right';
             this.ctx.fillText(`${item.score.toLocaleString()}`, startX + colWidth, currentY);
         });
     }
