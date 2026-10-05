@@ -1,7 +1,9 @@
 'use strict';
 
+import { Dungeon } from './config.js';
+
 export class TopMonster {
-    constructor(canvasWidth, canvasHeight, tileValue = null, initialScore = 10, savedData = null) {
+    constructor(canvasWidth, canvasHeight, tileValue = null, initialScore = 10, savedData = null, currentFloor = 1) {
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
         this.x = 0;
@@ -57,9 +59,12 @@ export class TopMonster {
             this.originalAttack = s.attack;
             this.originalHp = s.hp;
         } else {
-            const maxVal = Math.max(1, initialScore);
-            this.originalAttack = Math.max(1, Math.floor(Math.random() * maxVal) + 1);
-            this.originalHp = Math.max(1, Math.floor(Math.random() * maxVal) + 1);
+            // スカウト倍率を適用してステータスを決定
+            const scoutMultiplier = Dungeon.scoutMultiplierFor ? Dungeon.scoutMultiplierFor(currentFloor) : 1.0;
+            const basePower = Math.max(10, Math.floor(initialScore * scoutMultiplier));
+
+            this.originalAttack = Math.max(1, Math.floor(Math.random() * basePower) + 1);
+            this.originalHp = initialScore - this.originalAttack;
         }
 
         this.addedAttack = s.addedAttack !== undefined ? s.addedAttack : 0;
