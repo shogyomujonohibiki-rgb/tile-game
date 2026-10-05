@@ -519,6 +519,15 @@ export class Game {
         this.minValue = 1;
         this.ui.setItemActive(false);
 
+        // ▼ スカウトモードやリセット時に、モンスターの死亡状態（currentHp）をクリアする
+        if (this.topMonsters) {
+            this.topMonsters.forEach(m => {
+                if (m) {
+                    delete m.currentHp;
+                }
+            });
+        }
+
         this.battleManager.reset(this.topMonsters);
     }
 
