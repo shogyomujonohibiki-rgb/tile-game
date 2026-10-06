@@ -18,8 +18,6 @@ export class UI {
         this.modeScoutBtn = document.getElementById('modeMonsterGet');
         this.modeDungeonBtn = document.getElementById('modeDungeon');
 
-        // ※「合体」ボタンは廃止したため初期化処理を削除
-
         this.colorSample = document.getElementById('colorSample');
 
         this.setExchangeButtonVisible(false);
