@@ -57,9 +57,25 @@ export class GameRenderer {
                 }
 
                 if (clickedSlot !== -1) {
-                    if (this.selectedPartySlotIndex === clickedSlot) {
-                        this.selectedPartySlotIndex = null;
+                    // すでにスロットが選択されている場合
+                    if (this.selectedPartySlotIndex !== null) {
+                        const prevSlot = this.selectedPartySlotIndex;
+                        if (prevSlot === clickedSlot) {
+                            // 同じスロットをクリックした場合は選択解除
+                            this.selectedPartySlotIndex = null;
+                        } else {
+                            // 別のスロットをクリックした場合は、スロット同士の中身（モンスターのインデックス）を入れ替え
+                            const temp = game.partyMonsterIds[prevSlot];
+                            game.partyMonsterIds[prevSlot] = game.partyMonsterIds[clickedSlot];
+                            game.partyMonsterIds[clickedSlot] = temp;
+                            this.selectedPartySlotIndex = null;
+
+                            if (game.dataManager && typeof game.dataManager.saveCloudData === 'function') {
+                                game.dataManager.saveCloudData(game);
+                            }
+                        }
                     } else {
+                        // 新しくスロットを選択
                         this.selectedPartySlotIndex = clickedSlot;
                     }
                     if (e.type === 'touchstart') e.preventDefault();
