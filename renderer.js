@@ -1,6 +1,6 @@
 'use strict';
 
-import { Dungeon } from './config.js';
+import { Dungeon, MONSTER } from './config.js';
 
 export class GameRenderer {
     constructor(canvas, ctx, topCanvas, topCtx) {
@@ -32,7 +32,7 @@ export class GameRenderer {
         };
 
         const onStart = (e) => {
-            if (!game || game.currentMode === 'merge') return;
+            if (!game) return;
             const pos = getPos(e);
 
             if (game.currentMode === 'scout') {
@@ -57,14 +57,11 @@ export class GameRenderer {
                 }
 
                 if (clickedSlot !== -1) {
-                    // すでにスロットが選択されている場合
                     if (this.selectedPartySlotIndex !== null) {
                         const prevSlot = this.selectedPartySlotIndex;
                         if (prevSlot === clickedSlot) {
-                            // 同じスロットをクリックした場合は選択解除
                             this.selectedPartySlotIndex = null;
                         } else {
-                            // 別のスロットをクリックした場合は、スロット同士の中身（モンスターのインデックス）を入れ替え
                             const temp = game.partyMonsterIds[prevSlot];
                             game.partyMonsterIds[prevSlot] = game.partyMonsterIds[clickedSlot];
                             game.partyMonsterIds[clickedSlot] = temp;
@@ -75,7 +72,6 @@ export class GameRenderer {
                             }
                         }
                     } else {
-                        // 新しくスロットを選択
                         this.selectedPartySlotIndex = clickedSlot;
                     }
                     if (e.type === 'touchstart') e.preventDefault();
@@ -131,8 +127,51 @@ export class GameRenderer {
             if (e.type === 'touchmove') e.preventDefault();
         };
 
-        const onEnd = () => {
+        const onEnd = async (e) => {
             if (!this.draggedMonster || !game || game.currentMode !== 'scout') return;
+
+            const droppedMonster = this.draggedMonster;
+            const materialIndex = game.topMonsters.indexOf(droppedMonster);
+
+            const slotWidth = 40;
+            const slotHeight = 60;
+            const startX = 10;
+            const startY = 32;
+            const gapX = 6;
+            const gapY = 6;
+
+            let targetSlotIndex = -1;
+            for (let i = 0; i < 6; i++) {
+                const col = (i < 3) ? 1 : 0;
+                const row = i % 3;
+                const sx = startX + col * (slotWidth + gapX);
+                const sy = startY + row * (slotHeight + gapY);
+
+                if (droppedMonster.x >= sx && droppedMonster.x <= sx + slotWidth &&
+                    droppedMonster.y >= sy && droppedMonster.y <= sy + slotHeight) {
+                    targetSlotIndex = i;
+                    break;
+                }
+            }
+
+            if (targetSlotIndex !== -1) {
+                const baseMonsterIndex = game.partyMonsterIds[targetSlotIndex];
+                if (baseMonsterIndex !== null && baseMonsterIndex !== undefined && baseMonsterIndex !== materialIndex) {
+                    const baseMonster = game.topMonsters[baseMonsterIndex];
+                    if (baseMonster) {
+                        this.draggedMonster = null;
+                        
+                        await game.ui.showMergeConfirmScreen(baseMonster, droppedMonster, MONSTER.MERGE_RATE, async (confirmed) => {
+                            if (confirmed) {
+                                game.executeMerge(baseMonsterIndex, materialIndex);
+                            }
+                        });
+                        game.drawTiles();
+                        return;
+                    }
+                }
+            }
+
             this.draggedMonster.scoutBaseX = this.draggedMonster.x;
             this.draggedMonster.scoutBaseY = this.draggedMonster.y;
             this.draggedMonster = null;
@@ -565,13 +604,16 @@ export class GameRenderer {
                             monster.y = monster.scoutBaseY + walkOffsetY;
                         }
 
-                        const minX = 105;
-                        const maxX = w - 25;
-                        const minY = 32;
-                        const maxY = h - 25;
+                        // ▼ ドラッグ中のモンスター以外は箱庭エリア内に位置を制限する
+                        if (this.draggedMonster !== monster) {
+                            const minX = 105;
+                            const maxX = w - 25;
+                            const minY = 32;
+                            const maxY = h - 25;
 
-                        monster.x = Math.max(minX, Math.min(maxX, monster.x));
-                        monster.y = Math.max(minY, Math.min(maxY, monster.y));
+                            monster.x = Math.max(minX, Math.min(maxX, monster.x));
+                            monster.y = Math.max(minY, Math.min(maxY, monster.y));
+                        }
                     }
 
                 } else {
@@ -815,7 +857,7 @@ export class GameRenderer {
 
         this.ctx.fillStyle = '#00FFFF';
         this.ctx.font = 'bold 10px Arial';
-        this.ctx.textAlign = 'left';
+        this.ctx.textAlign, 'left';
         this.ctx.fillText('マイランキング', col2X, startY - 4);
         this.renderMyRankingList(game.myLeaderboard, col2X, colWidth, startY + 8, lineHeight);
     }
