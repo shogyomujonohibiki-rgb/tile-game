@@ -847,7 +847,7 @@ export class GameRenderer {
             const dateText = item.dateStr || '';
             this.ctx.fillText(`${rankText}${dateText}`, startX, currentY);
 
-            this.ctx.textAlign, 'right';
+            this.ctx.textAlign = 'right';
             this.ctx.fillText(`${item.score.toLocaleString()}`, startX + colWidth, currentY);
         });
     }
