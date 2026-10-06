@@ -1,7 +1,7 @@
 'use strict';
 
 import { TopMonster } from './monster.js';
-import { BOARD, STORAGE_KEYS, MONSTER, BattleManager } from './config.js';
+import { BOARD, STORAGE_KEYS, MONSTER, COIN_EXCHANGE, BattleManager } from './config.js';
 import { Board } from './board.js';
 import { UI } from './ui.js';
 import { GameRenderer } from './renderer.js';
@@ -34,6 +34,11 @@ export class Game {
         this.topMonsters = [];
         this.partyMonsterIds = [null, null, null, null, null, null];
 
+        // コインの初期化とローカルストレージからの読み込み[cite: 24, 25, 26]
+        this.coins = parseInt(localStorage.getItem(STORAGE_KEYS.COINS), 10) || 0;
+        this.ui.updateCoins(this.coins);
+        this.updateExchangeButtonState();
+
         this.resizeCanvas();
         window.addEventListener('resize', () => {
             this.resizeCanvas();
@@ -43,6 +48,7 @@ export class Game {
         this.initTopGarden();
         this.startTopAnimation();
         this.initModeSwitchEvents();
+        this.initExchangeButtonEvent();
 
         const savedName = localStorage.getItem('gameUserName');
         if (!savedName) {
@@ -121,6 +127,8 @@ export class Game {
                 if (this.currentMode === 'dungeon') {
                     this.ui.setPartyButtonEnabled(false);
                 }
+                // タイマー開始に伴い、交換ボタンの状態を再評価[cite: 25, 26]
+                this.updateExchangeButtonState();
             }
             if (this.isMoving) return;
 
@@ -216,6 +224,42 @@ export class Game {
         }
     }
 
+    initExchangeButtonEvent() {
+        if (this.ui.exchangeItemButton) {
+            this.ui.exchangeItemButton.addEventListener('click', () => {
+                this.exchangeCoinForItem();
+            });
+        }
+    }
+
+    // どのモードであっても isCounting が true のときのみ交換できるように修正[cite: 25, 26]
+    exchangeCoinForItem() {
+        const canExchangeCondition = this.isCounting;
+        if (!canExchangeCondition) return;
+
+        const cost = COIN_EXCHANGE.COST;
+        if (this.coins >= cost) {
+            this.coins -= cost;
+            this.itemCount++;
+
+            localStorage.setItem(STORAGE_KEYS.COINS, this.coins);
+            this.ui.updateCoins(this.coins);
+            this.ui.updateItemCount(this.itemCount);
+            this.updateExchangeButtonState();
+
+            if (this.dataManager && typeof this.dataManager.saveCloudData === 'function') {
+                this.dataManager.saveCloudData(this);
+            }
+        }
+    }
+
+    // パズルスタート前（isCountingがfalse）は交換ボタンを無効化するよう修正[cite: 25, 26]
+    updateExchangeButtonState() {
+        const cost = COIN_EXCHANGE.COST;
+        const canExchange = this.isCounting && (this.coins >= cost);
+        this.ui.setExchangeButtonEnabled(canExchange);
+    }
+
     setFloor(floor) {
         this.battleManager.setFloor(floor);
     }
@@ -245,6 +289,10 @@ export class Game {
         this.ui.setPartyButtonEnabled(true);
         this.ui.setUndoButtonVisible(mode === 'scout');
         this.isGameover = false;
+        
+        // モード切替時に交換ボタンの状態を更新[cite: 25, 26]
+        this.updateExchangeButtonState();
+
         this.drawTiles();
 
         if (mode === 'dungeon' && this.renderer && typeof this.renderer.playMonsterFadeIn === 'function') {
@@ -263,9 +311,9 @@ export class Game {
         const executed = await this.ui.showMergeScreen(this.topMonsters, (baseIdx, matIdx) => {
             this.executeMerge(baseIdx, matIdx);
         });
-        // 合体画面を閉じたらスカウトモードに戻す
         this.currentMode = 'scout';
         this.ui.switchModeUI('scout');
+        this.updateExchangeButtonState();
         this.drawTiles();
     }
 
@@ -274,7 +322,6 @@ export class Game {
         const material = this.topMonsters[materialIndex];
         if (!base || !material) return;
 
-        // ▼ 変更: オリジナルステータスと合体で得た追加ステータスの合計値の50%を計算
         const materialTotalAtk = material.originalAttack + (material.addedAttack || 0);
         const materialTotalHp = material.originalHp + (material.addedHp || 0);
         const addAtk = Math.floor(materialTotalAtk * MONSTER.MERGE_RATE);
@@ -284,7 +331,6 @@ export class Game {
         base.addedHp += addHp;
         base.mergeCount = (base.mergeCount || 0) + 1;
 
-        // 素材モンスターを削除し、partyMonsterIds のインデックスを整理
         const newTopMonsters = [];
         const oldToNewIndexMap = new Map();
 
@@ -422,6 +468,7 @@ export class Game {
         } else {
             this.ui.setPartyButtonEnabled(true);
         }
+        this.updateExchangeButtonState();
         this.drawTiles();
     }
 
@@ -519,7 +566,6 @@ export class Game {
         this.minValue = 1;
         this.ui.setItemActive(false);
 
-        // ▼ スカウトモードやリセット時に、モンスターの死亡状態（currentHp）をクリアする
         if (this.topMonsters) {
             this.topMonsters.forEach(m => {
                 if (m) {
@@ -529,6 +575,7 @@ export class Game {
         }
 
         this.battleManager.reset(this.topMonsters);
+        this.updateExchangeButtonState();
     }
 
     checkIsDeadlocked() {
@@ -624,6 +671,12 @@ export class Game {
         if (this.isGameover) return;
         this.isGameover = true;
         this.isCounting = false;
+        this.updateExchangeButtonState();
+
+        this.coins += this.score;
+        localStorage.setItem(STORAGE_KEYS.COINS, this.coins);
+        this.ui.updateCoins(this.coins);
+        this.updateExchangeButtonState();
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         for (let row = 0; row < this.NO_ROW; row++) {
@@ -636,7 +689,6 @@ export class Game {
 
         if (this.topCanvas) {
             const monsterScore = Math.max(10, Math.floor(this.score / 5));
-            // ▼ 現在のダンジョン階層を取得して渡す
             const currentFloor = this.battleManager ? this.battleManager.dungeonFloor : 1;
             const newMonster = new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore, null, currentFloor);
             this.topMonsters.push(newMonster);
@@ -646,7 +698,6 @@ export class Game {
                 this.partyMonsterIds[emptyIndex] = this.topMonsters.length - 1;
             }
 
-            // ▼ 「20体を超えて生成した場合は、合体画面に遷移するようにして」
             if (this.topMonsters.length > this.maxMonsterCount) {
                 await this.ui.promptMonsterLimitSelection(this.topMonsters);
                 await this.openMergeScreen();
