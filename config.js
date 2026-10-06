@@ -11,6 +11,11 @@ export const BOARD = {
 export const STORAGE_KEYS = {
     HIGH_SCORE_4X4: 'highScore4x4',
     USER_NAME: 'gameUserName',
+    COINS: 'gameCoins', // 【追加】コインのストレージ保存キー
+};
+
+export const COIN_EXCHANGE = {
+    COST: 1, // 【追加】+1アイテム交換に必要なコスト
 };
 
 export const MONSTER = {
@@ -33,7 +38,7 @@ export const DUNGEON = {
     ATK_GROWTH_DECAY: 0.996,   // 99.6%
     ATK_MIN_RATE: 1.001,       // 最小 100.1%
 
-    // 【追加】スカウト倍率の計算用パラメータ
+    // スカウト倍率の計算用パラメータ
     SCOUT_GROWTH_RATE: 0.055,
     SCOUT_GROWTH_DECAY: 0.996,
     SCOUT_MIN_RATE: 1.001,
@@ -41,33 +46,28 @@ export const DUNGEON = {
 };
 
 export class Dungeon {
-    // 既存の enemyFor などに加え、スカウト倍率を計算するメソッド
     static scoutMultiplierFor(floor) {
         const targetFloor = Math.max(1, floor);
         let multiplier = 1.0;
 
-        // 2階から指定階層(targetFloor)まで倍率を累積計算
         for (let n = 2; n <= targetFloor; n++) {
             let rate = 1 + DUNGEON.SCOUT_GROWTH_RATE * Math.pow(DUNGEON.SCOUT_GROWTH_DECAY, n);
             multiplier *= Math.max(DUNGEON.SCOUT_MIN_RATE, rate);
         }
         return Math.max(1.0, multiplier * DUNGEON.SCOUT_GROWTH_ADJUST);
     }
-    // 階層ごとの敵ステータスを計算（1階を初期値としてN階まで累積計算）
+
     static enemyFor(floor) {
         const targetFloor = Math.max(1, floor);
 
-        let hp = DUNGEON.ENEMY_BASE_HP; // 1階のHP = 10,000
-        let atk = DUNGEON.ENEMY_BASE_ATK; // 1階のATK = 5
+        let hp = DUNGEON.ENEMY_BASE_HP;
+        let atk = DUNGEON.ENEMY_BASE_ATK;
 
-        // 2階から指定階層(targetFloor)までインフレ率を順番に乗算
         for (let n = 2; n <= targetFloor; n++) {
-            // HPインフレ率
             let hpRate = 1 + DUNGEON.HP_GROWTH_RATE * Math.pow(DUNGEON.HP_GROWTH_DECAY, n);
             hpRate = Math.max(hpRate, DUNGEON.HP_MIN_RATE);
             hp *= hpRate;
 
-            // ATKインフレ率
             let atkRate = 1 + DUNGEON.ATK_GROWTH_RATE * Math.pow(DUNGEON.ATK_GROWTH_DECAY, n);
             atkRate = Math.max(atkRate, DUNGEON.ATK_MIN_RATE);
             atk *= atkRate;
@@ -89,7 +89,6 @@ export class BattleManager {
         this.setFloor(1);
     }
 
-    // 階層を設定し敵ステータスを初期化
     setFloor(floor) {
         this.dungeonFloor = floor;
         const enemy = Dungeon.enemyFor(floor);
@@ -98,7 +97,6 @@ export class BattleManager {
         this.enemyAtk = enemy.atk;
     }
 
-    // リセット処理
     reset(topMonsters) {
         this.enemyHp = this.enemyMaxHp;
         if (topMonsters && topMonsters.length > 0) {
@@ -108,7 +106,6 @@ export class BattleManager {
         }
     }
 
-    // 生存中のパーティの合計攻撃力を取得
     getTotalAtk(partyMonsters) {
         if (!partyMonsters || partyMonsters.length === 0) return 0;
         return partyMonsters.reduce((sum, m) => {
@@ -135,7 +132,6 @@ export class BattleManager {
 
         const attackEvents = [];
 
-        // 1匹ずつ順番にダメージを与える
         for (const monster of livingMonsters) {
             if (this.enemyHp <= 0) break;
 
@@ -153,7 +149,6 @@ export class BattleManager {
         if (isFloorCleared) {
             return { isFloorCleared: true, isGameOver: false, attackEvents };
         } else {
-            // 敵からの反撃（先頭の生存モンスターが被弾）
             const livingMonster = partyMonsters.find(m => (m.currentHp !== undefined ? m.currentHp : m.hp) > 0);
             if (livingMonster) {
                 if (livingMonster.currentHp === undefined) livingMonster.currentHp = livingMonster.hp;
