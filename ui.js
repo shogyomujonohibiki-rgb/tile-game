@@ -78,6 +78,12 @@ export class UI {
         }
     }
 
+    // 【追加】交換ボタンの表示・非表示を制御するメソッド
+    setExchangeButtonVisible(isVisible) {
+        if (!this.exchangeItemButton) return;
+        this.exchangeItemButton.style.display = isVisible ? 'inline-block' : 'none';
+    }
+
     updateTimer(text) {
         if (this.timer) {
             this.timer.textContent = text;
@@ -118,10 +124,14 @@ export class UI {
 
         if (mode === 'scout') {
             this.modeScoutBtn.classList.add('active');
+            // スカウトモード時は＋１アイテム交換ボタンを非表示にする
+            this.setExchangeButtonVisible(false);
         } else if (mode === 'dungeon') {
             this.modeDungeonBtn.classList.add('active');
+            this.setExchangeButtonVisible(true);
         } else if (mode === 'merge') {
             this.modeMergeBtn.classList.add('active');
+            this.setExchangeButtonVisible(true);
         }
     }
 
