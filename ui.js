@@ -6,6 +6,11 @@ export class UI {
         this.highScoreBoard = document.getElementById('highScoreBoard');
         this.mergeCountBoard = document.getElementById('mergeCountBoard');
         this.itemCountBoard = document.getElementById('itemCountBoard');
+        
+        // 【追加】コイン表示と交換ボタンのバインド
+        this.coinCountBoard = document.getElementById('coinCountBoard');
+        this.exchangeItemButton = document.getElementById('exchangeItemButton');
+
         this.timer = document.getElementById('timer');
 
         this.game4x4 = document.getElementById('game4x4');
@@ -52,6 +57,24 @@ export class UI {
     updateItemCount(count) {
         if (this.itemCountBoard) {
             this.itemCountBoard.innerHTML = `+1アイテム：${count}`;
+        }
+    }
+
+    // 【追加】コイン数を更新するメソッド
+    updateCoins(coins) {
+        if (this.coinCountBoard) {
+            this.coinCountBoard.innerHTML = `コイン：${coins}`;
+        }
+    }
+
+    // 【追加】交換ボタンの有効・無効を制御するメソッド
+    setExchangeButtonEnabled(enabled) {
+        if (!this.exchangeItemButton) return;
+        this.exchangeItemButton.disabled = !enabled;
+        if (enabled) {
+            this.exchangeItemButton.classList.remove('disabled');
+        } else {
+            this.exchangeItemButton.classList.add('disabled');
         }
     }
 
@@ -102,7 +125,6 @@ export class UI {
         }
     }
 
-    // ▼ 合体画面（モンスター選択＆合体実行モーダル）を表示
     showMergeScreen(topMonsters, onMergeExecute) {
         return new Promise((resolve) => {
             let modal = document.getElementById('mergeModal');
@@ -156,8 +178,7 @@ export class UI {
                     div.style.backgroundColor = bg;
 
                     const info = document.createElement('span');
-                    // オリジナルのHPとATKもわかるように表示
-                    info.innerHTML = `<strong>#${index + 1}</strong> (ATK:${m.attack}[オリ:${m.originalAttack}] HP:${m.hp}[オリ:${m.originalHp}]) 合体回数:${m.mergeCount || 0}`;
+                    info.innerHTML = `<strong>#${index + 1}</strong> (ATK:${m.attack} HP:${m.hp}) 合体回数:${m.mergeCount || 0}`;
 
                     div.addEventListener('click', () => {
                         if (baseIndex === null) {
@@ -169,7 +190,7 @@ export class UI {
                         } else if (materialIndex === null) {
                             materialIndex = index;
                         } else {
-                            materialIndex = index; // 既に両方選ばれていたら素材を上書き
+                            materialIndex = index;
                         }
                         renderList();
                     });
