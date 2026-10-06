@@ -34,7 +34,6 @@ export class Game {
         this.topMonsters = [];
         this.partyMonsterIds = [null, null, null, null, null, null];
 
-        // コインの初期化とローカルストレージからの読み込み[cite: 24, 25, 26]
         this.coins = parseInt(localStorage.getItem(STORAGE_KEYS.COINS), 10) || 0;
         this.ui.updateCoins(this.coins);
         this.updateExchangeButtonState();
@@ -117,7 +116,7 @@ export class Game {
 
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isGameover || this.isResetting || this.isTransitioning || this.currentMode === 'merge') return;
+            if (this.isGameover || this.isResetting || this.isTransitioning) return;
 
             if (!this.isCounting) {
                 this.isCounting = true;
@@ -127,7 +126,6 @@ export class Game {
                 if (this.currentMode === 'dungeon') {
                     this.ui.setPartyButtonEnabled(false);
                 }
-                // タイマー開始に伴い、交換ボタンの状態を再評価[cite: 25, 26]
                 this.updateExchangeButtonState();
             }
             if (this.isMoving) return;
@@ -169,7 +167,7 @@ export class Game {
 
         this.canvas.addEventListener('pointermove', (e) => {
             if (e.cancelable) e.preventDefault();
-            if (this.isMoving || this.isGameover || this.isResetting || this.currentMode === 'merge') return;
+            if (this.isMoving || this.isGameover || this.isResetting) return;
 
             if (this.tileChosen) {
                 const scaleX = this.canvas.width / this.rect.width;
@@ -217,11 +215,6 @@ export class Game {
                 this.switchMode('dungeon');
             });
         }
-        if (this.ui.modeMergeBtn) {
-            this.ui.modeMergeBtn.addEventListener('click', () => {
-                this.switchMode('merge');
-            });
-        }
     }
 
     initExchangeButtonEvent() {
@@ -232,7 +225,6 @@ export class Game {
         }
     }
 
-    // どのモードであっても isCounting が true のときのみ交換できるように修正[cite: 25, 26]
     exchangeCoinForItem() {
         const canExchangeCondition = this.isCounting;
         if (!canExchangeCondition) return;
@@ -253,7 +245,6 @@ export class Game {
         }
     }
 
-    // パズルスタート前（isCountingがfalse）は交換ボタンを無効化するよう修正[cite: 25, 26]
     updateExchangeButtonState() {
         const cost = COIN_EXCHANGE.COST;
         const canExchange = this.isCounting && (this.coins >= cost);
@@ -269,13 +260,8 @@ export class Game {
     }
 
     async switchMode(mode) {
-        if (this.currentMode === mode && mode !== 'merge') return;
+        if (this.currentMode === mode) return;
         this.currentMode = mode;
-
-        if (mode === 'merge') {
-            await this.openMergeScreen();
-            return;
-        }
 
         this.isResetting = false;
         this.isTransitioning = false;
@@ -290,7 +276,6 @@ export class Game {
         this.ui.setUndoButtonVisible(mode === 'scout');
         this.isGameover = false;
         
-        // モード切替時に交換ボタンの状態を更新[cite: 25, 26]
         this.updateExchangeButtonState();
 
         this.drawTiles();
@@ -305,16 +290,6 @@ export class Game {
                 this.drawTiles();
             });
         }
-    }
-
-    async openMergeScreen() {
-        const executed = await this.ui.showMergeScreen(this.topMonsters, (baseIdx, matIdx) => {
-            this.executeMerge(baseIdx, matIdx);
-        });
-        this.currentMode = 'scout';
-        this.ui.switchModeUI('scout');
-        this.updateExchangeButtonState();
-        this.drawTiles();
     }
 
     executeMerge(baseIndex, materialIndex) {
@@ -700,7 +675,6 @@ export class Game {
 
             if (this.topMonsters.length > this.maxMonsterCount) {
                 await this.ui.promptMonsterLimitSelection(this.topMonsters);
-                await this.openMergeScreen();
             }
         }
 
