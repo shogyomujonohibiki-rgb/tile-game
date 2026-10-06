@@ -23,6 +23,9 @@ export class UI {
         this.modeMergeBtn = document.getElementById('modeMerge') || this.createMergeButton();
 
         this.colorSample = document.getElementById('colorSample');
+
+        // ▼ 【修正】ゲームロード時（スカウトモードスタート時）に＋１交換ボタンを非表示にする
+        this.setExchangeButtonVisible(false);
     }
 
     createMergeButton() {
