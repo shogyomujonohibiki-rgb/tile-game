@@ -15,7 +15,7 @@ export const STORAGE_KEYS = {
 };
 
 export const COIN_EXCHANGE = {
-    COST: 1, // 【追加】+1アイテム交換に必要なコスト
+    COST: 3000, // 【追加】+1アイテム交換に必要なコスト
 };
 
 export const MONSTER = {
