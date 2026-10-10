@@ -25,11 +25,11 @@ export const MONSTER = {
 };
 
 export const DUNGEON = {
-    ENEMY_BASE_HP: 10000,
+    ENEMY_BASE_HP: 2000,
     ENEMY_BASE_ATK: 5,
 
     // HPのインフレ設定パラメータ
-    HP_GROWTH_RATE: 0.1,       // 10%
+    HP_GROWTH_RATE: 0.11,       // 10%
     HP_GROWTH_DECAY: 0.995,    // 99.5%
     HP_MIN_RATE: 1.001,        // 最小 100.1%
 
@@ -42,7 +42,7 @@ export const DUNGEON = {
     SCOUT_GROWTH_RATE: 0.055,
     SCOUT_GROWTH_DECAY: 0.996,
     SCOUT_MIN_RATE: 1.001,
-    SCOUT_GROWTH_ADJUST: 0.2, // スカウト倍率の調整値（1.0に近いほど倍率が低くなる）
+    SCOUT_GROWTH_ADJUST: 0.04, // スカウト倍率の調整値（1.0に近いほど倍率が低くなる）
 };
 
 export class Dungeon {
@@ -54,7 +54,7 @@ export class Dungeon {
             let rate = 1 + DUNGEON.SCOUT_GROWTH_RATE * Math.pow(DUNGEON.SCOUT_GROWTH_DECAY, n);
             multiplier *= Math.max(DUNGEON.SCOUT_MIN_RATE, rate);
         }
-        return Math.max(1.0, multiplier * DUNGEON.SCOUT_GROWTH_ADJUST);
+        return Math.max(0.1, multiplier * DUNGEON.SCOUT_GROWTH_ADJUST);
     }
 
     static enemyFor(floor) {
