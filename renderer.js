@@ -192,8 +192,8 @@ export class GameRenderer {
 
         attackEvents.forEach((event, i) => {
             const { monster, damage, tileValue } = event;
-            const offsetX = i * 5; //(Math.random() - 0.5) * 40;
-            const offsetY = i * 20; //(Math.random() - 0.5) * 30;
+            const offsetX = i * 5;
+            const offsetY = i * 20;
 
             monster.isJumping = true;
             monster.jumpProgress = 0;
@@ -824,7 +824,7 @@ export class GameRenderer {
 
             // 2. 敵の下のほうにタイル値の2乗（x○○）を大きく表示
             const squaredVal = fx.tileValue * fx.tileValue;
-            const multText = `x ${squaredVal}`;
+            const multText = `x ${squaredVal.toLocaleString()}`;
             const multY = enemyIconY + 150; // 敵アイコンの下部付近
 
             ctx.font = 'bold 40px Arial';
