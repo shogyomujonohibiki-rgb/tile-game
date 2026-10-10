@@ -187,13 +187,13 @@ export class GameRenderer {
     }
 
     startAttackAnimation(attackEvents) {
-        const enemyX = this.topCanvas ? this.topCanvas.width - 70 : 270;
+        const enemyX = this.topCanvas ? this.topCanvas.width - 100 : 270;
         const enemyY = 75;
 
         attackEvents.forEach((event, i) => {
-            const { monster, damage } = event;
-            const offsetX = (Math.random() - 0.5) * 40;
-            const offsetY = (Math.random() - 0.5) * 30;
+            const { monster, damage, tileValue } = event;
+            const offsetX = i * 5; //(Math.random() - 0.5) * 40;
+            const offsetY = i * 20; //(Math.random() - 0.5) * 30;
 
             monster.isJumping = true;
             monster.jumpProgress = 0;
@@ -203,8 +203,9 @@ export class GameRenderer {
                 x: enemyX + offsetX,
                 y: enemyY + offsetY,
                 damage: damage,
+                tileValue: tileValue || 1, // タイル値を保持
                 progress: 0,
-                maxLife: 30,
+                maxLife: 60,
                 delay: i * 8
             });
         });
@@ -771,6 +772,10 @@ export class GameRenderer {
     }
 
     renderAttackEffects(ctx) {
+        const w = this.topCanvas ? this.topCanvas.width : 343;
+        const enemyIconX = w - 70;
+        const enemyIconY = 100;
+
         for (let i = this.attackEffects.length - 1; i >= 0; i--) {
             const fx = this.attackEffects[i];
 
@@ -803,8 +808,8 @@ export class GameRenderer {
             ctx.closePath();
             ctx.fill();
 
-            const alpha = 1 - lifeRatio;
-            const floatY = fx.y - (fx.progress * 1.2);
+            const alpha = 1 - lifeRatio / 2;
+            const floatY = fx.y - (fx.progress * 0.2);
 
             ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
@@ -816,6 +821,24 @@ export class GameRenderer {
             const damageText = `-${fx.damage.toLocaleString()}`;
             ctx.strokeText(damageText, fx.x, floatY);
             ctx.fillText(damageText, fx.x, floatY);
+
+            // 2. 敵の下のほうにタイル値の2乗（x○○）を大きく表示
+            const squaredVal = fx.tileValue * fx.tileValue;
+            const multText = `x ${squaredVal}`;
+            const multY = enemyIconY + 150; // 敵アイコンの下部付近
+
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 縁取り
+            ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.9})`;
+            ctx.lineWidth = 4;
+            ctx.strokeText(multText, enemyIconX -20 , multY);
+
+            // 文字本体
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            ctx.fillText(multText, enemyIconX - 20, multY);
 
             ctx.restore();
         }
