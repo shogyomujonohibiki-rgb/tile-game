@@ -663,7 +663,7 @@ export class Game {
         await new Promise(resolve => setTimeout(resolve, 200));
 
         if (this.topCanvas) {
-            const monsterScore = Math.max(10, Math.floor(this.score / 5));
+            const monsterScore = Math.max(10, Math.floor(this.score));
             const currentFloor = this.battleManager ? this.battleManager.dungeonFloor : 1;
             const newMonster = new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore, null, currentFloor);
             this.topMonsters.push(newMonster);
