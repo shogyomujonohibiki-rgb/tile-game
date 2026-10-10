@@ -844,7 +844,7 @@ export class Game {
                 }
 
                 this.drawTiles();
-                this.renderer.drawScreenOverlay(alpha, `B${this.battleManager.dungeonFloor}F CLEAR!`);
+                this.renderer.drawScreenOverlay(alpha, `B${this.battleManager.dungeonFloor - 1}F CLEAR!`);
 
                 if (progress < 1) {
                     requestAnimationFrame(animate);
