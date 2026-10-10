@@ -857,7 +857,7 @@ export class GameRenderer {
 
         this.ctx.fillStyle = '#00FFFF';
         this.ctx.font = 'bold 10px Arial';
-        this.ctx.textAlign, 'left';
+        this.ctx.textAlign = 'left';
         this.ctx.fillText('マイランキング', col2X, startY - 4);
         this.renderMyRankingList(game.myLeaderboard, col2X, colWidth, startY + 8, lineHeight);
     }
