@@ -29,17 +29,17 @@ export const DUNGEON = {
     ENEMY_BASE_ATK: 5,
 
     // HPのインフレ設定パラメータ
-    HP_GROWTH_RATE: 0.11,       // 10%
+    HP_GROWTH_RATE: 0.13,       // 10%
     HP_GROWTH_DECAY: 0.995,    // 99.5%
     HP_MIN_RATE: 1.001,        // 最小 100.1%
 
     // ATKのインフレ設定パラメータ
-    ATK_GROWTH_RATE: 0.055,    // 5.5%
+    ATK_GROWTH_RATE: 0.07,    // 5.5%
     ATK_GROWTH_DECAY: 0.996,   // 99.6%
     ATK_MIN_RATE: 1.001,       // 最小 100.1%
 
     // スカウト倍率の計算用パラメータ
-    SCOUT_GROWTH_RATE: 0.055,
+    SCOUT_GROWTH_RATE: 0.07,
     SCOUT_GROWTH_DECAY: 0.996,
     SCOUT_MIN_RATE: 1.001,
     SCOUT_GROWTH_ADJUST: 0.04, // スカウト倍率の調整値（1.0に近いほど倍率が低くなる）
