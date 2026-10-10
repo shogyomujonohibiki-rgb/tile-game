@@ -137,7 +137,7 @@ export class BattleManager {
 
             const damage = Math.floor(monster.attack * tileValue * tileValue);
             this.enemyHp -= damage;
-            attackEvents.push({ monster, damage });
+            attackEvents.push({ monster, damage, tileValue });
 
             if (this.enemyHp <= 0) {
                 this.setFloor(this.dungeonFloor + 1);
