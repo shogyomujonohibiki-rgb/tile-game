@@ -445,10 +445,10 @@ export class GameRenderer {
             this.topCtx.textAlign = 'left';
 
             this.topCtx.fillStyle = '#00FFFF';
-            this.topCtx.fillText(`総 ATK: ${scoutTotalAtk.toLocaleString()}`, 10, h - 21);
+            this.topCtx.fillText(`ATK: ${scoutTotalAtk.toLocaleString()}`, 10, h - 21);
 
             this.topCtx.fillStyle = '#00FF00';
-            this.topCtx.fillText(`総 HP: ${scoutTotalHp.toLocaleString()}`, 10, h - 8);
+            this.topCtx.fillText(`HP: ${scoutTotalHp.toLocaleString()}`, 10, h - 8);
             this.topCtx.restore();
         }
 
@@ -464,7 +464,7 @@ export class GameRenderer {
 
             this.topCtx.fillStyle = '#FF4444';
             this.topCtx.font = 'bold 12px Arial';
-            this.topCtx.fillText(`敵 HP: ${enemyHp.toLocaleString()} / ${enemyMaxHp.toLocaleString()}`, w - 165, 20);
+            this.topCtx.fillText(`HP: ${enemyHp.toLocaleString()}`, w - 165, 20);
 
             const enemyBarX = w - 165;
             const enemyBarY = 26;
@@ -478,7 +478,7 @@ export class GameRenderer {
 
             this.topCtx.fillStyle = '#FF8888';
             this.topCtx.font = 'bold 12px Arial';
-            this.topCtx.fillText(`敵 ATK: ${game.battleManager.enemyAtk.toLocaleString()}`, w - 165, 50);
+            this.topCtx.fillText(`ATK: ${game.battleManager.enemyAtk.toLocaleString()}`, w - 165, 50);
 
             const partyList = game.getPartyMonsters();
             const totalAtk = game.battleManager.getTotalAtk(partyList);
@@ -496,10 +496,10 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#00FFFF';
             this.topCtx.font = 'bold 12px Arial';
             this.topCtx.textAlign = 'left';
-            this.topCtx.fillText(`総 ATK: ${totalAtk.toLocaleString()}`, 10, h - 8);
+            this.topCtx.fillText(`ATK: ${totalAtk.toLocaleString()}`, 10, h - 20);
 
             this.topCtx.fillStyle = '#00FF00';
-            this.topCtx.fillText(`総 HP: ${totalCurrentHp.toLocaleString()}/${totalMaxHp.toLocaleString()}`, 130, h - 8);
+            this.topCtx.fillText(`HP: ${totalCurrentHp.toLocaleString()}`, 10, h - 8);
 
             const enemyIconX = w - 70;
             const enemyIconY = 100;
@@ -630,7 +630,7 @@ export class GameRenderer {
                         const dStartX = 36;
                         const dStartY = 60;
                         const colWidth = 70;
-                        const rowHeight = 85;
+                        const rowHeight = 80;
 
                         let baseJumpYOffset = 0;
                         let baseJumpXOffset = 0;
