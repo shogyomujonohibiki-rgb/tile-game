@@ -427,9 +427,12 @@ export class GameRenderer {
             const currentFloor = game.battleManager ? game.battleManager.dungeonFloor : 1;
             const multiplier = Dungeon.scoutMultiplierFor(currentFloor).toFixed(2);
 
+            this.topCtx.save(); // 【追加】描画設定を保存
             this.topCtx.fillStyle = '#f9f9f9';
             this.topCtx.font = 'bold 11px Arial';
+            this.topCtx.textAlign = 'left'; // 【追加】左揃えを明示
             this.topCtx.fillText(`到達階 B${currentFloor}F、スカウト倍率 ${multiplier}倍`, 10, h - 40);
+            this.topCtx.restore(); // 【追加】描画設定を復元
 
             let scoutTotalAtk = 0;
             let scoutTotalHp = 0;
