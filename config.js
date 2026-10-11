@@ -109,6 +109,7 @@ export class BattleManager {
     getTotalAtk(partyMonsters) {
         if (!partyMonsters || partyMonsters.length === 0) return 0;
         return partyMonsters.reduce((sum, m) => {
+            if (!m) return sum; // 【追加】mがnullやundefinedの場合はスキップ
             const currentHp = m.currentHp !== undefined ? m.currentHp : m.hp;
             return currentHp > 0 ? sum + m.attack : sum;
         }, 0);
@@ -122,6 +123,7 @@ export class BattleManager {
         let isFloorCleared = false;
 
         const livingMonsters = partyMonsters.filter(m => {
+            if (!m) return false;
             const currentHp = m.currentHp !== undefined ? m.currentHp : m.hp;
             return currentHp > 0;
         });
