@@ -125,6 +125,8 @@ export class Game {
 
                 if (this.currentMode === 'dungeon') {
                     this.ui.setPartyButtonEnabled(false);
+                } else if (this.currentMode === 'scout') {
+                    this.ui.setDungeonButtonEnabled(false); // スカウトモードプレイ中はダンジョンボタンを無効化
                 }
                 this.updateExchangeButtonState();
             }
@@ -568,6 +570,10 @@ export class Game {
         this.minValue = 1;
         this.ui.setItemActive(false);
 
+        // リセット時は両方のモード切替ボタンを再度有効にする
+        this.ui.setPartyButtonEnabled(true);
+        this.ui.setDungeonButtonEnabled(true);
+        
         if (this.topMonsters) {
             this.topMonsters.forEach(m => {
                 if (m) {
