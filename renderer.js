@@ -191,10 +191,10 @@ export class GameRenderer {
         window.addEventListener('touchend', onEnd);
     }
 
-startAttackAnimation(attackEvents) {
+    startAttackAnimation(attackEvents) {
         const w = this.topCanvas ? this.topCanvas.getBoundingClientRect().width || this.topCanvas.width : 343;
-        const enemyX = w - 90; // 基準位置を少し左に調整
-        const enemyY = 85;     // 基準位置を少し上に調整
+        const enemyX = w - 90; 
+        const enemyY = 85;     
 
         attackEvents.forEach((event, i) => {
             const { monster, damage, tileValue } = event;
@@ -203,13 +203,12 @@ startAttackAnimation(attackEvents) {
             monster.jumpProgress = 0;
             monster.attackDelay = i * 8;
 
-            // 攻撃順（i）が進むにつれて、徐々に右下にずらしていくオフセット
             const offsetX = i * 5;
             const offsetY = i * 16;
 
             this.attackEffects.push({
-                x: enemyX -10 + offsetX,
-                y: enemyY -20 + offsetY,
+                x: enemyX - 10 + offsetX,
+                y: enemyY - 20 + offsetY,
                 damage: damage,
                 tileValue: tileValue || 1,
                 progress: 0,
@@ -296,7 +295,10 @@ startAttackAnimation(attackEvents) {
         this.ctx.shadowColor = 'rgba(0,0,0,0)';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(tile.value, tile.x + offsetX + game.TILE_WIDTH / 2, tile.y + offsetY + game.TILE_HEIGHT / 2);
+        
+        // タイルの値も3桁区切りに変換
+        const tileValueText = typeof tile.value === 'number' ? tile.value.toLocaleString() : tile.value;
+        this.ctx.fillText(tileValueText, tile.x + offsetX + game.TILE_WIDTH / 2, tile.y + offsetY + game.TILE_HEIGHT / 2);
 
         if (!tile.isMovable) {
             this.ctx.fillStyle = 'rgba(1,1,1,0.3)';
@@ -379,7 +381,6 @@ startAttackAnimation(attackEvents) {
 
         this.initDragListeners(game);
 
-        // CSS上の論理サイズを基準とする
         const rect = this.topCanvas.getBoundingClientRect();
         const w = rect.width || 343;
         const h = 290;
@@ -426,19 +427,22 @@ startAttackAnimation(attackEvents) {
                     this.topCtx.font = '10px Arial';
                     this.topCtx.textAlign = 'center';
                     this.topCtx.textBaseline = 'middle';
-                    this.topCtx.fillText(`${i + 1}`, sx + slotWidth / 2, sy + slotHeight / 2);
+                    this.topCtx.fillText(`${(i + 1).toLocaleString()}`, sx + slotWidth / 2, sy + slotHeight / 2);
                 }
             }
 
             const currentFloor = game.battleManager ? game.battleManager.dungeonFloor : 1;
-            const multiplier = Dungeon.scoutMultiplierFor(currentFloor).toFixed(2);
+            const multiplier = Number(Dungeon.scoutMultiplierFor(currentFloor)).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
 
-            this.topCtx.save(); // 【追加】描画設定を保存
+            this.topCtx.save();
             this.topCtx.fillStyle = '#f9f9f9';
             this.topCtx.font = 'bold 11px Arial';
-            this.topCtx.textAlign = 'left'; // 【追加】左揃えを明示
-            this.topCtx.fillText(`到達階 B${currentFloor}F、スカウト倍率 ${multiplier}倍`, 10, h - 40);
-            this.topCtx.restore(); // 【追加】描画設定を復元
+            this.topCtx.textAlign = 'left';
+            this.topCtx.fillText(`到達階 B${currentFloor.toLocaleString()}F、スカウト倍率 ${multiplier}倍`, 10, h - 40);
+            this.topCtx.restore();
 
             let scoutTotalAtk = 0;
             let scoutTotalHp = 0;
@@ -466,7 +470,7 @@ startAttackAnimation(attackEvents) {
             this.topCtx.fillStyle = '#FFD700';
             this.topCtx.font = 'bold 13px Arial';
             this.topCtx.textAlign = 'left';
-            this.topCtx.fillText(`【ダンジョン】 B${game.battleManager.dungeonFloor}F`, 10, 20);
+            this.topCtx.fillText(`【ダンジョン】 B${game.battleManager.dungeonFloor.toLocaleString()}F`, 10, 20);
 
             const enemyHp = game.battleManager.enemyHp;
             const enemyMaxHp = game.battleManager.enemyMaxHp;
@@ -614,7 +618,6 @@ startAttackAnimation(attackEvents) {
                             monster.y = monster.scoutBaseY + walkOffsetY;
                         }
 
-                        // ▼ ドラッグ中のモンスター以外は箱庭エリア内に位置を制限する
                         if (this.draggedMonster !== monster) {
                             const minX = 105;
                             const maxX = w - 25;
@@ -692,10 +695,10 @@ startAttackAnimation(attackEvents) {
                     this.topCtx.textAlign = 'center';
 
                     this.topCtx.fillStyle = '#00FFFF';
-                    this.topCtx.fillText(`ATK:${monster.attack}`, sx + slotWidth / 2, sy + 11);
+                    this.topCtx.fillText(`ATK:${monster.attack.toLocaleString()}`, sx + slotWidth / 2, sy + 11);
 
                     this.topCtx.fillStyle = '#00FF00';
-                    this.topCtx.fillText(`HP:${monster.hp}`, sx + slotWidth / 2, sy + slotHeight - 6);
+                    this.topCtx.fillText(`HP:${monster.hp.toLocaleString()}`, sx + slotWidth / 2, sy + slotHeight - 6);
 
                     this.topCtx.restore();
                 }
@@ -706,10 +709,10 @@ startAttackAnimation(attackEvents) {
                     this.topCtx.textAlign = 'center';
 
                     this.topCtx.fillStyle = '#00FFFF';
-                    this.topCtx.fillText(`ATK:${monster.attack}`, monster.x, monster.y - monster.radius - 9);
+                    this.topCtx.fillText(`ATK:${monster.attack.toLocaleString()}`, monster.x, monster.y - monster.radius - 9);
 
                     this.topCtx.fillStyle = '#00FF00';
-                    this.topCtx.fillText(`HP:${monster.hp}`, monster.x, monster.y + monster.radius + 11);
+                    this.topCtx.fillText(`HP:${monster.hp.toLocaleString()}`, monster.x, monster.y + monster.radius + 11);
 
                     this.topCtx.restore();
                 }
@@ -780,7 +783,7 @@ startAttackAnimation(attackEvents) {
         }
     }
 
-renderAttackEffects(ctx) {
+    renderAttackEffects(ctx) {
         const rect = this.topCanvas ? this.topCanvas.getBoundingClientRect() : { width: 343 };
         const w = rect.width || 343;
         const enemyIconX = w - 70;
@@ -804,7 +807,6 @@ renderAttackEffects(ctx) {
 
             ctx.save();
 
-            // 1. 各ダメージ発生位置を基準にしたヒットフラッシュエフェクト
             const flashRadius = 18 * (1 - lifeRatio * 0.5);
             ctx.fillStyle = lifeRatio < 0.3 ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 200, 0, 0.7)';
             ctx.beginPath();
@@ -821,7 +823,6 @@ renderAttackEffects(ctx) {
 
             const alpha = 1 - lifeRatio / 2;
             
-            // 2. ダメージ数値のポップアップ（上にフロートさせず、ずらした位置に固定表示）
             const damageY = fx.y;
 
             ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
@@ -835,22 +836,19 @@ renderAttackEffects(ctx) {
             ctx.strokeText(damageText, fx.x, damageY);
             ctx.fillText(damageText, fx.x, damageY);
 
-            // 3. 敵アイコンの下部にタイル値の2乗（x○○）を表示
             const squaredVal = fx.tileValue * fx.tileValue;
             const multText = `x ${squaredVal.toLocaleString()}`;
             const multX = enemyIconX - 30; 
-            const multY = enemyIconY + 100; // 敵アイコンの下部
+            const multY = enemyIconY + 100;
 
             ctx.font = 'bold 50px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            // 縁取り
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.9})`;
             ctx.lineWidth = 3;
             ctx.strokeText(multText, multX, multY);
 
-            // 文字本体
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             ctx.fillText(multText, multX, multY);
 
@@ -859,7 +857,6 @@ renderAttackEffects(ctx) {
     }
 
     drawGameOverOverlay(game) {
-        // CSS上の表示サイズ（240x250）を基準にする
         const width = 240;
         const height = 250;
 
@@ -874,7 +871,7 @@ renderAttackEffects(ctx) {
 
             this.ctx.fillStyle = '#FFD700';
             this.ctx.font = 'bold 14px Arial';
-            this.ctx.fillText(`到達階: B${game.battleManager.dungeonFloor}F`, width / 2, 60);
+            this.ctx.fillText(`到達階: B${game.battleManager.dungeonFloor.toLocaleString()}F`, width / 2, 60);
             return;
         }
 
@@ -915,7 +912,7 @@ renderAttackEffects(ctx) {
             this.ctx.font = index < 3 ? 'bold 8px Arial' : '7.5px Arial';
 
             this.ctx.textAlign = 'left';
-            const rankText = `${index + 1}.${item.userName || 'Guest'}`;
+            const rankText = `${(index + 1).toLocaleString()}.${item.userName || 'Guest'}`;
             const truncatedName = rankText.length > 10 ? rankText.substring(0, 9) + '…' : rankText;
             this.ctx.fillText(truncatedName, startX, currentY);
 
@@ -939,7 +936,7 @@ renderAttackEffects(ctx) {
             this.ctx.font = index < 3 ? 'bold 7.5px Arial' : '7px Arial';
 
             this.ctx.textAlign = 'left';
-            const rankText = `${index + 1}. `;
+            const rankText = `${(index + 1).toLocaleString()}. `;
             const dateText = item.dateStr || '';
             this.ctx.fillText(`${rankText}${dateText}`, startX, currentY);
 
