@@ -372,3 +372,134 @@ button:hover {
 .monster-thumb.selected-material {
     border-color: #e91e63;
 }
+
+/* メニュー・ランキング用モーダルスタイル */
+.menu-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    box-sizing: border-box;
+}
+
+.menu-modal.hidden {
+    display: none !important;
+}
+
+.menu-modal-content {
+    background: white;
+    width: 90%;
+    max-width: 320px;
+    padding: 16px;
+    border-radius: 8px;
+    box-sizing: border-box;
+    text-align: center;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+}
+
+.menu-modal-content h3 {
+    margin-top: 0;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.menu-action-btn {
+    all: unset;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    height: 36px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-action-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.menu-close-btn {
+    all: unset;
+    background-color: #6c757d;
+    color: white;
+    border-radius: 6px;
+    height: 34px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ranking-header-bar {
+    display: flex;
+    align-items: center;
+    position: relative;
+    margin-bottom: 8px;
+}
+
+.menu-back-btn {
+    all: unset;
+    font-size: 11px;
+    font-weight: bold;
+    color: #007bff;
+    cursor: pointer;
+    position: absolute;
+    left: 0;
+}
+
+.ranking-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.ranking-tab {
+    all: unset;
+    flex: 1;
+    background: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    height: 28px;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ranking-tab.active {
+    background: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
+
+.ranking-list-box {
+    flex: 1;
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: #f8f9fa;
+    margin-bottom: 8px;
+    text-align: left;
+    padding: 4px;
+}
