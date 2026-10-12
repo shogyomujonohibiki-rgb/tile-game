@@ -789,6 +789,7 @@ export class GameRenderer {
         const enemyIconX = w - 70;
         const enemyIconY = 100;
 
+        // 1. 状態の更新と終了したエフェクトの削除（逆順ループで安全に削除）
         for (let i = this.attackEffects.length - 1; i >= 0; i--) {
             const fx = this.attackEffects[i];
 
@@ -802,8 +803,17 @@ export class GameRenderer {
 
             if (lifeRatio >= 1) {
                 this.attackEffects.splice(i, 1);
-                continue;
             }
+        }
+
+        // 2. 描画はインデックス 0 から順に行うことで、後から追加されたものを最前面にする
+        for (let i = 0; i < this.attackEffects.length; i++) {
+            const fx = this.attackEffects[i];
+
+            if (fx.delay > 0) continue;
+
+            const lifeRatio = fx.progress / fx.maxLife;
+            if (lifeRatio >= 1) continue;
 
             ctx.save();
 
@@ -822,7 +832,6 @@ export class GameRenderer {
             ctx.fill();
 
             const alpha = 1 - lifeRatio / 2;
-            
             const damageY = fx.y;
 
             ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
