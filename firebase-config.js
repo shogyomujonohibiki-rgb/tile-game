@@ -96,6 +96,85 @@ window.saveScoreToFirestore = async (score, mergeCount = 0, userName = null) => 
     }
 };
 
+window.saveDungeonScoreToFirestore = async function (dungeonFloor, enemyHp, userName = null) {
+    try {
+        const user = await ensureAuth();
+        if (!user) return;
+
+        const currentName = userName
+            || localStorage.getItem('gameUserName')
+            || user.displayName
+            || 'Guest';
+
+        // ▼ 修正: UIDをドキュメントIDとして使用し、ユーザーごとに1つのデータに集約・上書きする
+        const dungeonDocRef = doc(db, "dungeon_scores", user.uid);
+        
+        // 既存のデータを確認して、より高い階層（または同じならより有利な状態）のときのみ更新することも可能です
+        const docSnap = await getDoc(dungeonDocRef);
+        let shouldUpdate = true;
+        
+        if (docSnap.exists()) {
+            const existingData = docSnap.data();
+            const existingFloor = existingData.dungeonFloor || 1;
+            
+            // 過去の到達階よりも低い場合は更新しない（自己最高記録のみを保持する場合）
+            // 常に最新にしたい場合はこの条件分岐を外してください
+            if (dungeonFloor < existingFloor) {
+                shouldUpdate = false;
+            }
+        }
+
+        if (shouldUpdate) {
+            await setDoc(dungeonDocRef, {
+                uid: user.uid,
+                userName: currentName,
+                dungeonFloor: dungeonFloor,
+                enemyHp: enemyHp,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
+        }
+    } catch (error) {
+        console.error("ダンジョンスコア保存失敗:", error);
+    }
+};
+
+window.fetchDungeonLeaderboardFromFirestore = async function (limitCount = 20) {
+    try {
+        // ▼ 修正: 各ドキュメントがユーザーごとの最新記録になっているため、そのままソートして取得する
+        const q = query(
+            collection(db, "dungeon_scores"), 
+            orderBy("dungeonFloor", "desc"), 
+            limit(limitCount)
+        );
+        const querySnapshot = await getDocs(q);
+
+        const leaderboard = [];
+        querySnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            leaderboard.push({
+                uid: data.uid,
+                userName: data.userName || 'Guest',
+                dungeonFloor: data.dungeonFloor || 1,
+                enemyHp: data.enemyHp || 0,
+                createdAt: data.updatedAt ? data.updatedAt.toMillis() : 0
+            });
+        });
+
+        // 到達階が大きい順、同じ場合は敵HPが低い順にソート
+        leaderboard.sort((a, b) => {
+            if (b.dungeonFloor !== a.dungeonFloor) {
+                return b.dungeonFloor - a.dungeonFloor;
+            }
+            return a.enemyHp - b.enemyHp;
+        });
+
+        return leaderboard;
+    } catch (error) {
+        console.error("ダンジョンランキングの取得に失敗しました:", error);
+        return [];
+    }
+};
+
 window.fetchLeaderboardFromFirestore = async function (limitCount = 20) {
     try {
         const q = query(collection(db, "scores"), orderBy("score", "desc"), limit(limitCount));
