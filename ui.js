@@ -27,17 +27,20 @@ export class UI {
     }
 
     // ▼ 追加: メニューおよびランキングのインタラクション初期化
-    initMenuEvents() {
+initMenuEvents() {
         const menuModal = document.getElementById('menuModal');
         const menuMainView = document.getElementById('menuMainView');
         const scoreRankingView = document.getElementById('scoreRankingView');
+        const dungeonRankingView = document.getElementById('dungeonRankingView'); // ▼ 追加: ダンジョンランキングビューを取得
 
         const btnScoreRanking = document.getElementById('btnScoreRanking');
         const btnDungeonRanking = document.getElementById('btnDungeonRanking');
         const btnMonsterRanking = document.getElementById('btnMonsterRanking');
         const closeMenuBtn = document.getElementById('closeMenuBtn');
         const closeScoreRankingBtn = document.getElementById('closeScoreRankingBtn');
+        const closeDungeonRankingBtn = document.getElementById('closeDungeonRankingBtn'); // ▼ 追加
         const backToMenuBtn = document.getElementById('backToMenuBtn');
+        const backToMenuFromDungeonBtn = document.getElementById('backToMenuFromDungeonBtn'); // ▼ 追加
 
         const tabGlobal = document.getElementById('tabGlobal');
         const tabMy = document.getElementById('tabMy');
@@ -46,6 +49,7 @@ export class UI {
             this.menuButton.addEventListener('click', () => {
                 menuMainView.classList.remove('hidden');
                 scoreRankingView.classList.add('hidden');
+                if (dungeonRankingView) dungeonRankingView.classList.add('hidden'); // ▼ 追加: 念のため非課金化
                 menuModal.classList.remove('hidden');
             });
         }
@@ -56,14 +60,30 @@ export class UI {
 
         if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeModal);
         if (closeScoreRankingBtn) closeScoreRankingBtn.addEventListener('click', closeModal);
+        if (closeDungeonRankingBtn) closeDungeonRankingBtn.addEventListener('click', closeModal); // ▼ 追加
 
         if (btnScoreRanking) {
             btnScoreRanking.addEventListener('click', () => {
                 menuMainView.classList.add('hidden');
+                if (dungeonRankingView) dungeonRankingView.classList.add('hidden'); // ▼ 追加
                 scoreRankingView.classList.remove('hidden');
                 // デフォルトで全国タブを選択状態にする
                 tabGlobal.click();
             });
+        }
+
+        // ▼ 追加: ダンジョンランキングボタンが押されたときの正しいビュー切り替え処理
+        if (btnDungeonRanking && dungeonRankingView) {
+            btnDungeonRanking.onclick = async () => {
+                menuMainView.classList.add('hidden');
+                scoreRankingView.classList.add('hidden');
+                dungeonRankingView.classList.remove('hidden');
+
+                if (window.fetchDungeonLeaderboardFromFirestore) {
+                    const dungeonLeaderboard = await window.fetchDungeonLeaderboardFromFirestore();
+                    this.renderDungeonRankings(dungeonLeaderboard);
+                }
+            };
         }
 
         if (backToMenuBtn) {
@@ -73,9 +93,11 @@ export class UI {
             });
         }
 
-        if (btnDungeonRanking) {
-            btnDungeonRanking.addEventListener('click', () => {
-                alert('ダンジョンランキングは準備中です');
+        // ▼ 追加: ダンジョンランキング画面からの「戻る」ボタン
+        if (backToMenuFromDungeonBtn && dungeonRankingView) {
+            backToMenuFromDungeonBtn.addEventListener('click', () => {
+                dungeonRankingView.classList.add('hidden');
+                menuMainView.classList.remove('hidden');
             });
         }
 
@@ -117,6 +139,35 @@ export class UI {
                 <td style="padding:4px; width:30px; font-weight:bold;">${rank}.</td>
                 <td style="padding:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px;">${name}</td>
                 <td style="padding:4px; text-align:right; font-weight:bold; color:#0056b3;">${score}</td>
+            </tr>`;
+        });
+        html += '</table>';
+        rankingListView.innerHTML = html;
+    }
+
+    renderDungeonRankings(dataList) {
+        const rankingListView = document.getElementById('dungeonRankingListView');
+        if (!rankingListView) return;
+
+        if (!dataList || dataList.length === 0) {
+            rankingListView.innerHTML = '<div style="text-align:center; color:#888; padding:20px; font-size:11px;">データなし</div>';
+            return;
+        }
+
+        let html = '<table style="width:100%; border-collapse:collapse; font-size:11px; color:#333;">';
+        html += '<tr style="border-bottom:2px solid #ccc; font-weight:bold;"><td style="padding:4px;">順位</td><td style="padding:4px;">ユーザー名</td><td style="padding:4px; text-align:right;">到達階</td><td style="padding:4px; text-align:right;">敵HP</td></tr>';
+        
+        dataList.slice(0, 20).forEach((item, index) => {
+            const rank = index + 1;
+            const name = item.userName || 'Guest';
+            const floor = `B${(item.dungeonFloor || 1).toLocaleString()}F`;
+            const enemyHp = (item.enemyHp || 0).toLocaleString();
+
+            html += `<tr style="border-bottom:1px solid #eee;">
+                <td style="padding:4px; width:25px; font-weight:bold;">${rank}.</td>
+                <td style="padding:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px;">${name}</td>
+                <td style="padding:4px; text-align:right; font-weight:bold; color:#d9534f;">${floor}</td>
+                <td style="padding:4px; text-align:right; color:#666;">${enemyHp}</td>
             </tr>`;
         });
         html += '</table>';
