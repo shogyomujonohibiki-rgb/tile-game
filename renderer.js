@@ -191,7 +191,7 @@ export class GameRenderer {
         window.addEventListener('touchend', onEnd);
     }
 
-startAttackAnimation(attackEvents) {
+    startAttackAnimation(attackEvents) {
         const w = this.topCanvas ? this.topCanvas.getBoundingClientRect().width || this.topCanvas.width : 343;
         const enemyX = w - 70;
         const enemyY = 100;
@@ -776,7 +776,7 @@ startAttackAnimation(attackEvents) {
         }
     }
 
-renderAttackEffects(ctx) {
+    renderAttackEffects(ctx) {
         const rect = this.topCanvas ? this.topCanvas.getBoundingClientRect() : { width: 343 };
         const w = rect.width || 343;
         const enemyIconX = w - 70;
@@ -816,7 +816,7 @@ renderAttackEffects(ctx) {
             ctx.fill();
 
             const alpha = 1 - lifeRatio / 2;
-            
+
             // 2. ダメージ数値のポップアップ（敵アイコンの中央から上方へフロート移動）
             const floatY = enemyIconY - (fx.progress * 0.6);
 
@@ -834,20 +834,20 @@ renderAttackEffects(ctx) {
             // 3. 敵アイコンの下部にタイル値の2乗（x○○）を表示
             const squaredVal = fx.tileValue * fx.tileValue;
             const multText = `x ${squaredVal.toLocaleString()}`;
-            const multY = enemyIconY + 48; // 敵アイコン（radius:35）の下部付近
+            const multY = enemyIconY + 100; // 敵アイコン（radius:35）の下部付近
 
-            ctx.font = 'bold 16px Arial';
+            ctx.font = 'bold 50px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
             // 縁取り
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.9})`;
             ctx.lineWidth = 3;
-            ctx.strokeText(multText, enemyIconX, multY);
+            ctx.strokeText(multText, enemyIconX - 30, multY);
 
             // 文字本体
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-            ctx.fillText(multText, enemyIconX, multY);
+            ctx.fillText(multText, enemyIconX - 30, multY);
 
             ctx.restore();
         }
