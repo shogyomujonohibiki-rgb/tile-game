@@ -1,6 +1,7 @@
 'use strict';
 
 import { Dungeon, MONSTER } from './config.js';
+import { drawIcon } from './icons.js';
 
 export class GameRenderer {
     constructor(canvas, ctx, topCanvas, topCtx) {
@@ -24,7 +25,6 @@ export class GameRenderer {
             const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
             const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
 
-            // CSS上の表示サイズ（幅はrect.width、高さは290）を基準にする
             const cssWidth = rect.width || 343;
             const cssHeight = 290;
             const scaleX = cssWidth / rect.width;
@@ -296,7 +296,6 @@ export class GameRenderer {
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         
-        // タイルの値も3桁区切りに変換
         const tileValueText = typeof tile.value === 'number' ? tile.value.toLocaleString() : tile.value;
         this.ctx.fillText(tileValueText, tile.x + offsetX + game.TILE_WIDTH / 2, tile.y + offsetY + game.TILE_HEIGHT / 2);
 
@@ -458,11 +457,15 @@ export class GameRenderer {
             this.topCtx.font = 'bold 11px Arial';
             this.topCtx.textAlign = 'left';
 
+            // ATKアイコン (swords)
+            drawIcon(this.topCtx, 'swords', 10, h - 28, 12, '#00FFFF');
             this.topCtx.fillStyle = '#00FFFF';
-            this.topCtx.fillText(`ATK: ${scoutTotalAtk.toLocaleString()}`, 10, h - 21);
+            this.topCtx.fillText(`${scoutTotalAtk.toLocaleString()}`, 26, h - 21);
 
+            // HPアイコン (favorite)
+            drawIcon(this.topCtx, 'favorite', 10, h - 15, 12, '#00FF00');
             this.topCtx.fillStyle = '#00FF00';
-            this.topCtx.fillText(`HP: ${scoutTotalHp.toLocaleString()}`, 10, h - 8);
+            this.topCtx.fillText(`${scoutTotalHp.toLocaleString()}`, 26, h - 8);
             this.topCtx.restore();
         }
 
@@ -478,7 +481,9 @@ export class GameRenderer {
 
             this.topCtx.fillStyle = '#FF4444';
             this.topCtx.font = 'bold 12px Arial';
-            this.topCtx.fillText(`HP: ${enemyHp.toLocaleString()}`, w - 165, 20);
+            this.topCtx.textAlign = 'left';
+            drawIcon(this.topCtx, 'favorite', w - 165, 11, 12, '#FF4444');
+            this.topCtx.fillText(`${enemyHp.toLocaleString()}`, w - 148, 20);
 
             const enemyBarX = w - 165;
             const enemyBarY = 26;
@@ -492,7 +497,8 @@ export class GameRenderer {
 
             this.topCtx.fillStyle = '#FF8888';
             this.topCtx.font = 'bold 12px Arial';
-            this.topCtx.fillText(`ATK: ${game.battleManager.enemyAtk.toLocaleString()}`, w - 165, 50);
+            drawIcon(this.topCtx, 'swords', w - 165, 41, 12, '#FF8888');
+            this.topCtx.fillText(`${game.battleManager.enemyAtk.toLocaleString()}`, w - 148, 50);
 
             const partyList = game.getPartyMonsters();
             const totalAtk = game.battleManager.getTotalAtk(partyList);
@@ -510,10 +516,12 @@ export class GameRenderer {
             this.topCtx.fillStyle = '#00FFFF';
             this.topCtx.font = 'bold 12px Arial';
             this.topCtx.textAlign = 'left';
-            this.topCtx.fillText(`ATK: ${totalAtk.toLocaleString()}`, 10, h - 20);
+            drawIcon(this.topCtx, 'swords', 10, h - 28, 12, '#00FFFF');
+            this.topCtx.fillText(`${totalAtk.toLocaleString()}`, 26, h - 20);
 
             this.topCtx.fillStyle = '#00FF00';
-            this.topCtx.fillText(`HP: ${totalCurrentHp.toLocaleString()}`, 10, h - 8);
+            drawIcon(this.topCtx, 'favorite', 10, h - 16, 12, '#00FF00');
+            this.topCtx.fillText(`${totalCurrentHp.toLocaleString()}`, 26, h - 8);
 
             const enemyIconX = w - 70;
             const enemyIconY = 100;
@@ -641,7 +649,7 @@ export class GameRenderer {
                     if (index < positions.length) {
                         const pos = positions[index];
                         const dStartX = 36;
-                        const dStartY = 60;
+                        const dStartY = 55;
                         const colWidth = 70;
                         const rowHeight = 80;
 
@@ -692,13 +700,15 @@ export class GameRenderer {
 
                     this.topCtx.save();
                     this.topCtx.font = '9px Arial';
-                    this.topCtx.textAlign = 'center';
+                    this.topCtx.textAlign = 'left';
 
+                    drawIcon(this.topCtx, 'swords', sx + 3, sy + 3, 10, '#00FFFF');
                     this.topCtx.fillStyle = '#00FFFF';
-                    this.topCtx.fillText(`ATK:${monster.attack.toLocaleString()}`, sx + slotWidth / 2, sy + 11);
+                    this.topCtx.fillText(`${monster.attack.toLocaleString()}`, sx + 15, sy + 11);
 
+                    drawIcon(this.topCtx, 'favorite', sx + 3, sy + slotHeight - 13, 10, '#00FF00');
                     this.topCtx.fillStyle = '#00FF00';
-                    this.topCtx.fillText(`HP:${monster.hp.toLocaleString()}`, sx + slotWidth / 2, sy + slotHeight - 6);
+                    this.topCtx.fillText(`${monster.hp.toLocaleString()}`, sx + 15, sy + slotHeight - 6);
 
                     this.topCtx.restore();
                 }
@@ -706,13 +716,15 @@ export class GameRenderer {
                 if (isScout && assignedSlotIndex === -1) {
                     this.topCtx.save();
                     this.topCtx.font = '8px Arial';
-                    this.topCtx.textAlign = 'center';
+                    this.topCtx.textAlign = 'left';
 
+                    drawIcon(this.topCtx, 'swords', monster.x - 22, monster.y - monster.radius - 14, 9, '#00FFFF');
                     this.topCtx.fillStyle = '#00FFFF';
-                    this.topCtx.fillText(`ATK:${monster.attack.toLocaleString()}`, monster.x, monster.y - monster.radius - 9);
+                    this.topCtx.fillText(`${monster.attack.toLocaleString()}`, monster.x - 11, monster.y - monster.radius - 9);
 
+                    drawIcon(this.topCtx, 'favorite', monster.x - 22, monster.y + monster.radius + 5, 9, '#00FF00');
                     this.topCtx.fillStyle = '#00FF00';
-                    this.topCtx.fillText(`HP:${monster.hp.toLocaleString()}`, monster.x, monster.y + monster.radius + 11);
+                    this.topCtx.fillText(`${monster.hp.toLocaleString()}`, monster.x - 11, monster.y + monster.radius + 11);
 
                     this.topCtx.restore();
                 }
@@ -736,13 +748,15 @@ export class GameRenderer {
                         this.topCtx.fillRect(bx, by, boxW, boxH);
                     }
 
+                    drawIcon(this.topCtx, 'swords', bx + 6, by + 3, 10, '#00FFFF');
                     this.topCtx.fillStyle = '#00FFFF';
                     this.topCtx.font = 'bold 11px Arial';
                     this.topCtx.textAlign = 'left';
-                    this.topCtx.fillText(`ATK: ${monster.attack.toLocaleString()}`, bx + 6, by + 12);
+                    this.topCtx.fillText(`${monster.attack.toLocaleString()}`, bx + 18, by + 12);
 
+                    drawIcon(this.topCtx, 'favorite', bx + 6, by + 16, 10, '#00FF00');
                     this.topCtx.fillStyle = '#00FF00';
-                    this.topCtx.fillText(`HP: ${monster.hp.toLocaleString()}`, bx + 6, by + 25);
+                    this.topCtx.fillText(`${monster.hp.toLocaleString()}`, bx + 18, by + 25);
                     this.topCtx.restore();
                 }
 
@@ -760,15 +774,21 @@ export class GameRenderer {
                     this.topCtx.fillStyle = ratio > 0.3 ? '#00FF00' : '#FF0000';
                     this.topCtx.fillRect(bx, by, barW * ratio, barH);
 
-                    this.topCtx.fillStyle = '#FFF';
+                    this.topCtx.save();
                     this.topCtx.font = '11px Arial';
-                    this.topCtx.textAlign = 'center';
-                    this.topCtx.fillText(`${monster.currentHp.toLocaleString()}`, monster.x, by + 14);
+                    this.topCtx.textAlign = 'left';
 
-                    this.topCtx.fillStyle = '#FFF';
-                    this.topCtx.font = '11px Arial';
-                    this.topCtx.textAlign = 'center';
-                    this.topCtx.fillText(`ATK:${monster.attack.toLocaleString()}`, monster.x, monster.y - monster.radius - 10);
+                    // HP text color -> #00FF00
+                    drawIcon(this.topCtx, 'favorite', monster.x - 22, by + 7, 10, '#00FF00');
+                    this.topCtx.fillStyle = '#00FF00';
+                    this.topCtx.fillText(`${monster.currentHp.toLocaleString()}`, monster.x - 10, by + 16);
+
+                    // ATK text color -> #00FFFF
+                    drawIcon(this.topCtx, 'swords', monster.x - 26, monster.y - monster.radius - 19, 10, '#00FFFF');
+                    this.topCtx.fillStyle = '#00FFFF';
+                    this.topCtx.fillText(`${monster.attack.toLocaleString()}`, monster.x - 14, monster.y - monster.radius - 10);
+                    
+                    this.topCtx.restore();
                 }
             });
         } else if (game.currentMode === 'dungeon') {
@@ -789,7 +809,6 @@ export class GameRenderer {
         const enemyIconX = w - 70;
         const enemyIconY = 100;
 
-        // 1. 状態の更新と終了したエフェクトの削除（逆順ループで安全に削除）
         for (let i = this.attackEffects.length - 1; i >= 0; i--) {
             const fx = this.attackEffects[i];
 
@@ -806,7 +825,6 @@ export class GameRenderer {
             }
         }
 
-        // 2. 描画はインデックス 0 から順に行うことで、後から追加されたものを最前面にする
         for (let i = 0; i < this.attackEffects.length; i++) {
             const fx = this.attackEffects[i];
 
@@ -909,7 +927,7 @@ export class GameRenderer {
     renderRankingList(dataList, startX, colWidth, startY, lineHeight) {
         if (!dataList || dataList.length === 0) {
             this.ctx.font = '8px Arial';
-            this.ctx.textAlign = 'left';
+            this.ctx.textAlign, 'left';
             this.ctx.fillStyle = '#888888';
             this.ctx.fillText('データなし', startX, startY);
             return;
