@@ -97,6 +97,19 @@ export class UI {
         }
     }
 
+    // スカウトボタン・ダンジョンボタンを個別に制御できるようにするメソッドを追加
+    setScoutButtonEnabled(enabled) {
+        if (this.modeScoutBtn) {
+            this.modeScoutBtn.disabled = !enabled;
+        }
+    }
+
+    setDungeonButtonEnabled(enabled) {
+        if (this.modeDungeonBtn) {
+            this.modeDungeonBtn.disabled = !enabled;
+        }
+    }
+
     switchModeUI(mode) {
         if (!this.modeScoutBtn || !this.modeDungeonBtn) return;
         this.modeScoutBtn.classList.remove('active');
