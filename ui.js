@@ -4,6 +4,7 @@ export class UI {
     constructor() {
         this.scoreBoard = document.getElementById('scoreBoard');
         this.highScoreBoard = document.getElementById('highScoreBoard');
+        this.userNameBoard = document.getElementById('userNameBoard'); // 追加
         this.mergeCountBoard = document.getElementById('mergeCountBoard');
         this.itemCountBoard = document.getElementById('itemCountBoard');
         
@@ -23,6 +24,13 @@ export class UI {
         this.setExchangeButtonVisible(false);
     }
 
+    // 追加
+    updateUserName(name) {
+        if (this.userNameBoard) {
+            this.userNameBoard.textContent = name || 'Guest';
+        }
+    }
+    
     updateScore(score) {
         if (this.scoreBoard) {
             const num = Number(score) || 0;
