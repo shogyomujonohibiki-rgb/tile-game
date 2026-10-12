@@ -57,6 +57,14 @@ export class Game {
             this.userName = savedName;
         }
 
+        // ▼ 追加: UIにユーザー名を反映 ＆ クリックで名前変更イベント
+        this.ui.updateUserName(this.userName);
+        if (this.ui.userNameBoard) {
+            this.ui.userNameBoard.addEventListener('click', () => {
+                this.changeUserName(false);
+            });
+        }
+
         this.board = null;
         this.tileMx = [];
         this.history = [];
@@ -573,7 +581,7 @@ export class Game {
         // リセット時は両方のモード切替ボタンを再度有効にする
         this.ui.setPartyButtonEnabled(true);
         this.ui.setDungeonButtonEnabled(true);
-        
+
         if (this.topMonsters) {
             this.topMonsters.forEach(m => {
                 if (m) {
@@ -898,5 +906,24 @@ export class Game {
             this.hasClearedTilesInAnim = false;
             requestAnimationFrame(animate);
         });
+    }
+
+    changeUserName(isFirstTime = false) {
+        const promptMessage = 'プレイヤー名を入力してください:';
+        const defaultName = (this.userName && this.userName !== 'Guest') ? this.userName : '';
+        const inputName = prompt(promptMessage, defaultName);
+
+        if (inputName !== null && inputName.trim() !== '') {
+            this.userName = inputName.trim();
+        } else if (isFirstTime && (!this.userName || this.userName === 'Guest')) {
+            this.userName = 'Guest';
+        }
+
+        localStorage.setItem('gameUserName', this.userName);
+        
+        // ▼ 追加: 変更をUIに反映
+        this.ui.updateUserName(this.userName);
+
+        this.dataManager.saveCloudData(this);
     }
 }
