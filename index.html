@@ -15,7 +15,10 @@
 </head>
 
 <body>
-    <p id="scoreBoard" class="p1">0</p>
+    <div style="display: flex; align-items: center; justify-content: center; width: 343px; max-width: 100%; margin: 0 auto; position: relative; box-sizing: border-box; padding: 0 4px;">
+        <div id="userNameBoard" style="position: absolute; left: 4px; font-size: 12px; font-weight: bold; color: #333; cursor: pointer; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="クリックして名前を変更">Guest</div>
+        <p id="scoreBoard" class="p1">0</p>
+    </div>
     <p id="highScoreBoard" class="p3">0</p>
     <div id="gameArea">
         <!-- 上部：箱庭エリア -->
