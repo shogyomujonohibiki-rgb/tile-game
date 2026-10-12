@@ -351,8 +351,7 @@ export class Game {
 
         // 上部キャンバス（topCanvas）の高解像度化
         if (this.topCanvas) {
-            const topRect = this.topCanvas.getBoundingClientRect();
-            const topCssWidth = topRect.width || 343;
+            const topCssWidth = 343; // 固定のCSS論理幅を使用する
             const topCssHeight = 290;
 
             this.topCanvas.width = topCssWidth * dpr;
