@@ -160,7 +160,7 @@ export class GameRenderer {
                     const baseMonster = game.topMonsters[baseMonsterIndex];
                     if (baseMonster) {
                         this.draggedMonster = null;
-                        
+
                         await game.ui.showMergeConfirmScreen(baseMonster, droppedMonster, MONSTER.MERGE_RATE, async (confirmed) => {
                             if (confirmed) {
                                 game.executeMerge(baseMonsterIndex, materialIndex);
@@ -833,11 +833,11 @@ export class GameRenderer {
             ctx.font = 'bold 40px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            
+
             // 縁取り
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.9})`;
             ctx.lineWidth = 4;
-            ctx.strokeText(multText, enemyIconX -20 , multY);
+            ctx.strokeText(multText, enemyIconX - 20, multY);
 
             // 文字本体
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
@@ -848,8 +848,9 @@ export class GameRenderer {
     }
 
     drawGameOverOverlay(game) {
-        const width = this.canvas.width;
-        const height = this.canvas.height;
+        // CSS上の表示サイズ（240x250）を基準にする
+        const width = 240;
+        const height = 250;
 
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.88)';
         this.ctx.fillRect(0, 0, width, height);
