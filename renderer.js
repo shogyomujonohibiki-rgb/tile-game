@@ -191,24 +191,23 @@ export class GameRenderer {
         window.addEventListener('touchend', onEnd);
     }
 
-    startAttackAnimation(attackEvents) {
-        const enemyX = this.topCanvas ? this.topCanvas.width - 100 : 270;
-        const enemyY = 75;
+startAttackAnimation(attackEvents) {
+        const w = this.topCanvas ? this.topCanvas.getBoundingClientRect().width || this.topCanvas.width : 343;
+        const enemyX = w - 70;
+        const enemyY = 100;
 
         attackEvents.forEach((event, i) => {
             const { monster, damage, tileValue } = event;
-            const offsetX = i * 5;
-            const offsetY = i * 20;
 
             monster.isJumping = true;
             monster.jumpProgress = 0;
             monster.attackDelay = i * 8;
 
             this.attackEffects.push({
-                x: enemyX + offsetX,
-                y: enemyY + offsetY,
+                x: enemyX,
+                y: enemyY,
                 damage: damage,
-                tileValue: tileValue || 1, // タイル値を保持
+                tileValue: tileValue || 1,
                 progress: 0,
                 maxLife: 60,
                 delay: i * 8
@@ -777,8 +776,9 @@ export class GameRenderer {
         }
     }
 
-    renderAttackEffects(ctx) {
-        const w = this.topCanvas ? this.topCanvas.width : 343;
+renderAttackEffects(ctx) {
+        const rect = this.topCanvas ? this.topCanvas.getBoundingClientRect() : { width: 343 };
+        const w = rect.width || 343;
         const enemyIconX = w - 70;
         const enemyIconY = 100;
 
@@ -800,14 +800,15 @@ export class GameRenderer {
 
             ctx.save();
 
+            // 1. 敵アイコンの中央（enemyIconX, enemyIconY）を基準にしたヒットフラッシュエフェクト
             const flashRadius = 18 * (1 - lifeRatio * 0.5);
             ctx.fillStyle = lifeRatio < 0.3 ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 200, 0, 0.7)';
             ctx.beginPath();
             for (let k = 0; k < 8; k++) {
                 const angle = (Math.PI / 4) * k;
                 const r = k % 2 === 0 ? flashRadius : flashRadius * 0.4;
-                const px = fx.x + Math.cos(angle) * r;
-                const py = fx.y + Math.sin(angle) * r;
+                const px = enemyIconX + Math.cos(angle) * r;
+                const py = enemyIconY + Math.sin(angle) * r;
                 if (k === 0) ctx.moveTo(px, py);
                 else ctx.lineTo(px, py);
             }
@@ -815,36 +816,38 @@ export class GameRenderer {
             ctx.fill();
 
             const alpha = 1 - lifeRatio / 2;
-            const floatY = fx.y - (fx.progress * 0.2);
+            
+            // 2. ダメージ数値のポップアップ（敵アイコンの中央から上方へフロート移動）
+            const floatY = enemyIconY - (fx.progress * 0.6);
 
             ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
             ctx.lineWidth = 3;
             ctx.font = 'italic bold 18px Arial';
-            this.topCtx.textAlign = 'center';
-            this.topCtx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
             const damageText = `-${fx.damage.toLocaleString()}`;
-            ctx.strokeText(damageText, fx.x, floatY);
-            ctx.fillText(damageText, fx.x, floatY);
+            ctx.strokeText(damageText, enemyIconX, floatY);
+            ctx.fillText(damageText, enemyIconX, floatY);
 
-            // 2. 敵の下のほうにタイル値の2乗（x○○）を大きく表示
+            // 3. 敵アイコンの下部にタイル値の2乗（x○○）を表示
             const squaredVal = fx.tileValue * fx.tileValue;
             const multText = `x ${squaredVal.toLocaleString()}`;
-            const multY = enemyIconY + 150; // 敵アイコンの下部付近
+            const multY = enemyIconY + 48; // 敵アイコン（radius:35）の下部付近
 
-            ctx.font = 'bold 40px Arial';
+            ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
             // 縁取り
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.9})`;
-            ctx.lineWidth = 4;
-            ctx.strokeText(multText, enemyIconX - 20, multY);
+            ctx.lineWidth = 3;
+            ctx.strokeText(multText, enemyIconX, multY);
 
             // 文字本体
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-            ctx.fillText(multText, enemyIconX - 20, multY);
+            ctx.fillText(multText, enemyIconX, multY);
 
             ctx.restore();
         }
