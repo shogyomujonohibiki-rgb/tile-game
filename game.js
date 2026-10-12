@@ -137,6 +137,43 @@ export class Game {
             });
         }
 
+const dungeonRankingView = document.getElementById('dungeonRankingView');
+        const btnDungeonRanking = document.getElementById('btnDungeonRanking');
+        const closeDungeonRankingBtn = document.getElementById('closeDungeonRankingBtn');
+        const backToMenuFromDungeonBtn = document.getElementById('backToMenuFromDungeonBtn');
+        const menuModal = document.getElementById('menuModal'); // ▼ 追加: モーダル要素を取得
+
+        // ▼ 修正: closeModalの代わりに直接モーダルを非表示にする処理を書く
+        if (closeDungeonRankingBtn && menuModal) {
+            closeDungeonRankingBtn.addEventListener('click', () => {
+                menuModal.classList.add('hidden');
+            });
+        }
+
+        if (btnDungeonRanking) {
+            btnDungeonRanking.addEventListener('click', async () => {
+                menuMainView.classList.add('hidden');
+                dungeonRankingView.classList.remove('hidden');
+
+                const dungeonLeaderboard = await this.dataManager.fetchDungeonLeaderboard();
+                this.ui.renderDungeonRankings(dungeonLeaderboard);
+            });
+        }
+
+        if (backToMenuFromDungeonBtn) {
+            backToMenuFromDungeonBtn.addEventListener('click', () => {
+                dungeonRankingView.classList.add('hidden');
+                menuMainView.classList.remove('hidden');
+            });
+        }
+
+        if (backToMenuFromDungeonBtn) {
+            backToMenuFromDungeonBtn.addEventListener('click', () => {
+                dungeonRankingView.classList.add('hidden');
+                menuMainView.classList.remove('hidden');
+            });
+        }
+
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
             if (this.isGameover || this.isResetting || this.isTransitioning) return;
@@ -234,6 +271,20 @@ export class Game {
         });
 
         this.startBoard();
+
+        // ▼ ロード直後の文字・タイルの描画ズレを完全に防ぐための対策
+        requestAnimationFrame(() => {
+            this.resizeCanvas();
+            this.drawTiles();
+        });
+
+        setTimeout(() => {
+            this.resizeCanvas();
+            this.reset();
+            this.startBoard();
+            this.drawTiles();
+        }, 100);
+
     }
 
     initModeSwitchEvents() {
@@ -773,6 +824,12 @@ export class Game {
         }
 
         await this.dataManager.saveCloudData(this);
+
+        await this.dataManager.saveDungeonScore(
+            this.battleManager.dungeonFloor, 
+            this.battleManager.enemyMaxHp, 
+            this.userName
+        );
 
         await new Promise(resolve => setTimeout(resolve, 500));
 
