@@ -330,17 +330,40 @@ export class Game {
     }
 
     resizeCanvas() {
-        this.canvas.width = 240;
-        this.canvas.height = 250;
+        const dpr = window.devicePixelRatio || 1;
 
+        // メインキャンバス（240x250）の高解像度化
+        const cssWidth = 240;
+        const cssHeight = 250;
+        this.canvas.width = cssWidth * dpr;
+        this.canvas.height = cssHeight * dpr;
+        this.canvas.style.width = `${cssWidth}px`;
+        this.canvas.style.height = `${cssHeight}px`;
+        
+        // 描画コンテキストのスケーリングを調整
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0); // リセット
+        this.ctx.scale(dpr, dpr);
+
+        // 上部キャンバス（topCanvas）の高解像度化
         if (this.topCanvas) {
             const topRect = this.topCanvas.getBoundingClientRect();
-            this.topCanvas.width = topRect.width || 343;
-            this.topCanvas.height = 290;
+            const topCssWidth = topRect.width || 343;
+            const topCssHeight = 290;
+
+            this.topCanvas.width = topCssWidth * dpr;
+            this.topCanvas.height = topCssHeight * dpr;
+            this.topCanvas.style.width = `${topCssWidth}px`;
+            this.topCanvas.style.height = `${topCssHeight}px`;
+
+            if (this.topCtx) {
+                this.topCtx.setTransform(1, 0, 0, 1, 0, 0); // リセット
+                this.topCtx.scale(dpr, dpr);
+            }
         }
 
-        this.TILE_WIDTH = this.canvas.width / this.NO_COL - this.TILE_MARGIN;
-        this.TILE_HEIGHT = this.canvas.height / this.NO_ROW - this.TILE_MARGIN;
+        // 以降のサイズ計算用（CSS上のサイズを基準にするため）
+        this.TILE_WIDTH = cssWidth / this.NO_COL - this.TILE_MARGIN;
+        this.TILE_HEIGHT = cssHeight / this.NO_ROW - this.TILE_MARGIN;
 
         if (this.tileMx && this.tileMx.length > 0) {
             for (let r = 0; r < this.NO_ROW; r++) {
