@@ -25,31 +25,36 @@ export class UI {
 
     updateScore(score) {
         if (this.scoreBoard) {
-            this.scoreBoard.innerHTML = `スコア ${score.toLocaleString()}`;
+            const num = Number(score) || 0;
+            this.scoreBoard.innerHTML = `スコア ${num.toLocaleString()}`;
         }
     }
 
     updateHighScore(highScore) {
         if (this.highScoreBoard) {
-            this.highScoreBoard.innerHTML = `ハイスコア ${highScore.toLocaleString()}`;
+            const num = Number(highScore) || 0;
+            this.highScoreBoard.innerHTML = `ハイスコア ${num.toLocaleString()}`;
         }
     }
 
     updateMergeCount(count) {
         if (this.mergeCountBoard) {
-            this.mergeCountBoard.innerHTML = `マージ回数：${count.toLocaleString()}`;
+            const num = Number(count) || 0;
+            this.mergeCountBoard.innerHTML = `マージ回数：${num.toLocaleString()}`;
         }
     }
 
     updateItemCount(count) {
         if (this.itemCountBoard) {
-            this.itemCountBoard.innerHTML = `+1アイテム：${count.toLocaleString()}`;
+            const num = Number(count) || 0;
+            this.itemCountBoard.innerHTML = `+1アイテム：${num.toLocaleString()}`;
         }
     }
 
     updateCoins(coins) {
         if (this.coinCountBoard) {
-            this.coinCountBoard.innerHTML = `コイン：${coins.toLocaleString()}`;
+            const num = Number(coins) || 0;
+            this.coinCountBoard.innerHTML = `コイン：${num.toLocaleString()}`;
         }
     }
 
@@ -188,11 +193,11 @@ export class UI {
 
             baseAtkSpan.textContent = baseTotalAtk.toLocaleString();
             baseHpSpan.textContent = baseTotalHp.toLocaleString();
-            baseMergeCountSpan.textContent = (baseMonster.mergeCount || 0).toLocaleString();
+            baseMergeCountSpan.textContent = (Number(baseMonster.mergeCount) || 0).toLocaleString();
 
             matAtkSpan.textContent = matTotalAtk.toLocaleString();
             matHpSpan.textContent = matTotalHp.toLocaleString();
-            matMergeCountSpan.textContent = (materialMonster.mergeCount || 0).toLocaleString();
+            matMergeCountSpan.textContent = (Number(materialMonster.mergeCount) || 0).toLocaleString();
 
             resultAtkSpan.textContent = (baseTotalAtk + addAtk).toLocaleString();
             resultHpSpan.textContent = (baseTotalHp + addHp).toLocaleString();
