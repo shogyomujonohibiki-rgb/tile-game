@@ -23,8 +23,13 @@ export class GameRenderer {
             const rect = this.topCanvas.getBoundingClientRect();
             const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
             const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-            const scaleX = this.topCanvas.width / rect.width;
-            const scaleY = this.topCanvas.height / rect.height;
+
+            // CSS上の表示サイズ（幅はrect.width、高さは290）を基準にする
+            const cssWidth = rect.width || 343;
+            const cssHeight = 290;
+            const scaleX = cssWidth / rect.width;
+            const scaleY = cssHeight / rect.height;
+
             return {
                 x: (clientX - rect.left) * scaleX,
                 y: (clientY - rect.top) * scaleY
@@ -371,12 +376,10 @@ export class GameRenderer {
 
         this.initDragListeners(game);
 
-        if (this.topCanvas.height !== 290) {
-            this.topCanvas.height = 290;
-        }
-
-        const w = this.topCanvas.width;
-        const h = this.topCanvas.height;
+        // CSS上の論理サイズを基準とする
+        const rect = this.topCanvas.getBoundingClientRect();
+        const w = rect.width || 343;
+        const h = 290;
 
         this.topCtx.fillStyle = '#111122';
         this.topCtx.fillRect(0, 0, w, h);
