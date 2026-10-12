@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>マージゲーム</title>
 
     <link rel="manifest" href="manifest.json">
@@ -15,16 +17,61 @@
 </head>
 
 <body>
-    <div style="display: flex; align-items: center; justify-content: center; width: 343px; max-width: 100%; margin: 0 auto; position: relative; box-sizing: border-box; padding: 0 4px;">
-        <div id="userNameBoard" style="position: absolute; left: 4px; font-size: 12px; font-weight: bold; color: #333; cursor: pointer; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="クリックして名前を変更">Guest</div>
-        <p id="scoreBoard" class="p1">0</p>
+<div style="display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 343px; margin: 0 auto; box-sizing: border-box; padding: 0 4px;">
+        <!-- 左寄せ：ユーザー名 -->
+        <div style="text-align: left; min-width: 90px;">
+            <div id="userNameBoard"
+                style="font-size: 12px; font-weight: bold; color: #333; cursor: pointer; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                title="クリックして名前を変更">Guest</div>
+        </div>
+
+        <!-- 中央：スコア -->
+        <div style="text-align: center; flex: 1;">
+            <p id="scoreBoard" class="p1" style="margin: 0; display: inline-block;">0</p>
+        </div>
+
+        <!-- 右寄せ：メニューボタン -->
+        <div style="text-align: right; min-width: 90px;">
+            <button id="menuButton"
+                style="width: 50px; height: 26px; font-size: 11px; margin: 0; cursor: pointer;">メニュー</button>
+        </div>
     </div>
     <p id="highScoreBoard" class="p3">0</p>
+
+    <!-- メニュー・ランキング用モーダル -->
+    <div id="menuModal" class="menu-modal hidden">
+        <div class="menu-modal-content">
+            <div id="menuMainView">
+                <h3>メニュー</h3>
+                <button id="btnScoreRanking" class="menu-action-btn">スコアランキング</button>
+                <button id="btnDungeonRanking" class="menu-action-btn">ダンジョンランキング</button>
+                <button id="btnMonsterRanking" class="menu-action-btn">モンスターランキング</button>
+                <button id="closeMenuBtn" class="menu-close-btn">閉じる</button>
+            </div>
+
+            <!-- スコアランキング詳細ビュー -->
+            <div id="scoreRankingView" class="hidden">
+                <div class="ranking-header-bar">
+                    <button id="backToMenuBtn" class="menu-back-btn">＜ 戻る</button>
+                    <h3>スコアランキング</h3>
+                </div>
+                <div class="ranking-tabs">
+                    <button id="tabGlobal" class="ranking-tab active">全国ランキング</button>
+                    <button id="tabMy" class="ranking-tab">マイランキング</button>
+                </div>
+                <div id="rankingListView" class="ranking-list-box">
+                    <!-- ランキングデータがここに描画されます -->
+                </div>
+                <button id="closeScoreRankingBtn" class="menu-close-btn" style="margin-top: 8px;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
     <div id="gameArea">
         <!-- 上部：箱庭エリア -->
         <div style="position: relative;">
             <canvas id="topCanvas" width="240" height="290"></canvas>
-            
+
             <!-- 合体モード用オーバーレイUI -->
             <div id="mergeUIContainer" class="hidden">
                 <div class="merge-header">
@@ -92,4 +139,5 @@
     <!-- メインエントリーポイント -->
     <script type="module" src="main.js"></script>
 </body>
+
 </html>
