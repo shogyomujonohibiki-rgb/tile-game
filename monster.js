@@ -135,7 +135,7 @@ export class TopMonster {
 
         ctx.fillStyle = this.palette.main;
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
 
         const type = this.bodyType;
