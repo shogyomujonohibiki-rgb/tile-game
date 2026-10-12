@@ -5,6 +5,7 @@ export class UI {
         this.scoreBoard = document.getElementById('scoreBoard');
         this.highScoreBoard = document.getElementById('highScoreBoard');
         this.userNameBoard = document.getElementById('userNameBoard'); // 追加
+        this.menuButton = document.getElementById('menuButton'); // ★ここを追加
         this.mergeCountBoard = document.getElementById('mergeCountBoard');
         this.itemCountBoard = document.getElementById('itemCountBoard');
         
@@ -22,6 +23,104 @@ export class UI {
         this.colorSample = document.getElementById('colorSample');
 
         this.setExchangeButtonVisible(false);
+        this.initMenuEvents(); // 追加
+    }
+
+    // ▼ 追加: メニューおよびランキングのインタラクション初期化
+    initMenuEvents() {
+        const menuModal = document.getElementById('menuModal');
+        const menuMainView = document.getElementById('menuMainView');
+        const scoreRankingView = document.getElementById('scoreRankingView');
+
+        const btnScoreRanking = document.getElementById('btnScoreRanking');
+        const btnDungeonRanking = document.getElementById('btnDungeonRanking');
+        const btnMonsterRanking = document.getElementById('btnMonsterRanking');
+        const closeMenuBtn = document.getElementById('closeMenuBtn');
+        const closeScoreRankingBtn = document.getElementById('closeScoreRankingBtn');
+        const backToMenuBtn = document.getElementById('backToMenuBtn');
+
+        const tabGlobal = document.getElementById('tabGlobal');
+        const tabMy = document.getElementById('tabMy');
+
+        if (this.menuButton) {
+            this.menuButton.addEventListener('click', () => {
+                menuMainView.classList.remove('hidden');
+                scoreRankingView.classList.add('hidden');
+                menuModal.classList.remove('hidden');
+            });
+        }
+
+        const closeModal = () => {
+            menuModal.classList.add('hidden');
+        };
+
+        if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeModal);
+        if (closeScoreRankingBtn) closeScoreRankingBtn.addEventListener('click', closeModal);
+
+        if (btnScoreRanking) {
+            btnScoreRanking.addEventListener('click', () => {
+                menuMainView.classList.add('hidden');
+                scoreRankingView.classList.remove('hidden');
+                // デフォルトで全国タブを選択状態にする
+                tabGlobal.click();
+            });
+        }
+
+        if (backToMenuBtn) {
+            backToMenuBtn.addEventListener('click', () => {
+                scoreRankingView.classList.add('hidden');
+                menuMainView.classList.remove('hidden');
+            });
+        }
+
+        if (btnDungeonRanking) {
+            btnDungeonRanking.addEventListener('click', () => {
+                alert('ダンジョンランキングは準備中です');
+            });
+        }
+
+        if (btnMonsterRanking) {
+            btnMonsterRanking.addEventListener('click', () => {
+                alert('モンスターランキングは準備中です');
+            });
+        }
+    }
+
+    // ▼ 追加: ランキングデータを描画するメソッド
+    renderMenuRankings(globalData, myData, activeTab = 'global') {
+        const tabGlobal = document.getElementById('tabGlobal');
+        const tabMy = document.getElementById('tabMy');
+        const rankingListView = document.getElementById('rankingListView');
+
+        if (!tabGlobal || !tabMy || !rankingListView) return;
+
+        const isGlobal = (activeTab === 'global');
+        tabGlobal.classList.toggle('active', isGlobal);
+        tabMy.classList.toggle('active', !isGlobal);
+
+        const dataList = isGlobal ? globalData : myData;
+
+        tabGlobal.onclick = () => this.renderMenuRankings(globalData, myData, 'global');
+        tabMy.onclick = () => this.renderMenuRankings(globalData, myData, 'my');
+
+        if (!dataList || dataList.length === 0) {
+            rankingListView.innerHTML = '<div style="text-align:center; color:#888; padding:20px; font-size:11px;">データなし</div>';
+            return;
+        }
+
+        let html = '<table style="width:100%; border-collapse:collapse; font-size:11px; color:#333;">';
+        dataList.slice(0, 20).forEach((item, index) => {
+            const rank = index + 1;
+            const name = isGlobal ? (item.userName || 'Guest') : (item.dateStr || '');
+            const score = (item.score || 0).toLocaleString();
+            html += `<tr style="border-bottom:1px solid #eee;">
+                <td style="padding:4px; width:30px; font-weight:bold;">${rank}.</td>
+                <td style="padding:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px;">${name}</td>
+                <td style="padding:4px; text-align:right; font-weight:bold; color:#0056b3;">${score}</td>
+            </tr>`;
+        });
+        html += '</table>';
+        rankingListView.innerHTML = html;
     }
 
     // 追加
@@ -30,7 +129,7 @@ export class UI {
             this.userNameBoard.textContent = name || 'Guest';
         }
     }
-    
+
     updateScore(score) {
         if (this.scoreBoard) {
             const num = Number(score) || 0;
