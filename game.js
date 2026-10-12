@@ -122,6 +122,21 @@ export class Game {
             });
         }
 
+        // ▼ 追加: メニューのスコアランキングボタンが押された時のデータ連動
+        const btnScoreRanking = document.getElementById('btnScoreRanking');
+        if (btnScoreRanking) {
+            btnScoreRanking.addEventListener('click', async () => {
+                if (window.currentUser) {
+                    this.uid = window.currentUser.uid;
+                }
+                const { globalLeaderboard, myLeaderboard } = await this.dataManager.fetchLeaderboards(this.uid);
+                this.globalLeaderboard = globalLeaderboard;
+                this.myLeaderboard = myLeaderboard;
+
+                this.ui.renderMenuRankings(this.globalLeaderboard, this.myLeaderboard, 'global');
+            });
+        }
+
         this.canvas.addEventListener('pointerdown', (e) => {
             if (e.cancelable) e.preventDefault();
             if (this.isGameover || this.isResetting || this.isTransitioning) return;
@@ -922,4 +937,6 @@ export class Game {
 
         this.dataManager.saveCloudData(this);
     }
+
+    
 }
