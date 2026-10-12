@@ -131,8 +131,11 @@ export class Game {
             if (this.isMoving) return;
 
             this.rect = this.canvas.getBoundingClientRect();
-            const scaleX = this.canvas.width / this.rect.width;
-            const scaleY = this.canvas.height / this.rect.height;
+            // キャンバスのCSS上の表示サイズ（240x250）を基準にする
+            const cssWidth = 240;
+            const cssHeight = 250;
+            const scaleX = cssWidth / this.rect.width;
+            const scaleY = cssHeight / this.rect.height;
 
             const clickX = (e.clientX - this.rect.left) * scaleX;
             const clickY = (e.clientY - this.rect.top) * scaleY;
@@ -170,8 +173,10 @@ export class Game {
             if (this.isMoving || this.isGameover || this.isResetting) return;
 
             if (this.tileChosen) {
-                const scaleX = this.canvas.width / this.rect.width;
-                const scaleY = this.canvas.height / this.rect.height;
+                const cssWidth = 240;
+                const cssHeight = 250;
+                const scaleX = cssWidth / this.rect.width;
+                const scaleY = cssHeight / this.rect.height;
 
                 const currentX = (e.clientX - this.rect.left) * scaleX;
                 const currentY = (e.clientY - this.rect.top) * scaleY;
@@ -275,7 +280,7 @@ export class Game {
         this.ui.setPartyButtonEnabled(true);
         this.ui.setUndoButtonVisible(mode === 'scout');
         this.isGameover = false;
-        
+
         this.updateExchangeButtonState();
 
         this.drawTiles();
@@ -339,7 +344,7 @@ export class Game {
         this.canvas.height = cssHeight * dpr;
         this.canvas.style.width = `${cssWidth}px`;
         this.canvas.style.height = `${cssHeight}px`;
-        
+
         // 描画コンテキストのスケーリングを調整
         this.ctx.setTransform(1, 0, 0, 1, 0, 0); // リセット
         this.ctx.scale(dpr, dpr);
