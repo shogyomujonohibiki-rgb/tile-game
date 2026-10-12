@@ -71,4 +71,24 @@ export class DataManager {
             return { globalLeaderboard: [], myLeaderboard: [] };
         }
     }
+
+    // ダンジョン到達階の保存
+    async saveDungeonScore(dungeonFloor, enemyHp, userName) {
+        if (typeof window.saveDungeonScoreToFirestore === 'function') {
+            await window.saveDungeonScoreToFirestore(dungeonFloor, enemyHp, userName);
+        }
+    }
+
+    // ダンジョンランキングデータの取得
+    async fetchDungeonLeaderboard() {
+        try {
+            if (typeof window.fetchDungeonLeaderboardFromFirestore === 'function') {
+                return await window.fetchDungeonLeaderboardFromFirestore(20);
+            }
+            return [];
+        } catch (error) {
+            console.error("ダンジョンランキングデータの取得に失敗しました:", error);
+            return [];
+        }
+    }
 }
