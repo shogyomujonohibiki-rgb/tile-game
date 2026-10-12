@@ -25,31 +25,31 @@ export class UI {
 
     updateScore(score) {
         if (this.scoreBoard) {
-            this.scoreBoard.innerHTML = `スコア ${score}`;
+            this.scoreBoard.innerHTML = `スコア ${score.toLocaleString()}`;
         }
     }
 
     updateHighScore(highScore) {
         if (this.highScoreBoard) {
-            this.highScoreBoard.innerHTML = `ハイスコア ${highScore}`;
+            this.highScoreBoard.innerHTML = `ハイスコア ${highScore.toLocaleString()}`;
         }
     }
 
     updateMergeCount(count) {
         if (this.mergeCountBoard) {
-            this.mergeCountBoard.innerHTML = `マージ回数：${count}`;
+            this.mergeCountBoard.innerHTML = `マージ回数：${count.toLocaleString()}`;
         }
     }
 
     updateItemCount(count) {
         if (this.itemCountBoard) {
-            this.itemCountBoard.innerHTML = `+1アイテム：${count}`;
+            this.itemCountBoard.innerHTML = `+1アイテム：${count.toLocaleString()}`;
         }
     }
 
     updateCoins(coins) {
         if (this.coinCountBoard) {
-            this.coinCountBoard.innerHTML = `コイン：${coins}`;
+            this.coinCountBoard.innerHTML = `コイン：${coins.toLocaleString()}`;
         }
     }
 
@@ -97,7 +97,6 @@ export class UI {
         }
     }
 
-    // スカウトボタン・ダンジョンボタンを個別に制御できるようにするメソッドを追加
     setScoutButtonEnabled(enabled) {
         if (this.modeScoutBtn) {
             this.modeScoutBtn.disabled = !enabled;
@@ -189,11 +188,11 @@ export class UI {
 
             baseAtkSpan.textContent = baseTotalAtk.toLocaleString();
             baseHpSpan.textContent = baseTotalHp.toLocaleString();
-            baseMergeCountSpan.textContent = baseMonster.mergeCount || 0;
+            baseMergeCountSpan.textContent = (baseMonster.mergeCount || 0).toLocaleString();
 
             matAtkSpan.textContent = matTotalAtk.toLocaleString();
             matHpSpan.textContent = matTotalHp.toLocaleString();
-            matMergeCountSpan.textContent = materialMonster.mergeCount || 0;
+            matMergeCountSpan.textContent = (materialMonster.mergeCount || 0).toLocaleString();
 
             resultAtkSpan.textContent = (baseTotalAtk + addAtk).toLocaleString();
             resultHpSpan.textContent = (baseTotalHp + addHp).toLocaleString();
