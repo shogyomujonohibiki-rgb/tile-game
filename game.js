@@ -721,10 +721,6 @@ export class Game {
 
         this.renderer.drawGameOverOverlay(this);
 
-        if (typeof this.changeUserName === 'function') {
-            this.changeUserName(false);
-        }
-
         if (window.currentUser) {
             this.uid = window.currentUser.uid;
         }
