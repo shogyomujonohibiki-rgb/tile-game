@@ -258,9 +258,10 @@ export class GameRenderer {
         this.ctx.shadowColor = 'rgb(130, 130, 130)';
 
         if (tile.isMovable) {
-            this.ctx.shadowBlur = 2;
-            this.ctx.shadowOffsetX = 4;
-            this.ctx.shadowOffsetY = 4;
+            const dpr = window.devicePixelRatio || 1;
+            this.ctx.shadowBlur = 2 * dpr;
+            this.ctx.shadowOffsetX = 4 * dpr;
+            this.ctx.shadowOffsetY = 4 * dpr;
             offsetX = 0;
             offsetY = 0;
         } else {
