@@ -191,10 +191,10 @@ export class GameRenderer {
         window.addEventListener('touchend', onEnd);
     }
 
-    startAttackAnimation(attackEvents) {
+startAttackAnimation(attackEvents) {
         const w = this.topCanvas ? this.topCanvas.getBoundingClientRect().width || this.topCanvas.width : 343;
-        const enemyX = w - 70;
-        const enemyY = 100;
+        const enemyX = w - 90; // 基準位置を少し左に調整
+        const enemyY = 85;     // 基準位置を少し上に調整
 
         attackEvents.forEach((event, i) => {
             const { monster, damage, tileValue } = event;
@@ -203,9 +203,13 @@ export class GameRenderer {
             monster.jumpProgress = 0;
             monster.attackDelay = i * 8;
 
+            // 攻撃順（i）が進むにつれて、徐々に右下にずらしていくオフセット
+            const offsetX = i * 5;
+            const offsetY = i * 16;
+
             this.attackEffects.push({
-                x: enemyX,
-                y: enemyY,
+                x: enemyX -10 + offsetX,
+                y: enemyY -20 + offsetY,
                 damage: damage,
                 tileValue: tileValue || 1,
                 progress: 0,
@@ -776,7 +780,7 @@ export class GameRenderer {
         }
     }
 
-    renderAttackEffects(ctx) {
+renderAttackEffects(ctx) {
         const rect = this.topCanvas ? this.topCanvas.getBoundingClientRect() : { width: 343 };
         const w = rect.width || 343;
         const enemyIconX = w - 70;
@@ -800,15 +804,15 @@ export class GameRenderer {
 
             ctx.save();
 
-            // 1. 敵アイコンの中央（enemyIconX, enemyIconY）を基準にしたヒットフラッシュエフェクト
+            // 1. 各ダメージ発生位置を基準にしたヒットフラッシュエフェクト
             const flashRadius = 18 * (1 - lifeRatio * 0.5);
             ctx.fillStyle = lifeRatio < 0.3 ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 200, 0, 0.7)';
             ctx.beginPath();
             for (let k = 0; k < 8; k++) {
                 const angle = (Math.PI / 4) * k;
                 const r = k % 2 === 0 ? flashRadius : flashRadius * 0.4;
-                const px = enemyIconX + Math.cos(angle) * r;
-                const py = enemyIconY + Math.sin(angle) * r;
+                const px = fx.x + Math.cos(angle) * r;
+                const py = fx.y + Math.sin(angle) * r;
                 if (k === 0) ctx.moveTo(px, py);
                 else ctx.lineTo(px, py);
             }
@@ -816,9 +820,9 @@ export class GameRenderer {
             ctx.fill();
 
             const alpha = 1 - lifeRatio / 2;
-
-            // 2. ダメージ数値のポップアップ（敵アイコンの中央から上方へフロート移動）
-            const floatY = enemyIconY - (fx.progress * 0.6);
+            
+            // 2. ダメージ数値のポップアップ（上にフロートさせず、ずらした位置に固定表示）
+            const damageY = fx.y;
 
             ctx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha})`;
@@ -828,13 +832,14 @@ export class GameRenderer {
             ctx.textBaseline = 'middle';
 
             const damageText = `-${fx.damage.toLocaleString()}`;
-            ctx.strokeText(damageText, enemyIconX, floatY);
-            ctx.fillText(damageText, enemyIconX, floatY);
+            ctx.strokeText(damageText, fx.x, damageY);
+            ctx.fillText(damageText, fx.x, damageY);
 
             // 3. 敵アイコンの下部にタイル値の2乗（x○○）を表示
             const squaredVal = fx.tileValue * fx.tileValue;
             const multText = `x ${squaredVal.toLocaleString()}`;
-            const multY = enemyIconY + 100; // 敵アイコン（radius:35）の下部付近
+            const multX = enemyIconX - 30; 
+            const multY = enemyIconY + 100; // 敵アイコンの下部
 
             ctx.font = 'bold 50px Arial';
             ctx.textAlign = 'center';
@@ -843,11 +848,11 @@ export class GameRenderer {
             // 縁取り
             ctx.strokeStyle = `rgba(0, 0, 0, ${alpha * 0.9})`;
             ctx.lineWidth = 3;
-            ctx.strokeText(multText, enemyIconX - 30, multY);
+            ctx.strokeText(multText, multX, multY);
 
             // 文字本体
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-            ctx.fillText(multText, enemyIconX - 30, multY);
+            ctx.fillText(multText, multX, multY);
 
             ctx.restore();
         }
