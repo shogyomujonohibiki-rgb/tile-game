@@ -689,6 +689,7 @@ const dungeonRankingView = document.getElementById('dungeonRankingView');
                     if (this.currentMode === 'scout') {
                         this.triggerScoutGameOver();
                     } else {
+                        this.mergeCount = 0;
                         await this.resetPuzzleBoard();
                     }
                 });
@@ -921,7 +922,7 @@ const dungeonRankingView = document.getElementById('dungeonRankingView');
                 this.battleManager.enemyMaxHp, 
                 this.userName
             );
-            
+
             this.history = [];
             this.score = 0;
             this.mergeCount = 0;
