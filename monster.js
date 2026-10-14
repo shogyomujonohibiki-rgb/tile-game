@@ -63,7 +63,7 @@ export class TopMonster {
             const scoutMultiplier = Dungeon.scoutMultiplierFor ? Dungeon.scoutMultiplierFor(currentFloor) : 1.0;
             const basePower = Math.max(10, Math.floor(initialScore * scoutMultiplier));
 
-            this.originalAttack = Math.max(1, Math.floor(Math.random() * basePower) + 1);
+            this.originalAttack = Math.max(1, Math.floor(Math.random() * (basePower - 1)) + 1);
             this.originalHp = basePower - this.originalAttack;
         }
 
