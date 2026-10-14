@@ -1,5 +1,7 @@
 'use strict';
 
+import { TopMonster } from './monster.js';
+
 export class UI {
     constructor() {
         this.scoreBoard = document.getElementById('scoreBoard');
@@ -23,6 +25,12 @@ export class UI {
         this.colorSample = document.getElementById('colorSample');
 
         this.setExchangeButtonVisible(false);
+       
+        // ★追加: スカウト結果モーダル用のアニメーション管理プロパティ
+        this.scoutModalContext = null; 
+        this.scoutModalAnimationId = null;
+        this.currentGeneratingMonster = null;
+
         this.initMenuEvents(); // 追加
     }
 
@@ -49,7 +57,7 @@ initMenuEvents() {
             this.menuButton.addEventListener('click', () => {
                 menuMainView.classList.remove('hidden');
                 scoreRankingView.classList.add('hidden');
-                if (dungeonRankingView) dungeonRankingView.classList.add('hidden'); // ▼ 追加: 念のため非課金化
+                if (dungeonRankingView) dungeonRankingView.classList.add('hidden'); // ▼ 追加
                 menuModal.classList.remove('hidden');
             });
         }
@@ -401,6 +409,109 @@ initMenuEvents() {
             };
             btn.onclick = handler;
             modal.style.display = 'flex';
+        });
+    }
+    
+showScoutResultModal(score, multiplier, currentFloor) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('scoutResultModal');
+            const canvas = document.getElementById('scoutResultCanvas');
+            const calcText = document.getElementById('scoutCalcText');
+            const statsText = document.getElementById('scoutStatsText');
+            const rerollBtn = document.getElementById('scoutRerollBtn');
+            const confirmBtn = document.getElementById('scoutConfirmBtn');
+
+            if (!modal || !canvas) {
+                resolve(null);
+                return;
+            }
+
+            // Canvasコンテキストの取得
+            if (!this.scoutModalContext) {
+                this.scoutModalContext = canvas.getContext('2d');
+                // 高解像度対応 (必要であれば)
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = 80 * dpr;
+                canvas.height = 80 * dpr;
+                canvas.style.width = '80px';
+                canvas.style.height = '80px';
+                this.scoutModalContext.scale(dpr, dpr);
+            }
+            const ctx = this.scoutModalContext;
+
+            // アニメーションループ関数
+            const animLoop = () => {
+                ctx.clearRect(0, 0, 80, 80);
+                if (this.currentGeneratingMonster) {
+                    this.currentGeneratingMonster.update();
+                    this.currentGeneratingMonster.draw(ctx);
+                }
+                this.scoutModalAnimationId = requestAnimationFrame(animLoop);
+            };
+
+            // モンスター生成と表示更新関数
+            const generateAndDisplay = (currentScore) => {
+                // パラメータ計算式
+                const finalPower = Math.max(10, Math.floor(currentScore * multiplier));
+                
+                // 計算式のテキスト表示
+                calcText.textContent = `${currentScore.toLocaleString()} × ${multiplier.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} ＝ ${finalPower.toLocaleString()}`;
+
+                // ★TopMonsterのインスタンスを実際に生成
+                // TopMonster側のランダムATK/HP割り振りを利用
+                const m = new TopMonster(80, 80, null, currentScore, null, currentFloor);
+                // 表示位置調整
+                m.x = 40;
+                m.y = 40;
+                m.radius = 28; // プレビュー用に少し大きく
+                
+                this.currentGeneratingMonster = m;
+
+                // 実際のステータスを表示
+                statsText.textContent = `ATK ${m.attack.toLocaleString()}、HP ${m.hp.toLocaleString()}`;
+            };
+
+            // 初期生成
+            generateAndDisplay(score);
+
+            // アニメーション開始
+            if (this.scoutModalAnimationId) cancelAnimationFrame(this.scoutModalAnimationId);
+            animLoop();
+
+            // クリーンアップと終了処理
+            const cleanup = (finalMonster) => {
+                rerollBtn.onclick = null;
+                confirmBtn.onclick = null;
+                if (this.scoutModalAnimationId) {
+                    cancelAnimationFrame(this.scoutModalAnimationId);
+                    this.scoutModalAnimationId = null;
+                }
+                this.currentGeneratingMonster = null;
+                ctx.clearRect(0, 0, 80, 80);
+                modal.classList.add('hidden');
+                resolve(finalMonster);
+            };
+
+            // イベントリスナー設定
+            rerollBtn.onclick = () => {
+                generateAndDisplay(score);
+            };
+
+            confirmBtn.onclick = () => {
+                // 現在表示中のモンスターを確定として返す
+                if (this.currentGeneratingMonster) {
+                    // 階層情報を本来のものに修正
+                    this.currentGeneratingMonster.originalFloor = currentFloor;
+                    // topCanvas用のサイズ設定に戻す必要があるが、
+                    // それはgame.js側で行う（constructorを参照しないため）
+                    cleanup(this.currentGeneratingMonster);
+                } else {
+                    cleanup(null);
+                }
+            };
+
+            // モーダル表示
+            modal.classList.remove('hidden');
         });
     }
 }
