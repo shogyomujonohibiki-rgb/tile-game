@@ -145,6 +145,34 @@
         <button id="modeMonsterGet" class="active">スカウト</button>
         <button id="modeDungeon">ダンジョン</button>
     </div>
+    
+    <!-- ▼ 追加: スカウトモードゲームオーバー時のモンスター生成画面モーダル -->
+    <div id="scoutResultModal" class="menu-modal hidden">
+        <div class="menu-modal-content" style="text-align: center; max-width: 300px;">
+            <h3 style="margin-top: 0; color: #333; font-size: 15px;">モンスター獲得</h3>
+            
+            <!-- モンスター画像を描画・プレビューするCanvas -->
+            <div style="margin: 10px auto; display: flex; justify-content: center;">
+                <canvas id="scoutResultCanvas" width="80" height="80" style="background: #222233; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"></canvas>
+            </div>
+
+            <!-- 計算式の表記 -->
+            <div id="scoutCalcText" style="font-size: 11px; color: #555; margin-bottom: 6px;">
+                スコア × スカウト倍率 ＝ 0
+            </div>
+
+            <!-- ステータス表記 -->
+            <div id="scoutStatsText" style="font-size: 13px; font-weight: bold; color: #0056b3; margin-bottom: 14px;">
+                ATK 0、HP 0
+            </div>
+
+            <!-- 引き直し・確定ボタン -->
+            <div style="display: flex; gap: 8px;">
+                <button id="scoutRerollBtn" style="all: unset; background-color: #6c757d; color: white; flex: 1; height: 36px; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer;">引き直し</button>
+                <button id="scoutConfirmBtn" style="all: unset; background-color: #28a745; color: white; flex: 1; height: 36px; border-radius: 4px; font-weight: bold; font-size: 12px; cursor: pointer;">確定</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Firebase初期化モジュール -->
     <script type="module" src="firebase-config.js"></script>
