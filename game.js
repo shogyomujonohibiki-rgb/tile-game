@@ -911,6 +911,17 @@ const dungeonRankingView = document.getElementById('dungeonRankingView');
                 }
             });
 
+            // ▼ 追加: 敵を倒して階層をクリアした時にもダンジョンランキングへスコアを保存する
+            if (window.currentUser) {
+                this.uid = window.currentUser.uid;
+            }
+            await this.dataManager.saveCloudData(this);
+            await this.dataManager.saveDungeonScore(
+                this.battleManager.dungeonFloor, 
+                this.battleManager.enemyMaxHp, 
+                this.userName
+            );
+            
             this.history = [];
             this.score = 0;
             this.mergeCount = 0;
