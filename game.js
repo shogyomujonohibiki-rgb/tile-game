@@ -1,7 +1,7 @@
 'use strict';
 
 import { TopMonster } from './monster.js';
-import { BOARD, STORAGE_KEYS, MONSTER, COIN_EXCHANGE, BattleManager } from './config.js';
+import { BOARD, STORAGE_KEYS, MONSTER, COIN_EXCHANGE, BattleManager, Dungeon} from './config.js';
 import { Board } from './board.js';
 import { UI } from './ui.js';
 import { GameRenderer } from './renderer.js';
@@ -770,19 +770,34 @@ const dungeonRankingView = document.getElementById('dungeonRankingView');
 
         await new Promise(resolve => setTimeout(resolve, 200));
 
+        // ▼ 修正: UIにモンスター生成・選択を任せ、確定したインスタンスを受け取る
         if (this.topCanvas) {
-            const monsterScore = Math.max(10, Math.floor(this.score));
             const currentFloor = this.battleManager ? this.battleManager.dungeonFloor : 1;
-            const newMonster = new TopMonster(this.topCanvas.width, this.topCanvas.height, null, monsterScore, null, currentFloor);
-            this.topMonsters.push(newMonster);
+            const multiplier = Dungeon.scoutMultiplierFor(currentFloor);
+            
+            // UIに要件（動く、実際のステータス、引き直し）を実装したモーダルを表示させ、確定を待つ
+            const confirmedMonster = await this.ui.showScoutResultModal(this.score, multiplier, currentFloor);
 
-            const emptyIndex = this.partyMonsterIds.indexOf(null);
-            if (emptyIndex !== -1 && !this.partyMonsterIds.includes(this.topMonsters.length - 1)) {
-                this.partyMonsterIds[emptyIndex] = this.topMonsters.length - 1;
-            }
+            if (confirmedMonster) {
+                // キャンバスサイズ情報を本来のtopCanvasのものに更新
+                confirmedMonster.canvasWidth = this.topCanvas.width;
+                confirmedMonster.canvasHeight = this.topCanvas.height;
+                // 半径も戻す (TopMonster constructorのデフォルトは12)
+                confirmedMonster.radius = 12;
 
-            if (this.topMonsters.length > this.maxMonsterCount) {
-                await this.ui.promptMonsterLimitSelection(this.topMonsters);
+                // 所持モンスターリストに追加
+                this.topMonsters.push(confirmedMonster);
+
+                // パーティー枠に空きがあれば自動参加
+                const emptyIndex = this.partyMonsterIds.indexOf(null);
+                if (emptyIndex !== -1 && !this.partyMonsterIds.includes(this.topMonsters.length - 1)) {
+                    this.partyMonsterIds[emptyIndex] = this.topMonsters.length - 1;
+                }
+
+                // 所持上限チェック
+                if (this.topMonsters.length > this.maxMonsterCount) {
+                    await this.ui.promptMonsterLimitSelection(this.topMonsters);
+                }
             }
         }
 
